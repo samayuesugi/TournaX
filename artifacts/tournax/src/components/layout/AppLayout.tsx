@@ -58,10 +58,6 @@ export function AppLayout({
             </Link>
           )}
 
-          {title && (
-            <h1 className="flex-1 text-base font-semibold truncate">{title}</h1>
-          )}
-
           <div className="ml-auto flex items-center gap-2">
             {user && user.role !== "admin" && wallet && (
               <Link href="/wallet">
