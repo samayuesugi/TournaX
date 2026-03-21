@@ -5,6 +5,7 @@ import matchesRouter from "./matches";
 import usersRouter from "./users";
 import walletRouter from "./wallet";
 import adminRouter from "./admin";
+import gamesRouter from "./games";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(matchesRouter);
 router.use(usersRouter);
 router.use(walletRouter);
 router.use(adminRouter);
+router.use(gamesRouter);
 
 export default router;

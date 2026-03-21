@@ -21,7 +21,8 @@ const adminNav = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/players", icon: User, label: "Players" },
   { href: "/admin/finance", icon: DollarSign, label: "Finance" },
-  { href: "/admin/complaints", icon: Compass, label: "Complaints" },
+  { href: "/admin/games", icon: Compass, label: "Games" },
+  { href: "/admin/complaints", icon: Swords, label: "Issues" },
 ];
 
 export function BottomNav() {

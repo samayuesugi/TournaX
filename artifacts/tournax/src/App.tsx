@@ -21,6 +21,7 @@ import AdminDashboardPage from "@/pages/admin/index";
 import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
 import AdminComplaintsPage from "@/pages/admin/complaints";
+import AdminGamesPage from "@/pages/admin/games";
 import NotFound from "@/pages/not-found";
 
 setAuthTokenGetter(getToken);
@@ -160,6 +161,12 @@ function Router() {
       <Route path="/admin/finance">
         <ProtectedRoute roles={["admin"]}>
           <AdminFinancePage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/games">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminGamesPage />
         </ProtectedRoute>
       </Route>
 
