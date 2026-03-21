@@ -1,26 +1,166 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { getToken } from "@/lib/auth";
+
+import AuthPage from "@/pages/auth";
+import SetupProfilePage from "@/pages/setup-profile";
+import HomePage from "@/pages/home";
+import MatchDetailPage from "@/pages/match-detail";
+import MyMatchesPage from "@/pages/my-matches";
+import ProfilePage from "@/pages/profile";
+import WalletPage from "@/pages/wallet";
+import ExplorePage from "@/pages/explore";
+import NotificationsPage from "@/pages/notifications";
+import CreateMatchPage from "@/pages/host/create-match";
+import AdminDashboardPage from "@/pages/admin/index";
+import AdminPlayersPage from "@/pages/admin/players";
+import AdminFinancePage from "@/pages/admin/finance";
+import AdminComplaintsPage from "@/pages/admin/complaints";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+setAuthTokenGetter(getToken);
 
-function Home() {
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Replit Agent is building...</h1>
-        <p className="mt-2 text-sm text-gray-600">Your app will appear here once it's ready.</p>
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+    },
+  },
+});
+
+function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
+  const { user, isLoading } = useAuth();
+  const [location] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+
+  if (!user.profileSetup && location !== "/setup-profile") {
+    return <Redirect to="/setup-profile" />;
+  }
+
+  if (roles && !roles.includes(user.role)) {
+    return <Redirect to="/" />;
+  }
+
+  return <>{children}</>;
+}
+
+function GuestRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (user) {
+    if (!user.profileSetup) return <Redirect to="/setup-profile" />;
+    if (user.role === "admin") return <Redirect to="/admin" />;
+    return <Redirect to="/" />;
+  }
+
+  return <>{children}</>;
 }
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/auth">
+        <GuestRoute><AuthPage /></GuestRoute>
+      </Route>
+
+      <Route path="/setup-profile">
+        <SetupProfilePage />
+      </Route>
+
+      <Route path="/">
+        <ProtectedRoute roles={["player", "host"]}>
+          <HomePage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/matches/:id">
+        <ProtectedRoute><MatchDetailPage /></ProtectedRoute>
+      </Route>
+
+      <Route path="/my-matches">
+        <ProtectedRoute roles={["player", "host"]}>
+          <MyMatchesPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/profile">
+        <ProtectedRoute><ProfilePage /></ProtectedRoute>
+      </Route>
+
+      <Route path="/profile/:handle">
+        <ProtectedRoute><ProfilePage /></ProtectedRoute>
+      </Route>
+
+      <Route path="/wallet">
+        <ProtectedRoute roles={["player"]}>
+          <WalletPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/explore">
+        <ProtectedRoute roles={["player", "host"]}>
+          <ExplorePage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/notifications">
+        <ProtectedRoute><NotificationsPage /></ProtectedRoute>
+      </Route>
+
+      <Route path="/host/create-match">
+        <ProtectedRoute roles={["host"]}>
+          <CreateMatchPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminDashboardPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/players">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminPlayersPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/finance">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminFinancePage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/complaints">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminComplaintsPage />
+        </ProtectedRoute>
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -30,9 +170,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <AuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+        </AuthProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── tournax/            # React frontend (gaming tournament platform)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -90,6 +91,35 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+
+### `artifacts/tournax` (`@workspace/tournax`)
+
+React 19 + Vite frontend for the TournaX gaming tournament platform. Dark-themed esports UI.
+
+- **Tech**: React 19, Vite, TypeScript, Tailwind CSS, shadcn/ui, Wouter (routing), TanStack Query
+- **Auth**: JWT stored in localStorage, injected via `setAuthTokenGetter` from the API client
+- **Theme**: Always-dark gaming theme — navy background, purple primary, cyan accent
+- **Roles**: `player`, `host`, `admin` — each gets different pages/navigation
+- **Pages**:
+  - `/auth` — Login / Register (tabs)
+  - `/setup-profile` — One-time profile setup after registration
+  - `/` — Match lobby with search + status filters (player/host)
+  - `/matches/:id` — Match detail with join, room credentials, host controls
+  - `/my-matches` — Active & history tabs (player/host)
+  - `/profile` / `/profile/:handle` — Own profile + public profiles with follow
+  - `/wallet` — Balance, add money (UTR), withdrawals (UPI)
+  - `/explore` — Browse hosts and players
+  - `/notifications` — Notification list
+  - `/host/create-match` — Create tournament (host only)
+  - `/admin` — Dashboard stats, create host/admin
+  - `/admin/players` — Player list, verify/ban/add balance
+  - `/admin/finance` — Approve/reject deposits & withdrawals
+  - `/admin/complaints` — View complaints
+- **Key files**:
+  - `src/contexts/AuthContext.tsx` — Auth state management
+  - `src/lib/auth.ts` — Token storage helpers
+  - `src/components/layout/AppLayout.tsx` — Main layout with header + bottom nav
+  - `src/components/match/MatchCard.tsx` — Reusable match card
 
 ### `scripts` (`@workspace/scripts`)
 
