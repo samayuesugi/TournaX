@@ -84,7 +84,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     role: "player",
     status: "active",
     profileSetup: false,
-    balance: "100",
+    balance: "0",
   }).returning();
   const token = generateToken(user.id);
   res.json({ user: serializeUser(user), token });
