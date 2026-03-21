@@ -57,6 +57,75 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
   res.json({ recommendedHosts, mostActivePlayers: await Promise.all(mostActivePlayers) });
 });
 
+router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const squad = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
+  res.json(squad.map(s => ({ id: s.id, name: s.name, uid: s.uid })));
+});
+
+router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { name, uid } = req.body;
+  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid }).returning();
+  res.json({ id: member.id, name: member.name, uid: member.uid });
+});
+
+router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { name, handle, avatar } = req.body;
+  const updateData: any = {};
+  if (name) updateData.name = name;
+  if (handle) updateData.handle = handle;
+  if (avatar) updateData.avatar = avatar;
+  const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
+  res.json({
+    id: updated.id, email: updated.email, name: updated.name, handle: updated.handle,
+    avatar: updated.avatar, game: updated.game, gameUid: updated.gameUid, role: updated.role,
+    balance: parseFloat(updated.balance as string), status: updated.status, profileSetup: updated.profileSetup,
+    followersCount: updated.followersCount, followingCount: updated.followingCount,
+  });
+});
+
+router.get("/notifications", requireAuth, async (req: Request, res: Response) => {
+  const { notificationsTable } = await import("@workspace/db/schema");
+  const user = (req as any).user;
+  const notifs = await db.select().from(notificationsTable).where(eq(notificationsTable.userId, user.id));
+  res.json(notifs.map(n => ({
+    id: n.id, type: n.type, message: n.message, read: n.read, createdAt: n.createdAt?.toISOString(),
+  })));
+});
+
+router.get("/messages", requireAuth, async (req: Request, res: Response) => {
+  const { messagesTable } = await import("@workspace/db/schema");
+  const user = (req as any).user;
+  const msgs = await db.select().from(messagesTable).where(eq(messagesTable.toUserId, user.id));
+  const result = await Promise.all(msgs.map(async m => {
+    const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, m.fromUserId));
+    return {
+      id: m.id, fromHandle: sender?.handle || "", fromName: sender?.name || "",
+      content: m.content, createdAt: m.createdAt?.toISOString(), read: m.read,
+    };
+  }));
+  res.json(result);
+});
+
+router.post("/messages", requireAuth, async (req: Request, res: Response) => {
+  const { messagesTable } = await import("@workspace/db/schema");
+  const user = (req as any).user;
+  const { toHandle, content } = req.body;
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.handle, toHandle));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+  await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content });
+  res.json({ success: true });
+});
+
+router.post("/complaints", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { subject, description } = req.body;
+  await db.insert(complaintsTable).values({ userId: user.id, subject, description });
+  res.json({ success: true });
+});
+
 router.get("/users/:handle", requireAuth, async (req: Request, res: Response) => {
   const currentUser = (req as any).user;
   const { handle } = req.params;
@@ -122,71 +191,6 @@ router.post("/users/:handle/unfollow", requireAuth, async (req: Request, res: Re
   );
   await db.execute(sql`UPDATE users SET followers_count = GREATEST(0, followers_count - 1) WHERE id = ${target.id}`);
   await db.execute(sql`UPDATE users SET following_count = GREATEST(0, following_count - 1) WHERE id = ${currentUser.id}`);
-  res.json({ success: true });
-});
-
-router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const squad = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
-  res.json(squad.map(s => ({ id: s.id, name: s.name, uid: s.uid })));
-});
-
-router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const { name, uid } = req.body;
-  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid }).returning();
-  res.json({ id: member.id, name: member.name, uid: member.uid });
-});
-
-router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const { name, handle, avatar } = req.body;
-  const updateData: any = {};
-  if (name) updateData.name = name;
-  if (handle) updateData.handle = handle;
-  if (avatar) updateData.avatar = avatar;
-  const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
-  res.json({
-    id: updated.id, email: updated.email, name: updated.name, handle: updated.handle,
-    avatar: updated.avatar, game: updated.game, gameUid: updated.gameUid, role: updated.role,
-    balance: parseFloat(updated.balance as string), status: updated.status, profileSetup: updated.profileSetup,
-    followersCount: updated.followersCount, followingCount: updated.followingCount,
-  });
-});
-
-router.get("/notifications", requireAuth, async (req: Request, res: Response) => {
-  const { notificationsTable } = await import("@workspace/db/schema");
-  const user = (req as any).user;
-  const notifs = await db.select().from(notificationsTable).where(eq(notificationsTable.userId, user.id));
-  res.json(notifs.map(n => ({
-    id: n.id, type: n.type, message: n.message, read: n.read, createdAt: n.createdAt?.toISOString(),
-  })));
-});
-
-router.get("/messages", requireAuth, async (req: Request, res: Response) => {
-  const { messagesTable } = await import("@workspace/db/schema");
-  const user = (req as any).user;
-  const msgs = await db.select().from(messagesTable).where(eq(messagesTable.toUserId, user.id));
-  res.json(msgs.map(m => ({
-    id: m.id, fromHandle: "", fromName: "", content: m.content,
-    createdAt: m.createdAt?.toISOString(), read: m.read,
-  })));
-});
-
-router.post("/messages", requireAuth, async (req: Request, res: Response) => {
-  const { messagesTable } = await import("@workspace/db/schema");
-  const user = (req as any).user;
-  const { toHandle, content } = req.body;
-  const [target] = await db.select().from(usersTable).where(eq(usersTable.handle, toHandle));
-  if (!target) { res.status(404).json({ error: "User not found" }); return; }
-  await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content });
-  res.json({ success: true });
-});
-
-router.post("/complaints", requireAuth, async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const { subject, description } = req.body;
-  await db.insert(complaintsTable).values({ userId: user.id, subject, description });
   res.json({ success: true });
 });
 
