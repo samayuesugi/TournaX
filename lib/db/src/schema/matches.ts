@@ -12,6 +12,8 @@ export const matchesTable = pgTable("matches", {
   teamSize: integer("team_size").notNull().default(1),
   entryFee: numeric("entry_fee", { precision: 10, scale: 2 }).notNull(),
   prizePool: numeric("prize_pool", { precision: 10, scale: 2 }).notNull().default("0"),
+  prizeType: text("prize_type").notNull().default("dynamic"),
+  fixedPrize: numeric("fixed_prize", { precision: 10, scale: 2 }),
   startTime: timestamp("start_time").notNull(),
   status: matchStatusEnum("status").notNull().default("upcoming"),
   slots: integer("slots").notNull(),

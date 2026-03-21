@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { Trophy, TrendingUp, Lock } from "lucide-react";
 
 interface GameMode { id: number; name: string; teamSize: number; }
 interface Game { id: number; name: string; modes: GameMode[]; }
@@ -31,10 +33,12 @@ export default function CreateMatchPage() {
 
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [selectedModeId, setSelectedModeId] = useState<string>("");
+  const [prizeType, setPrizeType] = useState<"dynamic" | "fixed">("dynamic");
   const [form, setForm] = useState({
     entryFee: "",
     slots: "",
     startTime: "",
+    fixedPrize: "",
   });
 
   const selectedGame = games?.find((g) => String(g.id) === selectedGameId);
@@ -45,14 +49,14 @@ export default function CreateMatchPage() {
     setSelectedModeId("");
   };
 
-  const handleModeChange = (modeId: string) => {
-    setSelectedModeId(modeId);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGame || !selectedMode || !form.startTime || !form.entryFee || !form.slots) {
       toast({ title: "Fill in all fields", variant: "destructive" });
+      return;
+    }
+    if (prizeType === "fixed" && !form.fixedPrize) {
+      toast({ title: "Enter the fixed prize amount", variant: "destructive" });
       return;
     }
     try {
@@ -64,7 +68,9 @@ export default function CreateMatchPage() {
           entryFee: parseFloat(form.entryFee),
           slots: parseInt(form.slots),
           startTime: new Date(form.startTime).toISOString(),
-        },
+          prizeType,
+          fixedPrize: prizeType === "fixed" ? parseFloat(form.fixedPrize) : undefined,
+        } as any,
       });
       toast({ title: "Match created!" });
       navigate(`/matches/${match.id}`);
@@ -73,9 +79,9 @@ export default function CreateMatchPage() {
     }
   };
 
-  const prizePool = form.entryFee && form.slots
+  const dynamicPrize = form.entryFee && form.slots
     ? (parseFloat(form.entryFee) * parseInt(form.slots) * 0.8).toFixed(0)
-    : "—";
+    : null;
 
   return (
     <AppLayout showBack title="Create Match">
@@ -108,7 +114,7 @@ export default function CreateMatchPage() {
             {gamesLoading ? (
               <Skeleton className="h-10 rounded-lg" />
             ) : selectedGame && selectedGame.modes.length > 0 ? (
-              <Select value={selectedModeId} onValueChange={handleModeChange}>
+              <Select value={selectedModeId} onValueChange={setSelectedModeId}>
                 <SelectTrigger><SelectValue placeholder="Select mode" /></SelectTrigger>
                 <SelectContent>
                   {selectedGame.modes.map((m) => (
@@ -120,7 +126,7 @@ export default function CreateMatchPage() {
               </Select>
             ) : (
               <div className="text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2.5">
-                {selectedGame ? "No modes for this game. Ask admin to add modes." : "Select a game first"}
+                {selectedGame ? "No modes for this game." : "Select a game first"}
               </div>
             )}
           </div>
@@ -129,7 +135,7 @@ export default function CreateMatchPage() {
             <div className="bg-primary/10 border border-primary/20 rounded-xl px-3 py-2 text-sm">
               <span className="text-muted-foreground">Team size: </span>
               <span className="font-semibold text-primary">
-                {selectedMode.teamSize === 1 ? "Solo (1 player)" : selectedMode.teamSize === 2 ? "Duo (2 players)" : `${selectedMode.teamSize} players per team`}
+                {selectedMode.teamSize === 1 ? "Solo" : selectedMode.teamSize === 2 ? "Duo" : `${selectedMode.teamSize} per team`}
               </span>
             </div>
           )}
@@ -168,12 +174,63 @@ export default function CreateMatchPage() {
           </div>
         </div>
 
-        <div className="bg-accent/10 border border-accent/20 rounded-2xl p-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Estimated Prize Pool</span>
-            <span className="font-bold text-accent text-lg">₹{prizePool}</span>
+        <div className="bg-card border border-card-border rounded-2xl p-4 space-y-3">
+          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <Trophy className="w-3.5 h-3.5" /> Prize Pool
+          </h3>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setPrizeType("dynamic")}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all text-sm font-medium",
+                prizeType === "dynamic"
+                  ? "bg-primary/10 border-primary text-primary"
+                  : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Dynamic</span>
+              <span className="text-[10px] font-normal opacity-70">Grows as players join</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPrizeType("fixed")}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all text-sm font-medium",
+                prizeType === "fixed"
+                  ? "bg-accent/10 border-accent text-accent"
+                  : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Lock className="w-4 h-4" />
+              <span>Fixed</span>
+              <span className="text-[10px] font-normal opacity-70">Set by you, guaranteed</span>
+            </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">80% of total entry fees (20% platform fee)</p>
+
+          {prizeType === "dynamic" ? (
+            <div className="bg-secondary/50 rounded-xl px-4 py-3 space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Max Prize Pool</span>
+                <span className="font-bold text-accent text-base">₹{dynamicPrize ?? "—"}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">80% of total entry fees. Pool grows as players join.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Fixed Prize Amount (₹)</Label>
+              <Input
+                type="number"
+                placeholder="e.g. 5000"
+                value={form.fixedPrize}
+                onChange={(e) => setForm(f => ({ ...f, fixedPrize: e.target.value }))}
+                min={0}
+              />
+              <p className="text-xs text-muted-foreground">This amount will always be shown as the prize, regardless of how many players join.</p>
+            </div>
+          )}
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={isPending}>

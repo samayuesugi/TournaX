@@ -31,14 +31,28 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     isJoined = !!participation;
   }
 
+  const entryFee = parseFloat(match.entryFee as string);
+  const fixedPrize = match.fixedPrize ? parseFloat(match.fixedPrize as string) : null;
+  const prizeType = (match.prizeType as string) || "dynamic";
+  const livePrizePool = prizeType === "fixed"
+    ? (fixedPrize ?? 0)
+    : match.filledSlots * entryFee * 0.8;
+  const maxPrizePool = prizeType === "fixed"
+    ? (fixedPrize ?? 0)
+    : match.slots * entryFee * 0.8;
+
   const result: any = {
     id: match.id,
     code: match.code,
     game: match.game,
     mode: match.mode,
     teamSize: match.teamSize,
-    entryFee: parseFloat(match.entryFee as string),
+    entryFee,
     prizePool: parseFloat(match.prizePool as string),
+    prizeType,
+    fixedPrize,
+    livePrizePool,
+    maxPrizePool,
     startTime: match.startTime?.toISOString(),
     status: match.status,
     slots: match.slots,
@@ -87,7 +101,8 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, prizeType, fixedPrize } = req.body;
+  const isPrizeFixed = prizeType === "fixed" && fixedPrize != null;
   const code = generateCode();
   const [match] = await db.insert(matchesTable).values({
     code,
@@ -100,7 +115,9 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     startTime: new Date(startTime),
     status: "upcoming",
     filledSlots: 0,
-    prizePool: "0",
+    prizePool: isPrizeFixed ? String(fixedPrize) : "0",
+    prizeType: isPrizeFixed ? "fixed" : "dynamic",
+    fixedPrize: isPrizeFixed ? String(fixedPrize) : null,
     roomReleased: false,
   }).returning();
 
@@ -180,7 +197,10 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   }
 
   const newFilledSlots = match.filledSlots + match.teamSize;
-  const newPrizePool = newFilledSlots * parseFloat(match.entryFee as string);
+  const isFixed = match.prizeType === "fixed";
+  const newPrizePool = isFixed
+    ? parseFloat(match.prizePool as string)
+    : newFilledSlots * parseFloat(match.entryFee as string) * 0.8;
   await db.update(matchesTable).set({
     filledSlots: newFilledSlots,
     prizePool: String(newPrizePool),
