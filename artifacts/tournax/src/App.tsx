@@ -16,6 +16,7 @@ import WalletPage from "@/pages/wallet";
 import ExplorePage from "@/pages/explore";
 import NotificationsPage from "@/pages/notifications";
 import CreateMatchPage from "@/pages/host/create-match";
+import HostDashboardPage from "@/pages/host/dashboard";
 import AdminDashboardPage from "@/pages/admin/index";
 import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
@@ -74,6 +75,7 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
   if (user) {
     if (!user.profileSetup) return <Redirect to="/setup-profile" />;
     if (user.role === "admin") return <Redirect to="/admin" />;
+    if (user.role === "host") return <Redirect to="/host" />;
     return <Redirect to="/" />;
   }
 
@@ -94,6 +96,12 @@ function Router() {
       <Route path="/">
         <ProtectedRoute roles={["player", "host"]}>
           <HomePage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/host">
+        <ProtectedRoute roles={["host"]}>
+          <HostDashboardPage />
         </ProtectedRoute>
       </Route>
 

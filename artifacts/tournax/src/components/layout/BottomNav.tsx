@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, Swords, User, LayoutDashboard } from "lucide-react";
+import { Home, Compass, Swords, User, LayoutDashboard, Plus, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -10,10 +10,17 @@ const playerNav = [
   { href: "/profile", icon: User, label: "Profile" },
 ];
 
+const hostNav = [
+  { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/host/create-match", icon: Plus, label: "Create" },
+  { href: "/my-matches", icon: Swords, label: "Matches" },
+  { href: "/profile", icon: User, label: "Profile" },
+];
+
 const adminNav = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/players", icon: User, label: "Players" },
-  { href: "/admin/finance", icon: Swords, label: "Finance" },
+  { href: "/admin/finance", icon: DollarSign, label: "Finance" },
   { href: "/admin/complaints", icon: Compass, label: "Complaints" },
 ];
 
@@ -21,7 +28,7 @@ export function BottomNav() {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const nav = user?.role === "admin" ? adminNav : playerNav;
+  const nav = user?.role === "admin" ? adminNav : user?.role === "host" ? hostNav : playerNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">

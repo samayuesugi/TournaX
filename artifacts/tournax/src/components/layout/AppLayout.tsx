@@ -48,7 +48,7 @@ export function AppLayout({
               <ArrowLeft className="w-4 h-4" />
             </Button>
           ) : (
-            <Link href={user?.role === "admin" ? "/admin" : "/"}>
+            <Link href={user?.role === "admin" ? "/admin" : user?.role === "host" ? "/host" : "/"}>
               <div className="flex items-center gap-1.5">
                 <Zap className="w-5 h-5 text-primary fill-primary" />
                 <span className="font-bold text-base tracking-tight text-foreground">
