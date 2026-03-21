@@ -1,0 +1,60 @@
+import { Router, type IRouter, type Request, type Response } from "express";
+import { db } from "@workspace/db";
+import { addBalanceRequestsTable, withdrawalRequestsTable, usersTable } from "@workspace/db/schema";
+import { eq, sql } from "drizzle-orm";
+import { requireAuth } from "./auth";
+
+const router: IRouter = Router();
+
+router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const addHistory = await db.select().from(addBalanceRequestsTable)
+    .where(eq(addBalanceRequestsTable.userId, user.id));
+  const withdrawHistory = await db.select().from(withdrawalRequestsTable)
+    .where(eq(withdrawalRequestsTable.userId, user.id));
+
+  res.json({
+    balance: parseFloat(user.balance as string),
+    upiId: "9971040244@ptaxis",
+    addBalanceHistory: addHistory.map(r => ({
+      id: r.id, amount: parseFloat(r.amount as string), status: r.status,
+      createdAt: r.createdAt?.toISOString(), note: r.utrNumber,
+    })),
+    withdrawalHistory: withdrawHistory.map(r => ({
+      id: r.id, amount: parseFloat(r.amount as string), status: r.status,
+      createdAt: r.createdAt?.toISOString(), note: r.upiId,
+    })),
+  });
+});
+
+router.post("/wallet/add-balance", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { utrNumber, amount, receiptUrl } = req.body;
+  if (!utrNumber || !amount) { res.status(400).json({ error: "UTR and amount required" }); return; }
+  await db.insert(addBalanceRequestsTable).values({
+    userId: user.id,
+    utrNumber,
+    amount: String(amount),
+    receiptUrl: receiptUrl || null,
+    status: "pending",
+  });
+  res.json({ success: true, message: "Request submitted successfully" });
+});
+
+router.post("/wallet/withdraw", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { amount, upiId } = req.body;
+  if (!amount || !upiId) { res.status(400).json({ error: "Amount and UPI ID required" }); return; }
+  const balance = parseFloat(user.balance as string);
+  if (balance < Number(amount)) { res.status(400).json({ error: "Insufficient balance" }); return; }
+  await db.execute(sql`UPDATE users SET balance = balance - ${amount} WHERE id = ${user.id}`);
+  await db.insert(withdrawalRequestsTable).values({
+    userId: user.id,
+    amount: String(amount),
+    upiId,
+    status: "pending",
+  });
+  res.json({ success: true, message: "Withdrawal requested" });
+});
+
+export default router;

@@ -1,22 +1,24 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: TournaX Gaming Tournament API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: matches
+  - name: users
+  - name: wallet
+  - name: admin
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,782 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Register success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/setup-profile:
+    post:
+      operationId: setupProfile
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetupProfileRequest"
+      responses:
+        "200":
+          description: Profile setup success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, live, completed]
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+    post:
+      operationId: createMatch
+      tags: [matches]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMatchRequest"
+      responses:
+        "200":
+          description: Match created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /matches/{id}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+    delete:
+      operationId: deleteMatch
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /matches/{id}/join:
+    post:
+      operationId: joinMatch
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinMatchRequest"
+      responses:
+        "200":
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /matches/{id}/room:
+    put:
+      operationId: updateRoomCredentials
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomCredentialsRequest"
+      responses:
+        "200":
+          description: Room credentials updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /matches/{id}/go-live:
+    post:
+      operationId: goLive
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match went live
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /matches/{id}/players:
+    get:
+      operationId: getMatchPlayers
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchParticipant"
+
+  /my-matches:
+    get:
+      operationId: getMyMatches
+      tags: [matches]
+      responses:
+        "200":
+          description: My matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyMatchesResponse"
+
+  /users/explore:
+    get:
+      operationId: exploreUsers
+      tags: [users]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Explore hosts and players
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExploreResponse"
+
+  /users/{handle}:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/{handle}/follow:
+    post:
+      operationId: followUser
+      tags: [users]
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Followed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /users/{handle}/unfollow:
+    post:
+      operationId: unfollowUser
+      tags: [users]
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unfollowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /users/me/squad:
+    get:
+      operationId: getMySquad
+      tags: [users]
+      responses:
+        "200":
+          description: My squad members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SquadMember"
+    post:
+      operationId: addSquadMember
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddSquadMemberRequest"
+      responses:
+        "200":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SquadMember"
+
+  /users/me/profile:
+    put:
+      operationId: updateMyProfile
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /wallet:
+    get:
+      operationId: getWallet
+      tags: [wallet]
+      responses:
+        "200":
+          description: Wallet info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletInfo"
+
+  /wallet/add-balance:
+    post:
+      operationId: requestAddBalance
+      tags: [wallet]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddBalanceRequest"
+      responses:
+        "200":
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /wallet/withdraw:
+    post:
+      operationId: requestWithdrawal
+      tags: [wallet]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawRequest"
+      responses:
+        "200":
+          description: Withdrawal requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [users]
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /messages:
+    get:
+      operationId: getMessages
+      tags: [users]
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /complaints:
+    post:
+      operationId: raiseComplaint
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplaintRequest"
+      responses:
+        "200":
+          description: Complaint submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/dashboard:
+    get:
+      operationId: adminDashboard
+      tags: [admin]
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminDashboard"
+
+  /admin/players:
+    get:
+      operationId: adminListPlayers
+      tags: [admin]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, verified, pending, banned]
+      responses:
+        "200":
+          description: Players list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPlayer"
+
+  /admin/players/{id}/verify:
+    post:
+      operationId: verifyPlayer
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/players/{id}/ban:
+    post:
+      operationId: banPlayer
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Banned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/players/{id}/add-balance:
+    post:
+      operationId: adminAddBalance
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAddBalanceRequest"
+      responses:
+        "200":
+          description: Balance added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/finance/add-requests:
+    get:
+      operationId: adminListAddRequests
+      tags: [admin]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, pending, approved, rejected]
+      responses:
+        "200":
+          description: Add balance requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceRequest"
+
+  /admin/finance/add-requests/{id}/approve:
+    post:
+      operationId: approveAddRequest
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/finance/add-requests/{id}/reject:
+    post:
+      operationId: rejectAddRequest
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/finance/withdrawals:
+    get:
+      operationId: adminListWithdrawals
+      tags: [admin]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, pending, approved, rejected]
+      responses:
+        "200":
+          description: Withdrawals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinanceRequest"
+
+  /admin/finance/withdrawals/{id}/approve:
+    post:
+      operationId: approveWithdrawal
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/finance/withdrawals/{id}/reject:
+    post:
+      operationId: rejectWithdrawal
+      tags: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/create-host:
+    post:
+      operationId: adminCreateHost
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHostRequest"
+      responses:
+        "200":
+          description: Host created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/create-admin:
+    post:
+      operationId: adminCreateAdmin
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHostRequest"
+      responses:
+        "200":
+          description: Admin created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /admin/complaints:
+    get:
+      operationId: adminListComplaints
+      tags: [admin]
+      responses:
+        "200":
+          description: Complaints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Complaint"
+
+  /admin/matches:
+    get:
+      operationId: adminListMatches
+      tags: [admin]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, upcoming, live, completed]
+      responses:
+        "200":
+          description: All matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +809,534 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    SetupProfileRequest:
+      type: object
+      properties:
+        avatar:
+          type: string
+        game:
+          type: string
+        ign:
+          type: string
+        handle:
+          type: string
+        gameUid:
+          type: string
+      required: [avatar, game, ign, handle, gameUid]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        handle:
+          type: string
+        avatar:
+          type: string
+        game:
+          type: string
+        gameUid:
+          type: string
+        role:
+          type: string
+          enum: [player, host, admin]
+        balance:
+          type: number
+        status:
+          type: string
+          enum: [pending, active, banned]
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        profileSetup:
+          type: boolean
+      required: [id, email, role, balance, status, profileSetup]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        handle:
+          type: string
+        avatar:
+          type: string
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        game:
+          type: string
+        mode:
+          type: string
+        teamSize:
+          type: integer
+        entryFee:
+          type: number
+        prizePool:
+          type: number
+        startTime:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, completed]
+        slots:
+          type: integer
+        filledSlots:
+          type: integer
+        hostHandle:
+          type: string
+        hostName:
+          type: string
+        hostAvatar:
+          type: string
+        hostFollowers:
+          type: integer
+        isFollowingHost:
+          type: boolean
+        isJoined:
+          type: boolean
+        roomId:
+          type: string
+        roomPassword:
+          type: string
+        roomReleased:
+          type: boolean
+        hostId:
+          type: integer
+      required: [id, code, game, mode, teamSize, entryFee, prizePool, startTime, status, slots, filledSlots, hostId]
+
+    CreateMatchRequest:
+      type: object
+      properties:
+        game:
+          type: string
+        mode:
+          type: string
+        teamSize:
+          type: integer
+        entryFee:
+          type: number
+        slots:
+          type: integer
+        startTime:
+          type: string
+      required: [game, mode, teamSize, entryFee, slots, startTime]
+
+    JoinMatchRequest:
+      type: object
+      properties:
+        teamName:
+          type: string
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/JoinPlayer"
+      required: [players]
+
+    JoinPlayer:
+      type: object
+      properties:
+        ign:
+          type: string
+        uid:
+          type: string
+      required: [ign, uid]
+
+    MatchParticipant:
+      type: object
+      properties:
+        id:
+          type: integer
+        teamName:
+          type: string
+        teamNumber:
+          type: integer
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantPlayer"
+      required: [id, teamNumber, players]
+
+    ParticipantPlayer:
+      type: object
+      properties:
+        ign:
+          type: string
+        uid:
+          type: string
+        position:
+          type: integer
+      required: [ign, uid, position]
+
+    RoomCredentialsRequest:
+      type: object
+      properties:
+        roomId:
+          type: string
+        roomPassword:
+          type: string
+      required: [roomId, roomPassword]
+
+    MyMatchesResponse:
+      type: object
+      properties:
+        participated:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+      required: [participated, history]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        handle:
+          type: string
+        avatar:
+          type: string
+        role:
+          type: string
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        rating:
+          type: number
+        matchesCount:
+          type: integer
+        isFollowing:
+          type: boolean
+        upcomingMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        activeMatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+      required: [id, handle, followersCount, followingCount, matchesCount, isFollowing, upcomingMatches, activeMatches]
+
+    ExploreResponse:
+      type: object
+      properties:
+        recommendedHosts:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProfile"
+        mostActivePlayers:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserProfile"
+      required: [recommendedHosts, mostActivePlayers]
+
+    SquadMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        uid:
+          type: string
+      required: [id, name, uid]
+
+    AddSquadMemberRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        uid:
+          type: string
+      required: [name, uid]
+
+    WalletInfo:
+      type: object
+      properties:
+        balance:
+          type: number
+        upiId:
+          type: string
+        addBalanceHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/WalletTransaction"
+        withdrawalHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/WalletTransaction"
+      required: [balance, addBalanceHistory, withdrawalHistory]
+
+    WalletTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+        note:
+          type: string
+      required: [id, amount, status, createdAt]
+
+    AddBalanceRequest:
+      type: object
+      properties:
+        utrNumber:
+          type: string
+        amount:
+          type: number
+        receiptUrl:
+          type: string
+      required: [utrNumber, amount]
+
+    WithdrawRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+        upiId:
+          type: string
+      required: [amount, upiId]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        message:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, type, message, read, createdAt]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        fromHandle:
+          type: string
+        fromName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+        read:
+          type: boolean
+      required: [id, fromHandle, content, createdAt, read]
+
+    SendMessageRequest:
+      type: object
+      properties:
+        toHandle:
+          type: string
+        content:
+          type: string
+      required: [toHandle, content]
+
+    ComplaintRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+        description:
+          type: string
+      required: [subject, description]
+
+    AdminDashboard:
+      type: object
+      properties:
+        totalPlayers:
+          type: integer
+        activePlayers:
+          type: integer
+        pendingKyc:
+          type: integer
+        hosts:
+          type: integer
+        totalMatches:
+          type: integer
+        liveNow:
+          type: integer
+        pendingWithdrawals:
+          type: integer
+        totalRevenue:
+          type: number
+        platformFees:
+          type: number
+        complaintsCount:
+          type: integer
+        adminList:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        hostList:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+      required: [totalPlayers, activePlayers, pendingKyc, hosts, totalMatches, liveNow, pendingWithdrawals, totalRevenue, platformFees, complaintsCount, adminList, hostList]
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+      required: [id, email, role]
+
+    AdminPlayer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        uid:
+          type: string
+        handle:
+          type: string
+        balance:
+          type: number
+        status:
+          type: string
+          enum: [pending, active, banned]
+        matchesPlayed:
+          type: integer
+      required: [id, email, balance, status, matchesPlayed]
+
+    FinanceRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        userEmail:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        utrNumber:
+          type: string
+        upiId:
+          type: string
+        createdAt:
+          type: string
+      required: [id, userId, amount, status, createdAt]
+
+    Complaint:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        subject:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+      required: [id, userId, subject, description, createdAt]
+
+    CreateHostRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+      required: [email, password, name]
+
+    AdminAddBalanceRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+      required: [amount]
