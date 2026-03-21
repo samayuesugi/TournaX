@@ -121,6 +121,15 @@ React 19 + Vite frontend for the TournaX gaming tournament platform. Dark-themed
   - `src/components/layout/AppLayout.tsx` — Main layout with header + bottom nav
   - `src/components/match/MatchCard.tsx` — Reusable match card
 
+### Database Setup
+
+Run `pnpm --filter @workspace/db run push` to push/sync the schema to the database. This must be done after initial setup or any schema changes.
+
+**Default seeded accounts (created once on fresh DB):**
+- Admin: `admin@tournax.com` / `admin@123`
+- Host: `host@tournax.com` / `host@123`
+- Players register themselves via the Sign Up form
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
