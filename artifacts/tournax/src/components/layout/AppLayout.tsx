@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Wallet, Zap, Plus, ArrowLeft } from "lucide-react";
+import { Bell, Zap, Plus, ArrowLeft, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { BottomNav } from "./BottomNav";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,14 @@ export function AppLayout({
   backHref,
   hideNav,
 }: AppLayoutProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [, navigate] = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/auth");
+  };
+
   const { data: wallet } = useGetWallet({
     query: { enabled: !!user && user.role !== "admin" },
   });
@@ -88,6 +94,18 @@ export function AppLayout({
                   Create
                 </Button>
               </Link>
+            )}
+
+            {user && (user.role === "admin" || user.role === "host") && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             )}
           </div>
         </div>
