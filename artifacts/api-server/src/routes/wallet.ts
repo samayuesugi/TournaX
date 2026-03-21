@@ -45,9 +45,14 @@ router.post("/wallet/withdraw", requireAuth, async (req: Request, res: Response)
   const user = (req as any).user;
   const { amount, upiId } = req.body;
   if (!amount || !upiId) { res.status(400).json({ error: "Amount and UPI ID required" }); return; }
-  const balance = parseFloat(user.balance as string);
-  if (balance < Number(amount)) { res.status(400).json({ error: "Insufficient balance" }); return; }
-  await db.execute(sql`UPDATE users SET balance = balance - ${amount} WHERE id = ${user.id}`);
+  const numericAmount = Number(amount);
+  if (numericAmount <= 0) { res.status(400).json({ error: "Invalid amount" }); return; }
+  const result = await db.execute(
+    sql`UPDATE users SET balance = balance - ${numericAmount} WHERE id = ${user.id} AND balance >= ${numericAmount} RETURNING balance`
+  );
+  if (!result.rows || result.rows.length === 0) {
+    res.status(400).json({ error: "Insufficient balance" }); return;
+  }
   await db.insert(withdrawalRequestsTable).values({
     userId: user.id,
     amount: String(amount),

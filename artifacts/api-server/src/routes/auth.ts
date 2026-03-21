@@ -7,6 +7,9 @@ import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
+  throw new Error("JWT_SECRET environment variable must be set in production");
+}
 const JWT_SECRET = process.env.JWT_SECRET || "tournax-secret-key-2024";
 
 function hashPassword(password: string): string {

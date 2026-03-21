@@ -16,7 +16,7 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({ email: "", password: "" });
+  const [registerForm, setRegisterForm] = useState({ email: "", password: "", confirmPassword: "" });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +39,10 @@ export default function AuthPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (registerForm.password !== registerForm.confirmPassword) {
+      toast({ title: "Passwords don't match", description: "Please make sure both passwords are the same.", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
       await register(registerForm.email, registerForm.password);
@@ -142,6 +146,18 @@ export default function AuthPage() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-confirm-password" className="text-sm font-medium">Confirm Password</Label>
+                  <Input
+                    id="reg-confirm-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Re-enter your password"
+                    value={registerForm.confirmPassword}
+                    onChange={(e) => setRegisterForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                    required
+                    minLength={6}
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create Account"}

@@ -172,10 +172,13 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
 
   const { teamName, players } = req.body;
   const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
-  const userBalance = parseFloat(user.balance as string);
-  if (userBalance < totalFee) { res.status(400).json({ error: "Insufficient balance" }); return; }
 
-  await db.execute(sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id}`);
+  const deductResult = await db.execute(
+    sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id} AND balance >= ${totalFee} RETURNING balance`
+  );
+  if (!deductResult.rows || deductResult.rows.length === 0) {
+    res.status(400).json({ error: "Insufficient balance" }); return;
+  }
 
   const teamNumber = match.filledSlots / match.teamSize + 1;
   const [participant] = await db.insert(matchParticipantsTable).values({
