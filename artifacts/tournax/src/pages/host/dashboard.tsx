@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Users, Zap, Plus, Radio, Key, Trash2, ChevronRight } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight } from "lucide-react";
 
 function statusColor(status: string) {
   if (status === "live") return "bg-green-500/20 text-green-400 border-green-500/30";
@@ -225,12 +225,6 @@ export default function HostDashboardPage() {
             <div className="text-[10px] text-muted-foreground">Earned</div>
           </div>
         </div>
-
-        <Link href="/host/create-match">
-          <Button className="w-full gap-2" size="lg">
-            <Plus className="w-4 h-4" /> Create New Tournament
-          </Button>
-        </Link>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {STATUS_OPTS.map((s) => (
