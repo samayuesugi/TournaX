@@ -16,8 +16,11 @@ interface Game { id: number; name: string; modes: GameMode[]; }
 
 function useGames() {
   return useQuery<Game[]>({
-    queryKey: ["admin-games"],
-    queryFn: () => customFetch("/games"),
+    queryKey: ["/api/games", "admin"],
+    queryFn: async () => {
+      const data = await customFetch("/api/games");
+      return Array.isArray(data) ? data : [];
+    },
   });
 }
 
@@ -25,8 +28,8 @@ function useCreateGame() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string }) =>
-      customFetch("/admin/games", { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-games"] }),
+      customFetch("/api/admin/games", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/games", "admin"] }),
   });
 }
 
@@ -34,8 +37,8 @@ function useDeleteGame() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) =>
-      customFetch(`/admin/games/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-games"] }),
+      customFetch(`/api/admin/games/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/games", "admin"] }),
   });
 }
 
@@ -43,8 +46,8 @@ function useAddMode() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ gameId, data }: { gameId: number; data: { name: string; teamSize: number } }) =>
-      customFetch(`/admin/games/${gameId}/modes`, { method: "POST", body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-games"] }),
+      customFetch(`/api/admin/games/${gameId}/modes`, { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/games", "admin"] }),
   });
 }
 
@@ -52,8 +55,8 @@ function useDeleteMode() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ gameId, modeId }: { gameId: number; modeId: number }) =>
-      customFetch(`/admin/games/${gameId}/modes/${modeId}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-games"] }),
+      customFetch(`/api/admin/games/${gameId}/modes/${modeId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/games", "admin"] }),
   });
 }
 

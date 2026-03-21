@@ -15,8 +15,11 @@ interface Game { id: number; name: string; modes: GameMode[]; }
 
 function useGames() {
   return useQuery<Game[]>({
-    queryKey: ["games"],
-    queryFn: () => customFetch("/games"),
+    queryKey: ["/api/games"],
+    queryFn: async () => {
+      const data = await customFetch("/api/games");
+      return Array.isArray(data) ? data : [];
+    },
   });
 }
 
