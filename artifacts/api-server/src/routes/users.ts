@@ -95,27 +95,96 @@ router.get("/notifications", requireAuth, async (req: Request, res: Response) =>
   })));
 });
 
-router.get("/messages", requireAuth, async (req: Request, res: Response) => {
+function canChat(senderRole: string, recipientRole: string): boolean {
+  if (senderRole === "player" && recipientRole === "admin") return false;
+  if (senderRole === "admin" && recipientRole === "player") return false;
+  return true;
+}
+
+router.get("/conversations", requireAuth, async (req: Request, res: Response) => {
   const { messagesTable } = await import("@workspace/db/schema");
   const user = (req as any).user;
-  const msgs = await db.select().from(messagesTable).where(eq(messagesTable.toUserId, user.id));
-  const result = await Promise.all(msgs.map(async m => {
-    const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, m.fromUserId));
+  const sent = await db.select().from(messagesTable).where(eq(messagesTable.fromUserId, user.id));
+  const received = await db.select().from(messagesTable).where(eq(messagesTable.toUserId, user.id));
+
+  const partnerIds = new Set<number>();
+  sent.forEach(m => partnerIds.add(m.toUserId));
+  received.forEach(m => partnerIds.add(m.fromUserId));
+
+  const conversations = await Promise.all(Array.from(partnerIds).map(async (partnerId) => {
+    const [partner] = await db.select().from(usersTable).where(eq(usersTable.id, partnerId));
+    if (!partner) return null;
+    const allMessages = [
+      ...sent.filter(m => m.toUserId === partnerId),
+      ...received.filter(m => m.fromUserId === partnerId),
+    ].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    const last = allMessages[0];
+    const unreadCount = received.filter(m => m.fromUserId === partnerId && !m.read).length;
     return {
-      id: m.id, fromHandle: sender?.handle || "", fromName: sender?.name || "",
-      content: m.content, createdAt: m.createdAt?.toISOString(), read: m.read,
+      userId: partner.id,
+      name: partner.name || partner.handle || partner.email,
+      handle: partner.handle || "",
+      avatar: partner.avatar || "🔥",
+      role: partner.role,
+      lastMessage: last?.content || "",
+      lastMessageAt: last?.createdAt?.toISOString() || "",
+      unreadCount,
     };
   }));
+
+  const result = conversations
+    .filter(Boolean)
+    .sort((a, b) => new Date(b!.lastMessageAt).getTime() - new Date(a!.lastMessageAt).getTime());
+
   res.json(result);
+});
+
+router.get("/conversations/:userId", requireAuth, async (req: Request, res: Response) => {
+  const { messagesTable } = await import("@workspace/db/schema");
+  const user = (req as any).user;
+  const partnerId = Number(req.params.userId);
+  const [partner] = await db.select().from(usersTable).where(eq(usersTable.id, partnerId));
+  if (!partner) { res.status(404).json({ error: "User not found" }); return; }
+
+  const msgs = await db.select().from(messagesTable).where(
+    or(
+      and(eq(messagesTable.fromUserId, user.id), eq(messagesTable.toUserId, partnerId)),
+      and(eq(messagesTable.fromUserId, partnerId), eq(messagesTable.toUserId, user.id))
+    )
+  );
+  msgs.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+  res.json(msgs.map(m => ({
+    id: m.id,
+    fromUserId: m.fromUserId,
+    toUserId: m.toUserId,
+    content: m.content,
+    createdAt: m.createdAt?.toISOString(),
+    read: m.read,
+  })));
+});
+
+router.put("/conversations/:userId/read", requireAuth, async (req: Request, res: Response) => {
+  const { messagesTable } = await import("@workspace/db/schema");
+  const user = (req as any).user;
+  const partnerId = Number(req.params.userId);
+  await db.update(messagesTable)
+    .set({ read: true })
+    .where(and(eq(messagesTable.fromUserId, partnerId), eq(messagesTable.toUserId, user.id)));
+  res.json({ success: true });
 });
 
 router.post("/messages", requireAuth, async (req: Request, res: Response) => {
   const { messagesTable } = await import("@workspace/db/schema");
   const user = (req as any).user;
-  const { toHandle, content } = req.body;
-  const [target] = await db.select().from(usersTable).where(eq(usersTable.handle, toHandle));
+  const { toUserId, content } = req.body;
+  if (!toUserId || !content?.trim()) { res.status(400).json({ error: "toUserId and content required" }); return; }
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.id, Number(toUserId)));
   if (!target) { res.status(404).json({ error: "User not found" }); return; }
-  await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content });
+  if (!canChat(user.role, target.role)) {
+    res.status(403).json({ error: "You are not allowed to message this user" }); return;
+  }
+  if (user.id === target.id) { res.status(400).json({ error: "Cannot message yourself" }); return; }
+  await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content: content.trim() });
   res.json({ success: true });
 });
 

@@ -6,7 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface SendMessageRequest {
+export interface ChatMessage {
+  id: number;
+  fromUserId: number;
   toUserId: number;
   content: string;
+  createdAt: string;
+  read: boolean;
 }

@@ -633,18 +633,43 @@ export const GetNotificationsResponseItem = zod.object({
 });
 export const GetNotificationsResponse = zod.array(GetNotificationsResponseItem);
 
-export const GetMessagesResponseItem = zod.object({
+export const GetConversationsResponseItem = zod.object({
+  userId: zod.number(),
+  name: zod.string(),
+  handle: zod.string(),
+  avatar: zod.string(),
+  role: zod.string(),
+  lastMessage: zod.string(),
+  lastMessageAt: zod.string(),
+  unreadCount: zod.number(),
+});
+export const GetConversationsResponse = zod.array(GetConversationsResponseItem);
+
+export const GetConversationParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const GetConversationResponseItem = zod.object({
   id: zod.number(),
-  fromHandle: zod.string(),
-  fromName: zod.string().optional(),
+  fromUserId: zod.number(),
+  toUserId: zod.number(),
   content: zod.string(),
   createdAt: zod.string(),
   read: zod.boolean(),
 });
-export const GetMessagesResponse = zod.array(GetMessagesResponseItem);
+export const GetConversationResponse = zod.array(GetConversationResponseItem);
+
+export const MarkConversationReadParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const MarkConversationReadResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
 
 export const SendMessageBody = zod.object({
-  toHandle: zod.string(),
+  toUserId: zod.number(),
   content: zod.string(),
 });
 

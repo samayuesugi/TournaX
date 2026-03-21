@@ -14,7 +14,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2 } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle } from "lucide-react";
+
+function canChat(senderRole: string, recipientRole: string): boolean {
+  if (senderRole === "player" && recipientRole === "admin") return false;
+  if (senderRole === "admin" && recipientRole === "player") return false;
+  return true;
+}
 
 function OwnProfile() {
   const { user, logout, refreshUser } = useAuth();
@@ -233,13 +239,23 @@ function PublicProfile({ handle }: { handle: string }) {
               </div>
             </div>
             {!isOwnProfile && currentUser && (
-              <Button
-                variant={profile.isFollowing ? "outline" : "default"}
-                size="sm"
-                onClick={handleFollow}
-              >
-                {profile.isFollowing ? "Unfollow" : "Follow"}
-              </Button>
+              <div className="flex gap-2">
+                {canChat(currentUser.role, profile.role) && (
+                  <Link href={`/chat/${profile.id}`}>
+                    <Button variant="outline" size="sm" className="gap-1">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Message
+                    </Button>
+                  </Link>
+                )}
+                <Button
+                  variant={profile.isFollowing ? "outline" : "default"}
+                  size="sm"
+                  onClick={handleFollow}
+                >
+                  {profile.isFollowing ? "Unfollow" : "Follow"}
+                </Button>
+              </div>
             )}
           </div>
 

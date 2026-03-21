@@ -236,8 +236,28 @@ export interface Message {
   read: boolean;
 }
 
+export interface Conversation {
+  userId: number;
+  name: string;
+  handle: string;
+  avatar: string;
+  role: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  fromUserId: number;
+  toUserId: number;
+  content: string;
+  createdAt: string;
+  read: boolean;
+}
+
 export interface SendMessageRequest {
-  toHandle: string;
+  toUserId: number;
   content: string;
 }
 

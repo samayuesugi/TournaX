@@ -476,19 +476,59 @@ paths:
                 items:
                   $ref: "#/components/schemas/Notification"
 
-  /messages:
+  /conversations:
     get:
-      operationId: getMessages
+      operationId: getConversations
       tags: [users]
       responses:
         "200":
-          description: Messages
+          description: Conversation list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Message"
+                  $ref: "#/components/schemas/Conversation"
+
+  /conversations/{userId}:
+    get:
+      operationId: getConversation
+      tags: [users]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages in conversation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+  /conversations/{userId}/read:
+    put:
+      operationId: markConversationRead
+      tags: [users]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /messages:
     post:
       operationId: sendMessage
       tags: [users]
@@ -505,6 +545,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Not allowed to message this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /complaints:
     post:
@@ -1196,14 +1242,52 @@ components:
           type: boolean
       required: [id, fromHandle, content, createdAt, read]
 
+    Conversation:
+      type: object
+      properties:
+        userId:
+          type: integer
+        name:
+          type: string
+        handle:
+          type: string
+        avatar:
+          type: string
+        role:
+          type: string
+        lastMessage:
+          type: string
+        lastMessageAt:
+          type: string
+        unreadCount:
+          type: integer
+      required: [userId, name, handle, avatar, role, lastMessage, lastMessageAt, unreadCount]
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        fromUserId:
+          type: integer
+        toUserId:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+        read:
+          type: boolean
+      required: [id, fromUserId, toUserId, content, createdAt, read]
+
     SendMessageRequest:
       type: object
       properties:
-        toHandle:
-          type: string
+        toUserId:
+          type: integer
         content:
           type: string
-      required: [toHandle, content]
+      required: [toUserId, content]
 
     ComplaintRequest:
       type: object

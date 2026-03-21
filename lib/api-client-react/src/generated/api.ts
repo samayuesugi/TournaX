@@ -27,8 +27,10 @@ import type {
   AdminListWithdrawalsParams,
   AdminPlayer,
   AuthResponse,
+  ChatMessage,
   Complaint,
   ComplaintRequest,
+  Conversation,
   CreateHostRequest,
   CreateMatchRequest,
   ErrorResponse,
@@ -41,7 +43,6 @@ import type {
   LoginRequest,
   Match,
   MatchParticipant,
-  Message,
   MyMatchesResponse,
   Notification,
   RegisterRequest,
@@ -2061,29 +2062,29 @@ export function useGetNotifications<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGetMessagesUrl = () => {
-  return `/api/messages`;
+export const getGetConversationsUrl = () => {
+  return `/api/conversations`;
 };
 
-export const getMessages = async (
+export const getConversations = async (
   options?: RequestInit,
-): Promise<Message[]> => {
-  return customFetch<Message[]>(getGetMessagesUrl(), {
+): Promise<Conversation[]> => {
+  return customFetch<Conversation[]>(getGetConversationsUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetMessagesQueryKey = () => {
-  return [`/api/messages`] as const;
+export const getGetConversationsQueryKey = () => {
+  return [`/api/conversations`] as const;
 };
 
-export const getGetMessagesQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMessages>>,
+export const getGetConversationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConversations>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getMessages>>,
+    Awaited<ReturnType<typeof getConversations>>,
     TError,
     TData
   >;
@@ -2091,36 +2092,36 @@ export const getGetMessagesQueryOptions = <
 }) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMessagesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetConversationsQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMessages>>> = ({
-    signal,
-  }) => getMessages({ signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getConversations>>
+  > = ({ signal }) => getConversations({ signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMessages>>,
+    Awaited<ReturnType<typeof getConversations>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetMessagesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getMessages>>
+export type GetConversationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConversations>>
 >;
-export type GetMessagesQueryError = ErrorType<unknown>;
+export type GetConversationsQueryError = ErrorType<unknown>;
 
-export function useGetMessages<
-  TData = Awaited<ReturnType<typeof getMessages>>,
+export function useGetConversations<
+  TData = Awaited<ReturnType<typeof getConversations>>,
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getMessages>>,
+    Awaited<ReturnType<typeof getConversations>>,
     TError,
     TData
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetMessagesQueryOptions(options);
+  const queryOptions = getGetConversationsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -2128,6 +2129,164 @@ export function useGetMessages<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+export const getGetConversationUrl = (userId: number) => {
+  return `/api/conversations/${userId}`;
+};
+
+export const getConversation = async (
+  userId: number,
+  options?: RequestInit,
+): Promise<ChatMessage[]> => {
+  return customFetch<ChatMessage[]>(getGetConversationUrl(userId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetConversationQueryKey = (userId: number) => {
+  return [`/api/conversations/${userId}`] as const;
+};
+
+export const getGetConversationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConversation>>,
+  TError = ErrorType<unknown>,
+>(
+  userId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetConversationQueryKey(userId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversation>>> = ({
+    signal,
+  }) => getConversation(userId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!userId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConversation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConversationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConversation>>
+>;
+export type GetConversationQueryError = ErrorType<unknown>;
+
+export function useGetConversation<
+  TData = Awaited<ReturnType<typeof getConversation>>,
+  TError = ErrorType<unknown>,
+>(
+  userId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConversationQueryOptions(userId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getMarkConversationReadUrl = (userId: number) => {
+  return `/api/conversations/${userId}/read`;
+};
+
+export const markConversationRead = async (
+  userId: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getMarkConversationReadUrl(userId), {
+    ...options,
+    method: "PUT",
+  });
+};
+
+export const getMarkConversationReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markConversationRead>>,
+    TError,
+    { userId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markConversationRead>>,
+  TError,
+  { userId: number },
+  TContext
+> => {
+  const mutationKey = ["markConversationRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markConversationRead>>,
+    { userId: number }
+  > = (props) => {
+    const { userId } = props ?? {};
+
+    return markConversationRead(userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkConversationReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markConversationRead>>
+>;
+
+export type MarkConversationReadMutationError = ErrorType<unknown>;
+
+export const useMarkConversationRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markConversationRead>>,
+    TError,
+    { userId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markConversationRead>>,
+  TError,
+  { userId: number },
+  TContext
+> => {
+  return useMutation(getMarkConversationReadMutationOptions(options));
+};
 
 export const getSendMessageUrl = () => {
   return `/api/messages`;
@@ -2146,7 +2305,7 @@ export const sendMessage = async (
 };
 
 export const getSendMessageMutationOptions = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2187,10 +2346,10 @@ export type SendMessageMutationResult = NonNullable<
   Awaited<ReturnType<typeof sendMessage>>
 >;
 export type SendMessageMutationBody = BodyType<SendMessageRequest>;
-export type SendMessageMutationError = ErrorType<unknown>;
+export type SendMessageMutationError = ErrorType<ErrorResponse>;
 
 export const useSendMessage = <
-  TError = ErrorType<unknown>,
+  TError = ErrorType<ErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<

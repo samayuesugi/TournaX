@@ -22,6 +22,8 @@ import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
 import AdminComplaintsPage from "@/pages/admin/complaints";
 import AdminGamesPage from "@/pages/admin/games";
+import ChatListPage from "@/pages/chat/index";
+import ConversationPage from "@/pages/chat/conversation";
 import NotFound from "@/pages/not-found";
 
 setAuthTokenGetter(getToken);
@@ -173,6 +175,18 @@ function Router() {
       <Route path="/admin/complaints">
         <ProtectedRoute roles={["admin"]}>
           <AdminComplaintsPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/chat">
+        <ProtectedRoute>
+          <ChatListPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/chat/:userId">
+        <ProtectedRoute>
+          <ConversationPage />
         </ProtectedRoute>
       </Route>
 
