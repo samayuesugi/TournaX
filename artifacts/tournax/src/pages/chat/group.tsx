@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Users, UserPlus, UserMinus, Crown, Lock, Megaphone, Clock } from "lucide-react";
+import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,9 @@ interface GroupInfo {
   createdBy: number;
   maxMembers: number | null;
   messageRetentionDays: number;
+  isPublic: boolean;
+  isMember: boolean;
+  memberCount: number;
   members: { id: number; name: string; handle: string; avatar: string; role: string }[];
 }
 
@@ -56,19 +59,21 @@ export default function GroupChatPage() {
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [notMember, setNotMember] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [addHandle, setAddHandle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [retentionDays, setRetentionDays] = useState<number>(3);
-  const [isSavingRetention, setIsSavingRetention] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const isCreator = group?.createdBy === user?.id;
   const isHostGroup = group?.type === "host";
-  const canSend = isHostGroup ? isCreator : true;
+  const isMember = group?.isMember ?? false;
+  const canSend = isMember && (isHostGroup ? isCreator : true);
   const maxRetentionDays = isHostGroup ? 2 : 7;
 
   const fetchGroup = async () => {
@@ -76,14 +81,14 @@ export default function GroupChatPage() {
       const data = await customFetch<GroupInfo>(`/api/groups/${groupId}`);
       setGroup(data);
       setRetentionDays(data.messageRetentionDays);
-      setNotMember(false);
     } catch (err: any) {
-      if (err?.status === 403) setNotMember(true);
+      if (err?.status === 404) setNotFound(true);
       else navigate("/chat");
     }
   };
 
   const fetchMessages = async () => {
+    if (!group?.isMember && group != null) return;
     try {
       const data = await customFetch<GroupMessage[]>(`/api/groups/${groupId}/messages`);
       setMessages(data);
@@ -93,17 +98,36 @@ export default function GroupChatPage() {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
-      await Promise.all([fetchGroup(), fetchMessages()]);
+      await fetchGroup();
       setIsLoading(false);
     };
     init();
+  }, [groupId]);
+
+  useEffect(() => {
+    if (!isMember) return;
+    fetchMessages();
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
-  }, [groupId]);
+  }, [groupId, isMember]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleJoin = async () => {
+    setIsJoining(true);
+    try {
+      await customFetch(`/api/groups/${groupId}/join`, { method: "POST" });
+      toast({ title: "Joined group!" });
+      await fetchGroup();
+      await fetchMessages();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Failed to join", variant: "destructive" });
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const handleSend = async () => {
     const trimmed = text.trim();
@@ -151,19 +175,19 @@ export default function GroupChatPage() {
     }
   };
 
-  const handleSaveRetention = async () => {
-    setIsSavingRetention(true);
+  const handleSaveSettings = async (patch: { messageRetentionDays?: number; isPublic?: boolean }) => {
+    setIsSavingSettings(true);
     try {
       await customFetch(`/api/groups/${groupId}/settings`, {
         method: "PUT",
-        body: JSON.stringify({ messageRetentionDays: retentionDays }),
+        body: JSON.stringify(patch),
       });
       await fetchGroup();
-      toast({ title: "Settings saved", description: `Messages will be kept for ${retentionDays} day${retentionDays > 1 ? "s" : ""}` });
+      toast({ title: "Settings saved" });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Failed to save", variant: "destructive" });
     } finally {
-      setIsSavingRetention(false);
+      setIsSavingSettings(false);
     }
   };
 
@@ -183,13 +207,32 @@ export default function GroupChatPage() {
     );
   }
 
-  if (notMember) {
+  if (notFound || !group) {
     return (
       <AppLayout showBack hideNav title="Group">
         <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-          <Lock className="w-10 h-10 text-muted-foreground mb-3" />
-          <h3 className="font-semibold">Private Group</h3>
-          <p className="text-muted-foreground text-sm mt-1">Ask the group creator to add you.</p>
+          <p className="text-muted-foreground">Group not found.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Public group, non-member — show join screen
+  if (!isMember) {
+    return (
+      <AppLayout showBack hideNav title={group.name}>
+        <div className="flex flex-col items-center justify-center h-64 text-center px-4 space-y-4">
+          <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-4xl">
+            {group.avatar}
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">{group.name}</h2>
+            <p className="text-muted-foreground text-sm mt-1">{group.memberCount} member{group.memberCount !== 1 ? "s" : ""} · Public Group</p>
+          </div>
+          <Button className="w-48 gap-2" onClick={handleJoin} disabled={isJoining}>
+            <Users className="w-4 h-4" />
+            {isJoining ? "Joining..." : "Join Group"}
+          </Button>
         </div>
       </AppLayout>
     );
@@ -207,9 +250,15 @@ export default function GroupChatPage() {
         >
           <span className="text-xl">{group?.avatar}</span>
           <div className="flex-1 text-left">
-            <p className="text-sm font-semibold">{group?.name}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold">{group?.name}</p>
+              {group?.isPublic
+                ? <Globe className="w-3 h-3 text-blue-400" />
+                : <Lock className="w-3 h-3 text-muted-foreground" />
+              }
+            </div>
             <p className="text-xs text-muted-foreground">
-              {group?.members.length} member{group?.members.length !== 1 ? "s" : ""}
+              {group?.memberCount} member{group?.memberCount !== 1 ? "s" : ""}
               {isHostGroup && " · Broadcast only"}
               {" · "}<Clock className="inline w-3 h-3 mb-0.5" /> {group?.messageRetentionDays}d
             </p>
@@ -295,39 +344,80 @@ export default function GroupChatPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 space-y-4">
-            {/* Retention setting — creator only */}
+
+            {/* Creator-only settings */}
             {isCreator && (
-              <div className="bg-secondary/40 rounded-xl p-3 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  <Clock className="w-3.5 h-3.5" /> Auto-Delete Messages
+              <div className="bg-secondary/40 rounded-xl p-3 space-y-3">
+                {/* Public / Private toggle */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    {group?.isPublic ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                    Visibility
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => !group?.isPublic && handleSaveSettings({ isPublic: true })}
+                      disabled={isSavingSettings || group?.isPublic === true}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-xl border py-2.5 text-xs font-medium transition-all",
+                        group?.isPublic
+                          ? "bg-blue-500/15 border-blue-500/50 text-blue-400"
+                          : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Globe className="w-4 h-4" />
+                      Public
+                      <span className="text-[10px] font-normal opacity-70">Shows on profile, anyone can join</span>
+                    </button>
+                    <button
+                      onClick={() => group?.isPublic && handleSaveSettings({ isPublic: false })}
+                      disabled={isSavingSettings || group?.isPublic === false}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-xl border py-2.5 text-xs font-medium transition-all",
+                        !group?.isPublic
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Lock className="w-4 h-4" />
+                      Private
+                      <span className="text-[10px] font-normal opacity-70">Hidden, invite only</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min={1}
-                    max={maxRetentionDays}
-                    value={retentionDays}
-                    onChange={(e) => setRetentionDays(Number(e.target.value))}
-                    className="flex-1 accent-primary"
-                  />
-                  <span className="text-sm font-bold w-16 text-right shrink-0">
-                    {retentionDays === 1 ? "24 hrs" : `${retentionDays} days`}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Messages older than {retentionDays === 1 ? "24 hours" : `${retentionDays} days`} are hidden
-                    {" "}(max {maxRetentionDays === 1 ? "24 hrs" : `${maxRetentionDays} days`})
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs shrink-0 ml-2"
-                    onClick={handleSaveRetention}
-                    disabled={isSavingRetention || retentionDays === group?.messageRetentionDays}
-                  >
-                    {isSavingRetention ? "Saving..." : "Save"}
-                  </Button>
+
+                {/* Retention slider */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    <Clock className="w-3.5 h-3.5" /> Auto-Delete Messages
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={1}
+                      max={maxRetentionDays}
+                      value={retentionDays}
+                      onChange={(e) => setRetentionDays(Number(e.target.value))}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-sm font-bold w-16 text-right shrink-0">
+                      {retentionDays === 1 ? "24 hrs" : `${retentionDays} days`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-muted-foreground">
+                      Messages older than {retentionDays === 1 ? "24 hours" : `${retentionDays} days`} are hidden
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs shrink-0 ml-2"
+                      onClick={() => handleSaveSettings({ messageRetentionDays: retentionDays })}
+                      disabled={isSavingSettings || retentionDays === group?.messageRetentionDays}
+                    >
+                      {isSavingSettings ? "Saving..." : "Save"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

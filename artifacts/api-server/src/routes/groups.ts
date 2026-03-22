@@ -19,7 +19,7 @@ function retentionCutoff(days: number): Date {
 
 router.post("/groups", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, avatar } = req.body;
+  const { name, avatar, isPublic } = req.body;
   if (!name?.trim()) { res.status(400).json({ error: "Group name required" }); return; }
 
   if (user.role === "host") {
@@ -36,6 +36,7 @@ router.post("/groups", requireAuth, async (req: Request, res: Response) => {
       createdBy: user.id,
       maxMembers: null,
       messageRetentionDays: HOST_RETENTION_DEFAULT,
+      isPublic: !!isPublic,
     }).returning();
     await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id });
     res.json(group);
@@ -47,6 +48,7 @@ router.post("/groups", requireAuth, async (req: Request, res: Response) => {
       createdBy: user.id,
       maxMembers: 10,
       messageRetentionDays: PLAYER_RETENTION_DEFAULT,
+      isPublic: !!isPublic,
     }).returning();
     await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id });
     res.json(group);
@@ -74,6 +76,7 @@ router.get("/groups", requireAuth, async (req: Request, res: Response) => {
       createdBy: group.createdBy,
       maxMembers: group.maxMembers,
       messageRetentionDays: group.messageRetentionDays,
+      isPublic: group.isPublic,
       memberCount: members.length,
       lastMessage: allMsgs[0]?.content || "",
       lastMessageAt: allMsgs[0]?.createdAt?.toISOString() || group.createdAt?.toISOString() || "",
@@ -88,12 +91,30 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
 
-  const isMember = await db.select().from(groupMembersTable)
-    .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)));
-  if (!isMember.length) { res.status(403).json({ error: "You are not a member of this group" }); return; }
+  const memberRows = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
+  const isMember = memberRows.some(m => m.userId === user.id);
 
-  const memberships = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
-  const members = await Promise.all(memberships.map(async (m) => {
+  if (!isMember) {
+    if (!group.isPublic) {
+      res.status(403).json({ error: "You are not a member of this group" }); return;
+    }
+    // Public group — return basic info so the UI can show a Join button
+    return res.json({
+      id: group.id,
+      name: group.name,
+      avatar: group.avatar,
+      type: group.type,
+      createdBy: group.createdBy,
+      maxMembers: group.maxMembers,
+      messageRetentionDays: group.messageRetentionDays,
+      isPublic: group.isPublic,
+      isMember: false,
+      memberCount: memberRows.length,
+      members: [],
+    });
+  }
+
+  const members = await Promise.all(memberRows.map(async (m) => {
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, m.userId));
     return u ? { id: u.id, name: u.name, handle: u.handle, avatar: u.avatar, role: u.role } : null;
   }));
@@ -106,8 +127,30 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
     createdBy: group.createdBy,
     maxMembers: group.maxMembers,
     messageRetentionDays: group.messageRetentionDays,
+    isPublic: group.isPublic,
+    isMember: true,
+    memberCount: memberRows.length,
     members: members.filter(Boolean),
   });
+});
+
+router.post("/groups/:id/join", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const groupId = Number(req.params.id);
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+  if (!group.isPublic) { res.status(403).json({ error: "This group is private" }); return; }
+
+  const memberRows = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
+  if (memberRows.some(m => m.userId === user.id)) {
+    res.status(400).json({ error: "Already a member" }); return;
+  }
+  if (group.maxMembers && memberRows.length >= group.maxMembers) {
+    res.status(400).json({ error: `Group is full (max ${group.maxMembers} members)` }); return;
+  }
+
+  await db.insert(groupMembersTable).values({ groupId, userId: user.id });
+  res.json({ success: true });
 });
 
 router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Response) => {
@@ -117,21 +160,29 @@ router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Respon
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
   if (group.createdBy !== user.id) { res.status(403).json({ error: "Only the group creator can change settings" }); return; }
 
-  const { messageRetentionDays } = req.body;
-  if (messageRetentionDays == null) { res.status(400).json({ error: "messageRetentionDays required" }); return; }
+  const { messageRetentionDays, isPublic } = req.body;
+  const updates: Partial<{ messageRetentionDays: number; isPublic: boolean }> = {};
 
-  const days = Number(messageRetentionDays);
-  const isHost = group.type === "host";
-  const maxDays = isHost ? HOST_RETENTION_MAX : PLAYER_RETENTION_MAX;
-  const minDays = 1;
-
-  if (!Number.isInteger(days) || days < minDays || days > maxDays) {
-    res.status(400).json({ error: `Retention must be between ${minDays} and ${maxDays} days` });
-    return;
+  if (messageRetentionDays != null) {
+    const days = Number(messageRetentionDays);
+    const isHost = group.type === "host";
+    const maxDays = isHost ? HOST_RETENTION_MAX : PLAYER_RETENTION_MAX;
+    if (!Number.isInteger(days) || days < 1 || days > maxDays) {
+      res.status(400).json({ error: `Retention must be between 1 and ${maxDays} days` }); return;
+    }
+    updates.messageRetentionDays = days;
   }
 
-  await db.update(groupsTable).set({ messageRetentionDays: days }).where(eq(groupsTable.id, groupId));
-  res.json({ success: true, messageRetentionDays: days });
+  if (isPublic != null) {
+    updates.isPublic = !!isPublic;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No valid settings provided" }); return;
+  }
+
+  await db.update(groupsTable).set(updates).where(eq(groupsTable.id, groupId));
+  res.json({ success: true, ...updates });
 });
 
 router.post("/groups/:id/members", requireAuth, async (req: Request, res: Response) => {
@@ -236,9 +287,9 @@ router.get("/groups/by-host/:hostId", async (req: Request, res: Response) => {
   const hostId = Number(req.params.hostId);
   const [group] = await db.select().from(groupsTable)
     .where(and(eq(groupsTable.createdBy, hostId), eq(groupsTable.type, "host")));
-  if (!group) { res.json(null); return; }
+  if (!group || !group.isPublic) { res.json(null); return; }
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, group.id));
-  res.json({ id: group.id, name: group.name, avatar: group.avatar, memberCount: members.length });
+  res.json({ id: group.id, name: group.name, avatar: group.avatar, memberCount: members.length, isPublic: group.isPublic });
 });
 
 export default router;

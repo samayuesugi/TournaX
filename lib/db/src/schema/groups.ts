@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const groupsTable = pgTable("groups", {
   id: serial("id").primaryKey(),
@@ -8,6 +8,7 @@ export const groupsTable = pgTable("groups", {
   createdBy: integer("created_by").notNull(),
   maxMembers: integer("max_members"),
   messageRetentionDays: integer("message_retention_days").notNull().default(3),
+  isPublic: boolean("is_public").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
