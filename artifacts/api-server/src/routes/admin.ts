@@ -117,6 +117,7 @@ router.get("/admin/finance/add-requests", requireAdmin, async (req: Request, res
 router.post("/admin/finance/add-requests/:id/approve", requireAdmin, async (req: Request, res: Response) => {
   const [request] = await db.select().from(addBalanceRequestsTable).where(eq(addBalanceRequestsTable.id, Number(req.params.id)));
   if (!request) { res.status(404).json({ error: "Request not found" }); return; }
+  if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
   await db.update(addBalanceRequestsTable).set({ status: "approved" }).where(eq(addBalanceRequestsTable.id, request.id));
   await db.execute(sql`UPDATE users SET balance = balance + ${request.amount} WHERE id = ${request.userId}`);
   res.json({ success: true });
@@ -150,6 +151,7 @@ router.post("/admin/finance/withdrawals/:id/approve", requireAdmin, async (req: 
 router.post("/admin/finance/withdrawals/:id/reject", requireAdmin, async (req: Request, res: Response) => {
   const [request] = await db.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, Number(req.params.id)));
   if (!request) { res.status(404).json({ error: "Not found" }); return; }
+  if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
   await db.update(withdrawalRequestsTable).set({ status: "rejected" }).where(eq(withdrawalRequestsTable.id, request.id));
   await db.execute(sql`UPDATE users SET balance = balance + ${request.amount} WHERE id = ${request.userId}`);
   res.json({ success: true });
