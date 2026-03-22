@@ -1,9 +1,31 @@
+import { useState, useEffect } from "react";
 import { useGetConversations } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageCircle, Users, Plus, Crown } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { customFetch } from "@workspace/api-client-react";
+
+interface GroupSummary {
+  id: number;
+  name: string;
+  avatar: string;
+  type: string;
+  createdBy: number;
+  maxMembers: number | null;
+  memberCount: number;
+  lastMessage: string;
+  lastMessageAt: string;
+}
+
+const AVATARS = ["⚔️", "🔥", "💀", "🏆", "🎯", "🎮", "⚡", "🌟", "🦅", "🐉"];
 
 function timeAgo(iso: string) {
   if (!iso) return "";
@@ -24,11 +46,111 @@ function roleBadge(role: string) {
 }
 
 export default function ChatListPage() {
-  const { data: conversations, isLoading } = useGetConversations();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const { data: conversations, isLoading: convsLoading } = useGetConversations();
+  const [groups, setGroups] = useState<GroupSummary[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupAvatar, setGroupAvatar] = useState("⚔️");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const fetchGroups = async () => {
+    try {
+      const data = await customFetch<GroupSummary[]>("/api/groups");
+      setGroups(data);
+    } catch {}
+    setGroupsLoading(false);
+  };
+
+  useEffect(() => { fetchGroups(); }, []);
+
+  const handleCreateGroup = async () => {
+    if (!groupName.trim()) return;
+    setIsCreating(true);
+    try {
+      const group = await customFetch<{ id: number }>("/api/groups", {
+        method: "POST",
+        body: JSON.stringify({ name: groupName.trim(), avatar: groupAvatar }),
+      });
+      setCreateOpen(false);
+      setGroupName("");
+      navigate(`/chat/group/${group.id}`);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Failed to create group", variant: "destructive" });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const isLoading = convsLoading && groupsLoading;
 
   return (
     <AppLayout title="Messages">
-      <div className="space-y-2 pb-4">
+      <div className="space-y-1 pb-4">
+        {/* Groups section */}
+        <div className="flex items-center justify-between mb-2 mt-1">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Groups</h3>
+          {(user?.role === "player" || user?.role === "host") && (
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> New Group
+            </button>
+          )}
+        </div>
+
+        {groupsLoading ? (
+          <Skeleton className="h-16 rounded-xl" />
+        ) : groups.length > 0 ? (
+          <div className="space-y-2 mb-4">
+            {groups.map((g) => (
+              <Link key={g.id} href={`/chat/group/${g.id}`}>
+                <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer">
+                  <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
+                    {g.avatar}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="font-semibold text-sm truncate">{g.name}</span>
+                      {g.type === "host" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium flex items-center gap-0.5">
+                          <Crown className="w-2.5 h-2.5" /> Host
+                        </span>
+                      )}
+                      {g.createdBy === user?.id && g.type === "player" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-medium">Mine</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {g.lastMessage || `${g.memberCount} member${g.memberCount !== 1 ? "s" : ""}`}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[10px] text-muted-foreground">{timeAgo(g.lastMessageAt)}</span>
+                    <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Users className="w-3 h-3" /> {g.memberCount}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-xl mb-4">
+            No groups yet.{" "}
+            {(user?.role === "player" || user?.role === "host") && (
+              <button onClick={() => setCreateOpen(true)} className="text-primary underline">Create one</button>
+            )}
+          </div>
+        )}
+
+        {/* DMs section */}
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Direct Messages</h3>
+
         {isLoading ? (
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : conversations && conversations.length > 0 ? (
@@ -67,13 +189,70 @@ export default function ChatListPage() {
             </Link>
           ))
         ) : (
-          <div className="text-center py-16">
-            <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <h3 className="font-semibold">No conversations yet</h3>
-            <p className="text-muted-foreground text-sm mt-1">Start a chat from a player or host profile</p>
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            No direct messages yet
           </div>
         )}
       </div>
+
+      {/* Create Group Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Create Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {user?.role === "host" && (
+              <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                <Crown className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-blue-400">As a host, you can create one group with unlimited players. Only you can broadcast messages.</p>
+              </div>
+            )}
+            {user?.role === "player" && (
+              <div className="flex items-start gap-2 bg-secondary/50 border border-border rounded-xl p-3">
+                <Users className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">Player groups are private and limited to 10 members. You can add teammates by their handle.</p>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label>Group Name</Label>
+              <Input
+                placeholder="e.g. Squad Alpha"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Icon</Label>
+              <div className="flex flex-wrap gap-2">
+                {AVATARS.map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => setGroupAvatar(a)}
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all",
+                      groupAvatar === a
+                        ? "bg-primary/30 border-2 border-primary ring-1 ring-primary"
+                        : "bg-secondary border-2 border-transparent hover:border-border"
+                    )}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleCreateGroup}
+              disabled={isCreating || !groupName.trim()}
+            >
+              {isCreating ? "Creating..." : "Create Group"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

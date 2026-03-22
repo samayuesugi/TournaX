@@ -24,6 +24,7 @@ import AdminComplaintsPage from "@/pages/admin/complaints";
 import AdminGamesPage from "@/pages/admin/games";
 import ChatListPage from "@/pages/chat/index";
 import ConversationPage from "@/pages/chat/conversation";
+import GroupChatPage from "@/pages/chat/group";
 import NotFound from "@/pages/not-found";
 
 setAuthTokenGetter(getToken);
@@ -181,6 +182,12 @@ function Router() {
       <Route path="/chat">
         <ProtectedRoute>
           <ChatListPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/chat/group/:groupId">
+        <ProtectedRoute>
+          <GroupChatPage />
         </ProtectedRoute>
       </Route>
 

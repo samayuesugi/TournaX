@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetUserProfile, useFollowUser, useUnfollowUser,
-  useGetMySquad, useAddSquadMember, useUpdateMyProfile, useGetMe
+  useGetMySquad, useAddSquadMember, useUpdateMyProfile, useGetMe,
+  customFetch
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -14,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown } from "lucide-react";
 
 function canChat(senderRole: string, recipientRole: string): boolean {
   if (senderRole === "player" && recipientRole === "admin") return false;
@@ -189,6 +190,15 @@ function PublicProfile({ handle }: { handle: string }) {
   const { data: profile, isLoading, refetch } = useGetUserProfile(handle);
   const { mutateAsync: follow } = useFollowUser();
   const { mutateAsync: unfollow } = useUnfollowUser();
+  const [hostGroup, setHostGroup] = useState<{ id: number; name: string; avatar: string; memberCount: number } | null>(null);
+
+  useEffect(() => {
+    if (profile?.role === "host" && profile.id) {
+      customFetch<{ id: number; name: string; avatar: string; memberCount: number } | null>(
+        `/api/groups/by-host/${profile.id}`
+      ).then(setHostGroup).catch(() => {});
+    }
+  }, [profile?.id, profile?.role]);
 
   const handleFollow = async () => {
     try {
@@ -274,6 +284,27 @@ function PublicProfile({ handle }: { handle: string }) {
             </div>
           </div>
         </div>
+
+        {/* Host Group Card */}
+        {profile.role === "host" && hostGroup && (
+          <Link href={`/chat/group/${hostGroup.id}`}>
+            <div className="bg-card border border-blue-500/20 rounded-2xl p-4 cursor-pointer hover:bg-secondary/30 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl shrink-0">
+                  {hostGroup.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Crown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <p className="text-sm font-semibold truncate">{hostGroup.name}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{hostGroup.memberCount} member{hostGroup.memberCount !== 1 ? "s" : ""} · Host broadcast group</p>
+                </div>
+                <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+              </div>
+            </div>
+          </Link>
+        )}
 
         {(profile.upcomingMatches.length > 0 || profile.activeMatches.length > 0) && (
           <div className="space-y-3">

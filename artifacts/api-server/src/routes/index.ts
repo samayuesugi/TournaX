@@ -6,6 +6,7 @@ import usersRouter from "./users";
 import walletRouter from "./wallet";
 import adminRouter from "./admin";
 import gamesRouter from "./games";
+import groupsRouter from "./groups";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(usersRouter);
 router.use(walletRouter);
 router.use(adminRouter);
 router.use(gamesRouter);
+router.use(groupsRouter);
 
 export default router;
