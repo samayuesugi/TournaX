@@ -96,8 +96,6 @@ router.get("/notifications", requireAuth, async (req: Request, res: Response) =>
 });
 
 function canChat(senderRole: string, recipientRole: string): boolean {
-  if (senderRole === "player" && recipientRole === "admin") return false;
-  if (senderRole === "admin" && recipientRole === "player") return false;
   return true;
 }
 

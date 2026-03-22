@@ -171,50 +171,60 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   const { teamName, players } = req.body;
   const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
 
-  const deductResult = await db.execute(
-    sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id} AND balance >= ${totalFee} RETURNING balance`
-  );
-  if (!deductResult.rows || deductResult.rows.length === 0) {
-    res.status(400).json({ error: "Insufficient balance" }); return;
-  }
-
-  // Atomically claim a slot — increments only if there is capacity, preventing race conditions
   const isFixed = match.prizeType === "fixed";
   const entryFeeNum = parseFloat(match.entryFee as string);
-  const slotResult = await db.execute(
-    sql`UPDATE matches SET
-      filled_slots = filled_slots + ${match.teamSize},
-      prize_pool = CASE WHEN ${isFixed} THEN prize_pool
-                        ELSE ((filled_slots + ${match.teamSize}) * ${entryFeeNum} * 0.8)::numeric
-                   END
-    WHERE id = ${match.id} AND filled_slots + ${match.teamSize} <= slots
-    RETURNING filled_slots`
-  );
-  if (!slotResult.rows || slotResult.rows.length === 0) {
-    // Slot claim failed — refund the deducted balance
-    await db.execute(sql`UPDATE users SET balance = balance + ${totalFee} WHERE id = ${user.id}`);
-    res.status(400).json({ error: "Match is full" }); return;
-  }
 
-  const newFilledSlots = (slotResult.rows[0] as any).filled_slots as number;
-  const teamNumber = Math.ceil(newFilledSlots / match.teamSize);
+  let joinError: string | null = null;
+  await db.transaction(async (tx) => {
+    const deductResult = await tx.execute(
+      sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id} AND balance >= ${totalFee} RETURNING balance`
+    );
+    if (!deductResult.rows || deductResult.rows.length === 0) {
+      joinError = "Insufficient balance";
+      return;
+    }
 
-  const [participant] = await db.insert(matchParticipantsTable).values({
-    matchId: match.id,
-    userId: user.id,
-    teamName: teamName || null,
-    teamNumber,
-  }).returning();
+    const slotResult = await tx.execute(
+      sql`UPDATE matches SET
+        filled_slots = filled_slots + ${match.teamSize},
+        prize_pool = CASE WHEN ${isFixed} THEN prize_pool
+                          ELSE ((filled_slots + ${match.teamSize}) * ${entryFeeNum} * 0.8)::numeric
+                     END
+      WHERE id = ${match.id} AND filled_slots + ${match.teamSize} <= slots
+      RETURNING filled_slots`
+    );
+    if (!slotResult.rows || slotResult.rows.length === 0) {
+      joinError = "Match is full";
+      return;
+    }
 
-  const playerList = players || [{ ign: user.name || user.email, uid: user.gameUid || "0" }];
-  for (let i = 0; i < playerList.length; i++) {
-    await db.insert(matchPlayersTable).values({
-      participantId: participant.id,
+    const newFilledSlots = (slotResult.rows[0] as any).filled_slots as number;
+    const teamNumber = Math.ceil(newFilledSlots / match.teamSize);
+
+    const [participant] = await tx.insert(matchParticipantsTable).values({
       matchId: match.id,
-      ign: playerList[i].ign,
-      uid: playerList[i].uid,
-      position: i + 1,
-    });
+      userId: user.id,
+      teamName: teamName || null,
+      teamNumber,
+    }).returning();
+
+    const playerList = players || [{ ign: user.name || user.email, uid: user.gameUid || "0" }];
+    for (let i = 0; i < playerList.length; i++) {
+      await tx.insert(matchPlayersTable).values({
+        participantId: participant.id,
+        matchId: match.id,
+        ign: playerList[i].ign,
+        uid: playerList[i].uid,
+        position: i + 1,
+      });
+    }
+  });
+
+  if (joinError === "Insufficient balance") {
+    res.status(400).json({ error: joinError }); return;
+  }
+  if (joinError === "Match is full") {
+    res.status(400).json({ error: joinError }); return;
   }
 
   res.json({ success: true, message: "Joined successfully! Check the Room tab for credentials." });

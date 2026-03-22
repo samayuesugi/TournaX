@@ -37,8 +37,14 @@ router.get("/admin/dashboard", requireAdmin, async (req: Request, res: Response)
   const complaints = await db.select().from(complaintsTable);
 
   const completedMatches = allMatches.filter(m => m.status === "completed");
-  const totalRevenue = completedMatches.reduce((sum, m) => sum + parseFloat(m.prizePool as string) * 0.1, 0);
-  const platformFees = completedMatches.reduce((sum, m) => sum + parseFloat(m.prizePool as string) * 0.05, 0);
+  const totalRevenue = completedMatches.reduce((sum, m) => {
+    const totalEntryFees = m.filledSlots * parseFloat(m.entryFee as string);
+    return sum + totalEntryFees * 0.1;
+  }, 0);
+  const platformFees = completedMatches.reduce((sum, m) => {
+    const totalEntryFees = m.filledSlots * parseFloat(m.entryFee as string);
+    return sum + totalEntryFees * 0.05;
+  }, 0);
 
   res.json({
     totalPlayers: allPlayers.length,
