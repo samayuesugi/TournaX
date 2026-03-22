@@ -70,7 +70,13 @@ export default function WalletPage() {
       return;
     }
     try {
-      await addBalance({ data: { amount: parseFloat(addForm.amount), utrNumber: addForm.utrNumber } });
+      const receiptUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(receiptFile);
+      });
+      await addBalance({ data: { amount: parseFloat(addForm.amount), utrNumber: addForm.utrNumber, receiptUrl } });
       toast({ title: "Request submitted!", description: "Await admin approval. Usually within 30 mins." });
       setAddForm({ amount: "", utrNumber: "" });
       handleRemoveReceipt();

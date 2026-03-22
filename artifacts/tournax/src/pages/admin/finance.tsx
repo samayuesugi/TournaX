@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { FinanceRequest } from "@workspace/api-client-react";
@@ -31,6 +32,7 @@ function RequestCard({
   const { mutateAsync: rejectAdd } = useRejectAddRequest();
   const { mutateAsync: approveW } = useApproveWithdrawal();
   const { mutateAsync: rejectW } = useRejectWithdrawal();
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const approve = async () => {
     try {
@@ -72,10 +74,36 @@ function RequestCard({
       </div>
 
       {req.utrNumber && (
-        <div className="text-xs text-muted-foreground mb-3">UTR: <span className="font-mono text-foreground">{req.utrNumber}</span></div>
+        <div className="text-xs text-muted-foreground mb-2">UTR: <span className="font-mono text-foreground">{req.utrNumber}</span></div>
       )}
       {req.upiId && (
-        <div className="text-xs text-muted-foreground mb-3">UPI: <span className="font-mono text-foreground">{req.upiId}</span></div>
+        <div className="text-xs text-muted-foreground mb-2">UPI: <span className="font-mono text-foreground">{req.upiId}</span></div>
+      )}
+
+      {req.receiptUrl && (
+        <>
+          <button
+            onClick={() => setReceiptOpen(true)}
+            className="w-full mb-3 rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
+          >
+            <img
+              src={req.receiptUrl}
+              alt="Payment receipt"
+              className="w-full max-h-32 object-cover"
+            />
+            <div className="text-xs text-muted-foreground py-1 text-center bg-muted/30">Tap to view full receipt</div>
+          </button>
+          <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
+            <DialogContent className="max-w-sm p-0 overflow-hidden">
+              <DialogHeader className="px-4 pt-4 pb-2">
+                <DialogTitle>Payment Receipt</DialogTitle>
+              </DialogHeader>
+              <div className="px-4 pb-4">
+                <img src={req.receiptUrl} alt="Payment receipt" className="w-full rounded-lg" />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
 
       {req.status === "pending" && (

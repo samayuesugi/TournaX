@@ -16,5 +16,6 @@ export interface FinanceRequest {
   status: FinanceRequestStatus;
   utrNumber?: string;
   upiId?: string;
+  receiptUrl?: string;
   createdAt: string;
 }

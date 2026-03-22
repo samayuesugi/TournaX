@@ -778,6 +778,7 @@ export const AdminListAddRequestsResponseItem = zod.object({
   status: zod.enum(["pending", "approved", "rejected"]),
   utrNumber: zod.string().optional(),
   upiId: zod.string().optional(),
+  receiptUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const AdminListAddRequestsResponse = zod.array(
@@ -815,6 +816,7 @@ export const AdminListWithdrawalsResponseItem = zod.object({
   status: zod.enum(["pending", "approved", "rejected"]),
   utrNumber: zod.string().optional(),
   upiId: zod.string().optional(),
+  receiptUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const AdminListWithdrawalsResponse = zod.array(

@@ -1386,6 +1386,8 @@ components:
           type: string
         upiId:
           type: string
+        receiptUrl:
+          type: string
         createdAt:
           type: string
       required: [id, userId, amount, status, createdAt]

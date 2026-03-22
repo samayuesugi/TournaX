@@ -108,6 +108,7 @@ router.get("/admin/finance/add-requests", requireAdmin, async (req: Request, res
     return {
       id: r.id, userId: r.userId, userName: user?.name || user?.email, userEmail: user?.email,
       amount: parseFloat(r.amount as string), status: r.status, utrNumber: r.utrNumber,
+      receiptUrl: r.receiptUrl || null,
       createdAt: r.createdAt?.toISOString(),
     };
   }));
