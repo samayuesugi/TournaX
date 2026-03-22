@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -169,6 +169,21 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   if (existing.length > 0) { res.status(400).json({ error: "Already joined" }); return; }
 
   const { teamName, players } = req.body;
+
+  if (match.teamSize > 1) {
+    const squadMembers = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
+    if (squadMembers.length < match.teamSize) {
+      res.status(400).json({
+        error: `You need at least ${match.teamSize} squad members to join this match. You have ${squadMembers.length}. Add more members in your Profile → My Squad.`
+      });
+      return;
+    }
+    if (!players || players.length !== match.teamSize) {
+      res.status(400).json({ error: `Select exactly ${match.teamSize} players from your squad to join.` });
+      return;
+    }
+  }
+
   const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
 
   const isFixed = match.prizeType === "fixed";

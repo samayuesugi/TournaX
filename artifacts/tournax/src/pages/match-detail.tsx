@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
-import { Users, Trophy, Clock, Shield, Copy, Check, Plus, Trash2 } from "lucide-react";
+import { Users, Trophy, Clock, Shield, Copy, Check, Trash2 } from "lucide-react";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
   useGoLive, useDeleteMatch, useGetMySquad
@@ -53,6 +53,7 @@ export default function MatchDetailPage() {
   const [roomOpen, setRoomOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [joinPlayers, setJoinPlayers] = useState([{ ign: "", uid: "" }]);
+  const [selectedSquadIds, setSelectedSquadIds] = useState<Set<number>>(new Set());
   const [roomCreds, setRoomCreds] = useState({ roomId: "", roomPassword: "" });
 
   const isHost = user?.id === match?.hostId;
@@ -60,14 +61,27 @@ export default function MatchDetailPage() {
   const canManage = isHost || isAdmin;
 
   const handleJoin = async () => {
-    if (joinPlayers.some(p => !p.ign || !p.uid)) {
-      toast({ title: "Fill in all player details", variant: "destructive" });
-      return;
+    if (!match) return;
+    let players: { ign: string; uid: string }[];
+    if (match.teamSize > 1) {
+      const selected = (squad ?? []).filter(m => selectedSquadIds.has(m.id!));
+      if (selected.length !== match.teamSize) {
+        toast({ title: `Select exactly ${match.teamSize} players`, variant: "destructive" });
+        return;
+      }
+      players = selected.map(m => ({ ign: m.name, uid: m.uid }));
+    } else {
+      if (joinPlayers.some(p => !p.ign || !p.uid)) {
+        toast({ title: "Fill in your player details", variant: "destructive" });
+        return;
+      }
+      players = joinPlayers;
     }
     try {
-      await joinMatch({ id: matchId, data: { teamName: teamName || undefined, players: joinPlayers } });
+      await joinMatch({ id: matchId, data: { teamName: teamName || undefined, players } });
       toast({ title: "Joined successfully!" });
       setJoinOpen(false);
+      setSelectedSquadIds(new Set());
       refetch();
     } catch (err: any) {
       toast({ title: "Failed to join", description: err?.data?.error, variant: "destructive" });
@@ -198,95 +212,130 @@ export default function MatchDetailPage() {
         )}
 
         {!match.isJoined && match.status === "upcoming" && user?.role === "player" && (
-          <Dialog open={joinOpen} onOpenChange={setJoinOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full" size="lg">
-                Join Match · ₹{match.entryFee}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Join Match</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                {match.teamSize > 1 && (
-                  <div className="space-y-1.5">
-                    <Label>Team Name (optional)</Label>
-                    <Input
-                      placeholder="Your team name"
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label>Players ({match.teamSize} required)</Label>
-                  {joinPlayers.map((p, i) => (
-                    <div key={i} className="flex gap-2">
-                      <Input
-                        placeholder="IGN"
-                        value={p.ign}
-                        onChange={(e) => {
-                          const next = [...joinPlayers];
-                          next[i] = { ...next[i], ign: e.target.value };
-                          setJoinPlayers(next);
-                        }}
-                      />
-                      <Input
-                        placeholder="UID"
-                        value={p.uid}
-                        onChange={(e) => {
-                          const next = [...joinPlayers];
-                          next[i] = { ...next[i], uid: e.target.value };
-                          setJoinPlayers(next);
-                        }}
-                      />
-                    </div>
-                  ))}
-                  {joinPlayers.length < match.teamSize && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setJoinPlayers(p => [...p, { ign: "", uid: "" }])}
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" /> Add Player
-                    </Button>
-                  )}
-                </div>
-
-                {squad && squad.length > 0 && (
-                  <div className="space-y-1.5">
-                    <Label>Or pick from squad</Label>
-                    <div className="space-y-1">
-                      {squad.map((m) => (
-                        <button
-                          key={m.id}
-                          className="w-full flex items-center justify-between text-sm bg-secondary/50 hover:bg-secondary rounded-lg px-3 py-2 transition-colors"
-                          onClick={() => {
-                            const next = [...joinPlayers];
-                            const emptyIdx = next.findIndex(p => !p.ign);
-                            if (emptyIdx !== -1) {
-                              next[emptyIdx] = { ign: m.name, uid: m.uid };
+          match.teamSize > 1 && (squad ?? []).length < match.teamSize ? (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 text-center space-y-1">
+              <p className="text-sm font-semibold text-destructive">Squad Required</p>
+              <p className="text-xs text-muted-foreground">
+                This is a {match.teamSize === 2 ? "Duo" : "Squad"} match — you need {match.teamSize} squad members to join.
+                You currently have {(squad ?? []).length}. Add more in Profile → My Squad.
+              </p>
+            </div>
+          ) : (
+            <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) setSelectedSquadIds(new Set()); }}>
+              <DialogTrigger asChild>
+                <Button className="w-full" size="lg">
+                  Join Match · ₹{match.entryFee}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Join Match</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {match.teamSize > 1 ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label>Team Name (optional)</Label>
+                        <Input
+                          placeholder="Your team name"
+                          value={teamName}
+                          onChange={(e) => setTeamName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Select {match.teamSize === 2 ? "Duo" : "Squad"} Players</Label>
+                          <span className={cn(
+                            "text-xs font-medium px-2 py-0.5 rounded-full",
+                            selectedSquadIds.size === match.teamSize
+                              ? "bg-green-500/20 text-green-400"
+                              : "bg-secondary text-muted-foreground"
+                          )}>
+                            {selectedSquadIds.size}/{match.teamSize} selected
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {(squad ?? []).map((m) => {
+                            const isSelected = selectedSquadIds.has(m.id!);
+                            return (
+                              <button
+                                key={m.id}
+                                className={cn(
+                                  "w-full flex items-center justify-between text-sm rounded-lg px-3 py-2.5 transition-colors border",
+                                  isSelected
+                                    ? "bg-primary/20 border-primary/50 text-foreground"
+                                    : "bg-secondary/50 border-transparent hover:bg-secondary"
+                                )}
+                                onClick={() => {
+                                  setSelectedSquadIds(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(m.id!)) {
+                                      next.delete(m.id!);
+                                    } else if (next.size < match.teamSize) {
+                                      next.add(m.id!);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className={cn(
+                                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
+                                    isSelected ? "bg-primary border-primary" : "border-muted-foreground"
+                                  )}>
+                                    {isSelected && <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 text-primary-foreground fill-current"><path d="M1 5l3 3 5-5" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>}
+                                  </div>
+                                  <span className="font-medium">{m.name}</span>
+                                </div>
+                                <span className="text-muted-foreground text-xs font-mono">{m.uid}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {selectedSquadIds.size === match.teamSize && (
+                          <p className="text-xs text-green-400 text-center">All players selected!</p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Your Player Info</Label>
+                      {joinPlayers.map((p, i) => (
+                        <div key={i} className="flex gap-2">
+                          <Input
+                            placeholder="IGN"
+                            value={p.ign}
+                            onChange={(e) => {
+                              const next = [...joinPlayers];
+                              next[i] = { ...next[i], ign: e.target.value };
                               setJoinPlayers(next);
-                            }
-                          }}
-                        >
-                          <span>{m.name}</span>
-                          <span className="text-muted-foreground text-xs">{m.uid}</span>
-                        </button>
+                            }}
+                          />
+                          <Input
+                            placeholder="UID"
+                            value={p.uid}
+                            onChange={(e) => {
+                              const next = [...joinPlayers];
+                              next[i] = { ...next[i], uid: e.target.value };
+                              setJoinPlayers(next);
+                            }}
+                          />
+                        </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <Button className="w-full" onClick={handleJoin} disabled={isJoining}>
-                  {isJoining ? "Joining..." : `Confirm · ₹${match.entryFee}`}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+                  <Button
+                    className="w-full"
+                    onClick={handleJoin}
+                    disabled={isJoining || (match.teamSize > 1 && selectedSquadIds.size !== match.teamSize)}
+                  >
+                    {isJoining ? "Joining..." : `Confirm · ₹${match.entryFee}`}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )
         )}
 
         {canManage && (
