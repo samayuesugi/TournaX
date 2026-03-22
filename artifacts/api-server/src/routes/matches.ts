@@ -32,14 +32,16 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
   }
 
   const entryFee = parseFloat(match.entryFee as string);
-  const fixedPrize = match.fixedPrize ? parseFloat(match.fixedPrize as string) : null;
-  const prizeType = (match.prizeType as string) || "dynamic";
-  const livePrizePool = prizeType === "fixed"
-    ? (fixedPrize ?? 0)
-    : match.filledSlots * entryFee * 0.8;
-  const maxPrizePool = prizeType === "fixed"
-    ? (fixedPrize ?? 0)
-    : match.slots * entryFee * 0.8;
+  const showcasePrizePool = parseFloat((match.showcasePrizePool as string) ?? "0");
+
+  const totalPool = match.filledSlots * entryFee;
+  const isLargePool = match.filledSlots >= 8;
+  const winnersPercent = isLargePool ? 0.85 : 0.90;
+  const hostPercent = isLargePool ? 0.10 : 0.05;
+  const platformPercent = 0.05;
+  const livePrizePool = totalPool * winnersPercent;
+  const hostCut = totalPool * hostPercent;
+  const platformCut = totalPool * platformPercent;
 
   const result: any = {
     id: match.id,
@@ -48,11 +50,13 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     mode: match.mode,
     teamSize: match.teamSize,
     entryFee,
-    prizePool: parseFloat(match.prizePool as string),
-    prizeType,
-    fixedPrize,
+    showcasePrizePool,
     livePrizePool,
-    maxPrizePool,
+    hostCut,
+    platformCut,
+    totalPool,
+    winnersPercent: Math.round(winnersPercent * 100),
+    hostPercent: Math.round(hostPercent * 100),
     startTime: match.startTime?.toISOString(),
     status: match.status,
     slots: match.slots,
@@ -101,8 +105,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, prizeType, fixedPrize } = req.body;
-  const isPrizeFixed = prizeType === "fixed" && fixedPrize != null;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool } = req.body;
   const code = generateCode();
   const [match] = await db.insert(matchesTable).values({
     code,
@@ -115,9 +118,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     startTime: new Date(startTime),
     status: "upcoming",
     filledSlots: 0,
-    prizePool: isPrizeFixed ? String(fixedPrize) : "0",
-    prizeType: isPrizeFixed ? "fixed" : "dynamic",
-    fixedPrize: isPrizeFixed ? String(fixedPrize) : null,
+    showcasePrizePool: showcasePrizePool != null ? String(showcasePrizePool) : "0",
     roomReleased: false,
   }).returning();
 
@@ -186,9 +187,6 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
 
   const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
 
-  const isFixed = match.prizeType === "fixed";
-  const entryFeeNum = parseFloat(match.entryFee as string);
-
   let joinError: string | null = null;
   await db.transaction(async (tx) => {
     const deductResult = await tx.execute(
@@ -200,11 +198,7 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
     }
 
     const slotResult = await tx.execute(
-      sql`UPDATE matches SET
-        filled_slots = filled_slots + ${match.teamSize},
-        prize_pool = CASE WHEN ${isFixed} THEN prize_pool
-                          ELSE ((filled_slots + ${match.teamSize}) * ${entryFeeNum} * 0.8)::numeric
-                     END
+      sql`UPDATE matches SET filled_slots = filled_slots + ${match.teamSize}
       WHERE id = ${match.id} AND filled_slots + ${match.teamSize} <= slots
       RETURNING filled_slots`
     );
@@ -290,10 +284,13 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
     res.status(400).json({ error: "Results are required" }); return;
   }
 
-  const prizePool = parseFloat(match.prizePool as string);
+  const entryFeeNum = parseFloat(match.entryFee as string);
+  const totalPool = match.filledSlots * entryFeeNum;
+  const winnersPercent = match.filledSlots >= 8 ? 0.85 : 0.90;
+  const maxWinnersPool = totalPool * winnersPercent;
   const totalReward = results.reduce((sum, r) => sum + r.reward, 0);
-  if (totalReward > prizePool + 0.01) {
-    res.status(400).json({ error: `Total rewards (₹${totalReward}) exceed the prize pool (₹${prizePool})` }); return;
+  if (totalReward > maxWinnersPool + 0.01) {
+    res.status(400).json({ error: `Total rewards (₹${totalReward}) exceed the winners pool (₹${maxWinnersPool.toFixed(2)})` }); return;
   }
 
   await db.transaction(async (tx) => {

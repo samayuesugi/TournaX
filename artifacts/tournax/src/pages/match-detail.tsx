@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Users, Trophy, Clock, Shield, Copy, Check, Trash2 } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2 } from "lucide-react";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
   useGoLive, useDeleteMatch, useGetMySquad
@@ -18,6 +18,70 @@ import { cn } from "@/lib/utils";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+}
+
+interface LivePrizePoolProps {
+  match: {
+    filledSlots: number;
+    slots: number;
+    entryFee: number;
+    showcasePrizePool: number;
+    livePrizePool: number;
+    hostCut: number;
+    platformCut: number;
+    totalPool: number;
+    winnersPercent: number;
+    hostPercent: number;
+    status: string;
+  };
+}
+
+function LivePrizePool({ match }: LivePrizePoolProps) {
+  const { filledSlots, entryFee, showcasePrizePool, livePrizePool, hostCut, platformCut, totalPool, winnersPercent, hostPercent, status } = match;
+
+  return (
+    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <Gift className="w-4 h-4 text-amber-400" />
+          <span className="font-semibold text-amber-400 text-sm">Live Prize Pool</span>
+        </div>
+        {status === "live" && (
+          <span className="text-[10px] font-bold text-green-400 border border-green-400/40 rounded-full px-2 py-0.5 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" /> LIVE
+          </span>
+        )}
+      </div>
+
+      <div className="text-3xl font-bold text-foreground mb-0.5">₹{Math.round(livePrizePool)}</div>
+      <p className="text-xs text-muted-foreground mb-3">
+        {filledSlots} player{filledSlots !== 1 ? "s" : ""} × ₹{entryFee} entry fee
+      </p>
+
+      <div className="grid grid-cols-3 gap-2 text-center bg-secondary/50 rounded-xl p-3">
+        <div>
+          <div className="text-sm font-bold text-green-400">₹{Math.round(livePrizePool)}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Winners</div>
+          <div className="text-[10px] text-muted-foreground">{winnersPercent}%</div>
+        </div>
+        <div>
+          <div className="text-sm font-bold text-foreground">₹{Math.round(hostCut)}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Host</div>
+          <div className="text-[10px] text-muted-foreground">{hostPercent}%</div>
+        </div>
+        <div>
+          <div className="text-sm font-bold text-foreground">₹{Math.round(platformCut)}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">Platform</div>
+          <div className="text-[10px] text-muted-foreground">5%</div>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground mt-2.5 flex items-start gap-1">
+        <span>ⓘ</span>
+        <span>Pool grows as more players join · Guaranteed showcase: ₹{showcasePrizePool}</span>
+      </p>
+    </div>
+  );
 }
 
 function CopyButton({ value }: { value: string }) {
@@ -162,20 +226,18 @@ export default function MatchDetailPage() {
 
           <div className="font-mono text-accent text-sm font-medium mb-4">Match Code: #{match.code}</div>
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="text-xs text-muted-foreground mb-1">Entry Fee</div>
               <div className="font-bold text-primary">₹{match.entryFee}</div>
-            </div>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1"><Trophy className="w-3 h-3" />Prize</div>
-              <div className="font-bold text-accent">₹{match.prizePool}</div>
             </div>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1"><Users className="w-3 h-3" />Slots</div>
               <div className="font-bold">{match.filledSlots}/{match.slots}</div>
             </div>
           </div>
+
+          <LivePrizePool match={match as any} />
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4 shrink-0" />

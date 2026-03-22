@@ -226,13 +226,13 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     isFollowing: !!follow,
     upcomingMatches: upcomingMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
-      entryFee: parseFloat(m.entryFee as string), prizePool: parseFloat(m.prizePool as string),
+      entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),
       startTime: m.startTime?.toISOString(), status: m.status, slots: m.slots, filledSlots: m.filledSlots,
       hostId: m.hostId,
     })),
     activeMatches: activeMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
-      entryFee: parseFloat(m.entryFee as string), prizePool: parseFloat(m.prizePool as string),
+      entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),
       startTime: m.startTime?.toISOString(), status: m.status, slots: m.slots, filledSlots: m.filledSlots,
       hostId: m.hostId,
     })),

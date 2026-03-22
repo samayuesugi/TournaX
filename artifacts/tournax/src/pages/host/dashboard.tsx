@@ -32,7 +32,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
   const [ranks, setRanks] = useState<Record<number, string>>({});
   const [rewards, setRewards] = useState<Record<number, string>>({});
 
-  const prizePool = parseFloat(String(match.prizePool || 0));
+  const prizePool = parseFloat(String(match.livePrizePool || 0));
   const totalRewarded = (participants || []).reduce((sum, p) => {
     const val = parseFloat(rewards[p.id] || "0");
     return sum + (isNaN(val) ? 0 : val);
@@ -246,8 +246,8 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
             <div className="font-bold text-sm">₹{match.entryFee}</div>
           </div>
           <div className="bg-secondary/50 rounded-xl p-2">
-            <div className="text-xs text-muted-foreground">Prize Pool</div>
-            <div className="font-bold text-sm text-accent">₹{match.prizePool}</div>
+            <div className="text-xs text-muted-foreground">Live Pool</div>
+            <div className="font-bold text-sm text-accent">₹{Math.round(match.livePrizePool || 0)}</div>
           </div>
           <div className="bg-secondary/50 rounded-xl p-2">
             <div className="text-xs text-muted-foreground">Slots</div>
@@ -354,7 +354,7 @@ export default function HostDashboardPage() {
 
   const totalEarnings = myMatches
     .filter((m: any) => m.status === "completed")
-    .reduce((sum: number, m: any) => sum + (parseFloat(String(m.prizePool || 0)) * 0.2), 0);
+    .reduce((sum: number, m: any) => sum + (parseFloat(String(m.hostCut || 0))), 0);
 
   const liveCount = myMatches.filter((m: any) => m.status === "live").length;
 
