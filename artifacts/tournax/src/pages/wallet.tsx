@@ -20,12 +20,12 @@ function statusBadgeClass(status: string) {
 const UPI_ID = "9971040244@ptaxis";
 
 const ADD_BALANCE_RULES = [
-  { icon: "⚠️", text: "False या already used UTR submit करने पर ₹2 penalty लगेगी।" },
-  { icon: "🧾", text: "Clear और readable receipt attach करें — blurry या cropped receipts reject होंगी।" },
-  { icon: "✅", text: "UTR number exactly वही enter करें जो receipt में दिखे।" },
-  { icon: "⏱️", text: "Request approve होने में 30 minutes तक लग सकते हैं।" },
-  { icon: "🔁", text: "Minimum add amount ₹10 है।" },
-  { icon: "📵", text: "एक ही UTR से दो बार request मत करें।" },
+  { icon: "⚠️", text: "Submitting a false or already used UTR will result in a ₹2 penalty." },
+  { icon: "🧾", text: "Attach a clear and readable receipt — blurry or cropped receipts will be rejected." },
+  { icon: "✅", text: "Enter the UTR number exactly as shown in the receipt." },
+  { icon: "⏱️", text: "Request approval can take up to 30 minutes." },
+  { icon: "🔁", text: "Minimum add amount is ₹10." },
+  { icon: "📵", text: "Do not submit a request with the same UTR twice." },
 ];
 
 export default function WalletPage() {
@@ -201,7 +201,7 @@ export default function WalletPage() {
                           className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-6 hover:border-primary/50 hover:bg-primary/5 transition-colors"
                         >
                           <ImagePlus className="w-7 h-7 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Gallery से Receipt चुनें</span>
+                          <span className="text-sm text-muted-foreground">Select receipt from gallery</span>
                         </button>
                       )}
                     </div>
