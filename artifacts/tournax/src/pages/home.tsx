@@ -59,13 +59,13 @@ export default function HomePage() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-44 rounded-xl" />
             ))}
           </div>
         ) : matches && matches.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {matches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))}

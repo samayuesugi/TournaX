@@ -405,11 +405,11 @@ export default function HostDashboardPage() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
           </div>
         ) : myMatches.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {myMatches.map((m: any) => (
               <MatchCard key={m.id} match={m} onAction={refetch} />
             ))}

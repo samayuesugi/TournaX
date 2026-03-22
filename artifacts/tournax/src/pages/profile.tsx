@@ -307,7 +307,7 @@ function PublicProfile({ handle }: { handle: string }) {
         )}
 
         {(profile.upcomingMatches.length > 0 || profile.activeMatches.length > 0) && (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {profile.activeMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Live / Active</h3>
