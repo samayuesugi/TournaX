@@ -35,7 +35,6 @@ export default function ConversationPage() {
 
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
-  const partnerTitle = partner ? (partner.name || partner.handle || `User ${partnerId}`) : `User ${partnerId}`;
 
   const { data: messages, isLoading } = useGetConversation(partnerId, {
     query: {
@@ -87,8 +86,19 @@ export default function ConversationPage() {
 
   let lastDate = "";
 
+  const partnerHeaderContent = partner ? (
+    <div className="min-w-0">
+      <p className="font-semibold text-sm truncate leading-tight">{partner.name || partner.handle || `User ${partnerId}`}</p>
+      {partner.handle && (
+        <p className="text-xs text-muted-foreground truncate leading-tight">@{partner.handle}</p>
+      )}
+    </div>
+  ) : (
+    <p className="font-semibold text-sm truncate">{`User ${partnerId}`}</p>
+  );
+
   return (
-    <AppLayout showBack hideNav title={partnerTitle}>
+    <AppLayout showBack hideNav headerContent={partnerHeaderContent}>
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         <div className="flex-1 overflow-y-auto space-y-1 pb-2">
           {isLoading ? (

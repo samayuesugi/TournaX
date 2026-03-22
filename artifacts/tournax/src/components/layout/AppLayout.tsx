@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 interface AppLayoutProps {
   children: ReactNode;
   title?: string;
+  headerContent?: ReactNode;
   showBack?: boolean;
   backHref?: string;
   hideNav?: boolean;
@@ -19,6 +20,7 @@ interface AppLayoutProps {
 export function AppLayout({
   children,
   title,
+  headerContent,
   showBack,
   backHref,
   hideNav,
@@ -63,6 +65,14 @@ export function AppLayout({
               </div>
             </Link>
           )}
+
+          {headerContent ? (
+            <div className="flex-1 min-w-0">{headerContent}</div>
+          ) : title ? (
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">{title}</p>
+            </div>
+          ) : null}
 
           <div className="ml-auto flex items-center gap-2">
             {user && user.role !== "admin" && wallet && (
