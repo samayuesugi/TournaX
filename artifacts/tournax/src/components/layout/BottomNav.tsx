@@ -7,13 +7,17 @@ import { cn } from "@/lib/utils";
 const playerNav = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/explore", icon: Compass, label: "Explore" },
+  { href: "/my-matches", icon: Swords, label: "Matches" },
   { href: "/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 const hostNav = [
   { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/host/create-match", icon: Plus, label: "Create" },
+  { href: "/my-matches", icon: Swords, label: "Matches" },
   { href: "/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 const adminNav = [

@@ -17,29 +17,6 @@ interface AppLayoutProps {
   hideNav?: boolean;
 }
 
-const SECTION_NAMES: Record<string, string> = {
-  "/": "Home",
-  "/explore": "Explore",
-  "/chat": "Chat",
-  "/wallet": "Wallet",
-  "/notifications": "Notifications",
-  "/my-matches": "My Matches",
-  "/profile": "Profile",
-  "/host": "Dashboard",
-  "/host/create-match": "Create Match",
-  "/admin": "Dashboard",
-  "/admin/players": "Players",
-  "/admin/finance": "Finance",
-  "/admin/complaints": "Issues",
-};
-
-function getSectionName(path: string): string | null {
-  if (SECTION_NAMES[path]) return SECTION_NAMES[path];
-  if (path.startsWith("/profile/")) return "Profile";
-  if (path.startsWith("/chat/")) return "Chat";
-  return null;
-}
-
 export function AppLayout({
   children,
   title,
@@ -49,7 +26,7 @@ export function AppLayout({
   hideNav,
 }: AppLayoutProps) {
   const { user, logout } = useAuth();
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -64,7 +41,6 @@ export function AppLayout({
   });
 
   const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
-  const sectionName = getSectionName(location);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -90,12 +66,6 @@ export function AppLayout({
                 <span className="font-bold text-base tracking-tight text-foreground">
                   TournaX
                 </span>
-                {sectionName && (
-                  <>
-                    <span className="text-muted-foreground/50 text-sm font-normal">/</span>
-                    <span className="text-sm font-medium text-muted-foreground">{sectionName}</span>
-                  </>
-                )}
               </div>
             </Link>
           )}
