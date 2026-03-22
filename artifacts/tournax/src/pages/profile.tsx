@@ -138,30 +138,39 @@ function OwnProfile() {
         {user.role === "player" && (
           <div className="bg-card border border-card-border rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">My Squad</h3>
-              <Dialog open={squadOpen} onOpenChange={setSquadOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 gap-1">
-                    <Plus className="w-3.5 h-3.5" /> Add
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-sm">
-                  <DialogHeader><DialogTitle>Add Squad Member</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label>Player Name / IGN</Label>
-                      <Input value={squadForm.name} onChange={(e) => setSquadForm(f => ({ ...f, name: e.target.value }))} placeholder="IGN" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Game UID</Label>
-                      <Input value={squadForm.uid} onChange={(e) => setSquadForm(f => ({ ...f, uid: e.target.value }))} placeholder="UID" />
-                    </div>
-                    <Button className="w-full" onClick={handleAddMember} disabled={isAdding || !squadForm.name || !squadForm.uid}>
-                      {isAdding ? "Adding..." : "Add Member"}
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">My Squad</h3>
+                <span className="text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
+                  {squad?.length ?? 0}/6
+                </span>
+              </div>
+              {(squad?.length ?? 0) < 6 ? (
+                <Dialog open={squadOpen} onOpenChange={setSquadOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 gap-1">
+                      <Plus className="w-3.5 h-3.5" /> Add
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader><DialogTitle>Add Squad Member</DialogTitle></DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label>Player Name / IGN</Label>
+                        <Input value={squadForm.name} onChange={(e) => setSquadForm(f => ({ ...f, name: e.target.value }))} placeholder="IGN" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Game UID</Label>
+                        <Input value={squadForm.uid} onChange={(e) => setSquadForm(f => ({ ...f, uid: e.target.value }))} placeholder="UID" />
+                      </div>
+                      <Button className="w-full" onClick={handleAddMember} disabled={isAdding || !squadForm.name || !squadForm.uid}>
+                        {isAdding ? "Adding..." : "Add Member"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <span className="text-xs text-muted-foreground">Squad Full</span>
+              )}
             </div>
             {squad && squad.length > 0 ? (
               <div className="space-y-2">
