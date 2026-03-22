@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, Swords, User, LayoutDashboard, Plus, DollarSign, MessageCircle } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, MessageCircle, Swords, User } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { useGetConversations } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
@@ -7,17 +7,13 @@ import { cn } from "@/lib/utils";
 const playerNav = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/explore", icon: Compass, label: "Explore" },
-  { href: "/my-matches", icon: Swords, label: "Matches" },
   { href: "/chat", icon: MessageCircle, label: "Chat" },
-  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 const hostNav = [
   { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/host/create-match", icon: Plus, label: "Create" },
-  { href: "/my-matches", icon: Swords, label: "Matches" },
   { href: "/chat", icon: MessageCircle, label: "Chat" },
-  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 const adminNav = [
