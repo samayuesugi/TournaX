@@ -1,57 +1,42 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useCreateMatch, customFetch } from "@workspace/api-client-react";
-import { useQuery } from "@tanstack/react-query";
+import { useCreateMatch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Trophy, TrendingUp, Lock } from "lucide-react";
 
-interface GameMode { id: number; name: string; teamSize: number; }
-interface Game { id: number; name: string; modes: GameMode[]; }
+const GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile", "Other"];
 
-function useGames() {
-  return useQuery<Game[]>({
-    queryKey: ["/api/games"],
-    queryFn: async () => {
-      const data = await customFetch("/api/games");
-      return Array.isArray(data) ? data : [];
-    },
-  });
-}
+const TEAM_SIZE_PRESETS = [
+  { label: "Solo", value: 1 },
+  { label: "Duo", value: 2 },
+  { label: "Squad", value: 4 },
+];
 
 export default function CreateMatchPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { mutateAsync: createMatch, isPending } = useCreateMatch();
-  const { data: games, isLoading: gamesLoading } = useGames();
 
-  const [selectedGameId, setSelectedGameId] = useState<string>("");
-  const [selectedModeId, setSelectedModeId] = useState<string>("");
+  const [selectedGame, setSelectedGame] = useState<string>("");
+  const [teamSize, setTeamSize] = useState<number>(1);
   const [prizeType, setPrizeType] = useState<"dynamic" | "fixed">("dynamic");
   const [form, setForm] = useState({
+    mode: "",
     entryFee: "",
     slots: "",
     startTime: "",
     fixedPrize: "",
   });
 
-  const selectedGame = games?.find((g) => String(g.id) === selectedGameId);
-  const selectedMode = selectedGame?.modes.find((m) => String(m.id) === selectedModeId);
-
-  const handleGameChange = (gameId: string) => {
-    setSelectedGameId(gameId);
-    setSelectedModeId("");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGame || !selectedMode || !form.startTime || !form.entryFee || !form.slots) {
+    if (!selectedGame || !form.mode.trim() || !form.startTime || !form.entryFee || !form.slots) {
       toast({ title: "Fill in all fields", variant: "destructive" });
       return;
     }
@@ -62,9 +47,9 @@ export default function CreateMatchPage() {
     try {
       const match = await createMatch({
         data: {
-          game: selectedGame.name,
-          mode: selectedMode.name,
-          teamSize: selectedMode.teamSize,
+          game: selectedGame,
+          mode: form.mode.trim(),
+          teamSize,
           entryFee: parseFloat(form.entryFee),
           slots: parseInt(form.slots),
           startTime: new Date(form.startTime).toISOString(),
@@ -91,54 +76,62 @@ export default function CreateMatchPage() {
 
           <div className="space-y-1.5">
             <Label>Game</Label>
-            {gamesLoading ? (
-              <Skeleton className="h-10 rounded-lg" />
-            ) : games && games.length > 0 ? (
-              <Select value={selectedGameId} onValueChange={handleGameChange}>
-                <SelectTrigger><SelectValue placeholder="Select game" /></SelectTrigger>
-                <SelectContent>
-                  {games.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2.5">
-                No games configured. Ask admin to add games first.
-              </div>
-            )}
+            <Select value={selectedGame} onValueChange={setSelectedGame}>
+              <SelectTrigger><SelectValue placeholder="Select game" /></SelectTrigger>
+              <SelectContent>
+                {GAMES.map((g) => (
+                  <SelectItem key={g} value={g}>{g}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
             <Label>Mode</Label>
-            {gamesLoading ? (
-              <Skeleton className="h-10 rounded-lg" />
-            ) : selectedGame && selectedGame.modes.length > 0 ? (
-              <Select value={selectedModeId} onValueChange={setSelectedModeId}>
-                <SelectTrigger><SelectValue placeholder="Select mode" /></SelectTrigger>
-                <SelectContent>
-                  {selectedGame.modes.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name} ({m.teamSize === 1 ? "Solo" : m.teamSize === 2 ? "Duo" : `${m.teamSize} players/team`})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="text-sm text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2.5">
-                {selectedGame ? "No modes for this game." : "Select a game first"}
-              </div>
-            )}
+            <Input
+              placeholder="e.g. Battle Royale, TDM, Clash Squad..."
+              value={form.mode}
+              onChange={(e) => setForm(f => ({ ...f, mode: e.target.value }))}
+            />
           </div>
 
-          {selectedMode && (
-            <div className="bg-primary/10 border border-primary/20 rounded-xl px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Team size: </span>
-              <span className="font-semibold text-primary">
-                {selectedMode.teamSize === 1 ? "Solo" : selectedMode.teamSize === 2 ? "Duo" : `${selectedMode.teamSize} per team`}
-              </span>
+          <div className="space-y-1.5">
+            <Label>Team Size</Label>
+            <div className="flex gap-2">
+              {TEAM_SIZE_PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setTeamSize(p.value)}
+                  className={cn(
+                    "flex-1 py-2 rounded-xl border text-sm font-medium transition-all",
+                    teamSize === p.value
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={1}
+                  max={20}
+                  placeholder="Custom"
+                  value={TEAM_SIZE_PRESETS.some(p => p.value === teamSize) ? "" : String(teamSize)}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    if (!isNaN(v) && v >= 1) setTeamSize(v);
+                  }}
+                  className="w-24 text-center"
+                />
+              </div>
             </div>
-          )}
+            <p className="text-xs text-muted-foreground">
+              {teamSize === 1 ? "Solo — 1 player per slot" : teamSize === 2 ? "Duo — 2 players per slot" : `${teamSize} players per slot`}
+            </p>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
