@@ -65,7 +65,7 @@ export default function HomePage() {
             ))}
           </div>
         ) : matches && matches.length > 0 ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
             {matches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))}

@@ -452,13 +452,17 @@ function PublicProfile({ handle }: { handle: string }) {
             {profile.activeMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Live / Active</h3>
-                {profile.activeMatches.map((m) => <MatchCard key={m.id} match={m} />)}
+                <div className="space-y-4">
+                  {profile.activeMatches.map((m) => <MatchCard key={m.id} match={m} />)}
+                </div>
               </div>
             )}
             {profile.upcomingMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
-                {profile.upcomingMatches.map((m) => <MatchCard key={m.id} match={m} />)}
+                <div className="space-y-4">
+                  {profile.upcomingMatches.map((m) => <MatchCard key={m.id} match={m} />)}
+                </div>
               </div>
             )}
           </div>
