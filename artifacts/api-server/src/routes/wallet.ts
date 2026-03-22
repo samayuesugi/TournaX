@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { addBalanceRequestsTable, withdrawalRequestsTable, usersTable } from "@workspace/db/schema";
+import { addBalanceRequestsTable, withdrawalRequestsTable, hostEarningsTable, usersTable } from "@workspace/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -13,9 +13,22 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
   const withdrawHistory = await db.select().from(withdrawalRequestsTable)
     .where(eq(withdrawalRequestsTable.userId, user.id));
 
+  let earningsHistory: { id: number; matchCode: string; amount: number; createdAt: string }[] = [];
+  if (user.role === "host" || user.role === "admin") {
+    const earnings = await db.select().from(hostEarningsTable)
+      .where(eq(hostEarningsTable.hostId, user.id));
+    earningsHistory = earnings.map(e => ({
+      id: e.id,
+      matchCode: e.matchCode,
+      amount: parseFloat(e.amount as string),
+      createdAt: e.createdAt?.toISOString() ?? new Date().toISOString(),
+    }));
+  }
+
   res.json({
     balance: parseFloat(user.balance as string),
     upiId: "9971040244@ptaxis",
+    role: user.role,
     addBalanceHistory: addHistory.map(r => ({
       id: r.id, amount: parseFloat(r.amount as string), status: r.status,
       createdAt: r.createdAt?.toISOString(), note: r.utrNumber,
@@ -24,6 +37,7 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
       id: r.id, amount: parseFloat(r.amount as string), status: r.status,
       createdAt: r.createdAt?.toISOString(), note: r.upiId,
     })),
+    earningsHistory,
   });
 });
 

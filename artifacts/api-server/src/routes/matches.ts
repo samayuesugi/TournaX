@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -287,7 +287,9 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   const entryFeeNum = parseFloat(match.entryFee as string);
   const totalPool = match.filledSlots * entryFeeNum;
   const winnersPercent = match.filledSlots >= 8 ? 0.85 : 0.90;
+  const hostPercent = match.filledSlots >= 8 ? 0.10 : 0.05;
   const maxWinnersPool = totalPool * winnersPercent;
+  const hostCut = parseFloat((totalPool * hostPercent).toFixed(2));
   const totalReward = results.reduce((sum, r) => sum + r.reward, 0);
   if (totalReward > maxWinnersPool + 0.01) {
     res.status(400).json({ error: `Total rewards (₹${totalReward}) exceed the winners pool (₹${maxWinnersPool.toFixed(2)})` }); return;
@@ -308,6 +310,17 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
         );
       }
     }
+
+    if (hostCut > 0) {
+      await tx.execute(sql`UPDATE users SET balance = balance + ${hostCut} WHERE id = ${match.hostId}`);
+      await tx.insert(hostEarningsTable).values({
+        hostId: match.hostId,
+        matchId: match.id,
+        matchCode: match.code,
+        amount: String(hostCut),
+      });
+    }
+
     await tx.update(matchesTable).set({ status: "completed" }).where(eq(matchesTable.id, match.id));
   });
 

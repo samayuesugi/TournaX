@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function statusBadgeClass(status: string) {
@@ -28,6 +28,10 @@ const ADD_BALANCE_RULES = [
   { icon: "📵", text: "Do not submit a request with the same UTR twice." },
 ];
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function WalletPage() {
   const { toast } = useToast();
   const { data: wallet, isLoading, refetch } = useGetWallet();
@@ -42,6 +46,8 @@ export default function WalletPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isHost = (wallet as any)?.role === "host";
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -99,6 +105,48 @@ export default function WalletPage() {
     }
   };
 
+  const withdrawDialog = (
+    <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5 flex-1">
+          <ArrowUpCircle className="w-3.5 h-3.5" /> Withdraw
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Withdraw Funds</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="bg-secondary/50 rounded-xl p-3 text-sm text-muted-foreground">
+            Available: <span className="font-bold text-foreground">₹{wallet?.balance.toFixed(2) ?? "0.00"}</span>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Amount (₹)</Label>
+            <Input
+              type="number"
+              placeholder="Enter amount"
+              value={withdrawForm.amount}
+              onChange={(e) => setWithdrawForm(f => ({ ...f, amount: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>UPI ID</Label>
+            <Input
+              placeholder="yourname@upi"
+              value={withdrawForm.upiId}
+              onChange={(e) => setWithdrawForm(f => ({ ...f, upiId: e.target.value }))}
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleWithdraw}
+            disabled={isWithdrawing || !withdrawForm.amount || !withdrawForm.upiId}
+          >
+            {isWithdrawing ? "Requesting..." : "Request Withdrawal"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <AppLayout title="Wallet">
       <div className="space-y-4 pb-4">
@@ -109,212 +157,230 @@ export default function WalletPage() {
             <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
             <h2 className="text-4xl font-bold mb-4">₹{wallet?.balance.toFixed(2) ?? "0.00"}</h2>
             <div className="flex gap-2">
-              <Dialog open={addOpen} onOpenChange={setAddOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-1.5 flex-1">
-                    <Plus className="w-3.5 h-3.5" /> Add Money
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
-                  <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-                    <DialogTitle>Add Balance</DialogTitle>
-                  </DialogHeader>
+              {!isHost && (
+                <Dialog open={addOpen} onOpenChange={setAddOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-1.5 flex-1">
+                      <Plus className="w-3.5 h-3.5" /> Add Money
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
+                    <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
+                      <DialogTitle>Add Balance</DialogTitle>
+                    </DialogHeader>
 
-                  <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
-                    {/* QR Code */}
-                    <div className="flex flex-col items-center">
-                      <img
-                        src={`${import.meta.env.BASE_URL}upi-qr.jpg`}
-                        alt="UPI QR Code"
-                        className="w-56 h-56 object-contain rounded-xl border border-primary/20"
-                      />
-                    </div>
-
-                    {/* UPI ID with copy */}
-                    <button
-                      onClick={handleCopyUpi}
-                      className="w-full flex items-center justify-between bg-muted/50 border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
-                    >
-                      <div className="text-left">
-                        <p className="text-xs text-muted-foreground mb-0.5">UPI ID</p>
-                        <p className="font-mono font-semibold text-sm text-primary">{UPI_ID}</p>
+                    <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
+                      <div className="flex flex-col items-center">
+                        <img
+                          src={`${import.meta.env.BASE_URL}upi-qr.jpg`}
+                          alt="UPI QR Code"
+                          className="w-56 h-56 object-contain rounded-xl border border-primary/20"
+                        />
                       </div>
-                      {copied ? (
-                        <Check className="w-4 h-4 text-green-400 shrink-0" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-muted-foreground shrink-0" />
-                      )}
-                    </button>
 
-                    {/* Rules */}
-                    <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
-                        <span className="text-xs font-semibold text-yellow-400 uppercase tracking-wide">Important Rules</span>
-                      </div>
-                      {ADD_BALANCE_RULES.map((rule, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <span className="text-sm leading-tight shrink-0">{rule.icon}</span>
-                          <p className="text-xs text-muted-foreground leading-snug">{rule.text}</p>
+                      <button
+                        onClick={handleCopyUpi}
+                        className="w-full flex items-center justify-between bg-muted/50 border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+                      >
+                        <div className="text-left">
+                          <p className="text-xs text-muted-foreground mb-0.5">UPI ID</p>
+                          <p className="font-mono font-semibold text-sm text-primary">{UPI_ID}</p>
                         </div>
-                      ))}
-                    </div>
+                        {copied ? (
+                          <Check className="w-4 h-4 text-green-400 shrink-0" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-muted-foreground shrink-0" />
+                        )}
+                      </button>
 
-                    {/* Amount */}
-                    <div className="space-y-1.5">
-                      <Label>Amount (₹)</Label>
-                      <Input
-                        type="number"
-                        placeholder="Enter amount (min ₹10)"
-                        value={addForm.amount}
-                        onChange={(e) => setAddForm(f => ({ ...f, amount: e.target.value }))}
-                      />
-                    </div>
+                      <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+                          <span className="text-xs font-semibold text-yellow-400 uppercase tracking-wide">Important Rules</span>
+                        </div>
+                        {ADD_BALANCE_RULES.map((rule, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <span className="text-sm leading-tight shrink-0">{rule.icon}</span>
+                            <p className="text-xs text-muted-foreground leading-snug">{rule.text}</p>
+                          </div>
+                        ))}
+                      </div>
 
-                    {/* UTR */}
-                    <div className="space-y-1.5">
-                      <Label>UTR Number</Label>
-                      <Input
-                        placeholder="12-digit UTR from receipt"
-                        value={addForm.utrNumber}
-                        onChange={(e) => setAddForm(f => ({ ...f, utrNumber: e.target.value }))}
-                      />
-                    </div>
+                      <div className="space-y-1.5">
+                        <Label>Amount (₹)</Label>
+                        <Input
+                          type="number"
+                          placeholder="Enter amount (min ₹10)"
+                          value={addForm.amount}
+                          onChange={(e) => setAddForm(f => ({ ...f, amount: e.target.value }))}
+                        />
+                      </div>
 
-                    {/* Receipt Image */}
-                    <div className="space-y-1.5">
-                      <Label>Payment Receipt</Label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleReceiptSelect}
-                      />
-                      {receiptPreview ? (
-                        <div className="relative rounded-xl overflow-hidden border border-border">
-                          <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-black" />
+                      <div className="space-y-1.5">
+                        <Label>UTR Number</Label>
+                        <Input
+                          placeholder="12-digit UTR from receipt"
+                          value={addForm.utrNumber}
+                          onChange={(e) => setAddForm(f => ({ ...f, utrNumber: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label>Payment Receipt</Label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleReceiptSelect}
+                        />
+                        {receiptPreview ? (
+                          <div className="relative rounded-xl overflow-hidden border border-border">
+                            <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-black" />
+                            <button
+                              onClick={handleRemoveReceipt}
+                              className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black transition-colors"
+                            >
+                              <X className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={handleRemoveReceipt}
-                            className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black transition-colors"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-6 hover:border-primary/50 hover:bg-primary/5 transition-colors"
                           >
-                            <X className="w-4 h-4 text-white" />
+                            <ImagePlus className="w-7 h-7 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Select receipt from gallery</span>
                           </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-6 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                        >
-                          <ImagePlus className="w-7 h-7 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Select receipt from gallery</span>
-                        </button>
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    <Button
-                      className="w-full"
-                      onClick={handleAddBalance}
-                      disabled={isAdding || !addForm.amount || !addForm.utrNumber || !receiptFile}
-                    >
-                      {isAdding ? "Submitting..." : "Submit Request"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5 flex-1">
-                    <ArrowUpCircle className="w-3.5 h-3.5" /> Withdraw
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-sm">
-                  <DialogHeader><DialogTitle>Withdraw Funds</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label>Amount (₹)</Label>
-                      <Input
-                        type="number"
-                        placeholder="Enter amount"
-                        value={withdrawForm.amount}
-                        onChange={(e) => setWithdrawForm(f => ({ ...f, amount: e.target.value }))}
-                      />
+                      <Button
+                        className="w-full"
+                        onClick={handleAddBalance}
+                        disabled={isAdding || !addForm.amount || !addForm.utrNumber || !receiptFile}
+                      >
+                        {isAdding ? "Submitting..." : "Submit Request"}
+                      </Button>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>UPI ID</Label>
-                      <Input
-                        placeholder="yourname@upi"
-                        value={withdrawForm.upiId}
-                        onChange={(e) => setWithdrawForm(f => ({ ...f, upiId: e.target.value }))}
-                      />
-                    </div>
-                    <Button
-                      className="w-full"
-                      onClick={handleWithdraw}
-                      disabled={isWithdrawing || !withdrawForm.amount || !withdrawForm.upiId}
-                    >
-                      {isWithdrawing ? "Requesting..." : "Request Withdrawal"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              )}
+              {withdrawDialog}
             </div>
           </div>
         )}
 
-        <Tabs defaultValue="deposits">
-          <TabsList className="w-full">
-            <TabsTrigger value="deposits" className="flex-1">Deposits</TabsTrigger>
-            <TabsTrigger value="withdrawals" className="flex-1">Withdrawals</TabsTrigger>
-          </TabsList>
+        {isHost ? (
+          <Tabs defaultValue="earnings">
+            <TabsList className="w-full">
+              <TabsTrigger value="earnings" className="flex-1">Earnings</TabsTrigger>
+              <TabsTrigger value="withdrawals" className="flex-1">Withdrawals</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="deposits">
-            {wallet?.addBalanceHistory.length ? (
-              <div className="space-y-2 mt-3">
-                {wallet.addBalanceHistory.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <ArrowDownCircle className="w-5 h-5 text-green-400" />
-                      <div>
-                        <div className="font-medium text-sm">₹{tx.amount}</div>
-                        <div className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString("en-IN")}</div>
+            <TabsContent value="earnings">
+              {(wallet as any)?.earningsHistory?.length ? (
+                <div className="space-y-2 mt-3">
+                  {(wallet as any).earningsHistory.map((tx: any) => (
+                    <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                          <Trophy className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sm">Match #{tx.matchCode}</div>
+                          <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</div>
+                        </div>
                       </div>
+                      <div className="text-sm font-bold text-green-400">+₹{tx.amount.toFixed(2)}</div>
                     </div>
-                    <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
-                      {tx.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground text-sm">No deposit history</div>
-            )}
-          </TabsContent>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  <Trophy className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  No earnings yet. Submit match results to earn your host fee.
+                </div>
+              )}
+            </TabsContent>
 
-          <TabsContent value="withdrawals">
-            {wallet?.withdrawalHistory.length ? (
-              <div className="space-y-2 mt-3">
-                {wallet.withdrawalHistory.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <ArrowUpCircle className="w-5 h-5 text-destructive" />
-                      <div>
-                        <div className="font-medium text-sm">₹{tx.amount}</div>
-                        <div className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString("en-IN")}</div>
+            <TabsContent value="withdrawals">
+              {wallet?.withdrawalHistory.length ? (
+                <div className="space-y-2 mt-3">
+                  {wallet.withdrawalHistory.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <ArrowUpCircle className="w-5 h-5 text-destructive" />
+                        <div>
+                          <div className="font-medium text-sm">₹{tx.amount}</div>
+                          <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt!)}</div>
+                        </div>
                       </div>
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
+                        {tx.status}
+                      </span>
                     </div>
-                    <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
-                      {tx.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground text-sm">No withdrawal history</div>
-            )}
-          </TabsContent>
-        </Tabs>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-sm">No withdrawal history</div>
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <Tabs defaultValue="deposits">
+            <TabsList className="w-full">
+              <TabsTrigger value="deposits" className="flex-1">Deposits</TabsTrigger>
+              <TabsTrigger value="withdrawals" className="flex-1">Withdrawals</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="deposits">
+              {wallet?.addBalanceHistory.length ? (
+                <div className="space-y-2 mt-3">
+                  {wallet.addBalanceHistory.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <ArrowDownCircle className="w-5 h-5 text-green-400" />
+                        <div>
+                          <div className="font-medium text-sm">₹{tx.amount}</div>
+                          <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt!)}</div>
+                        </div>
+                      </div>
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
+                        {tx.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-sm">No deposit history</div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="withdrawals">
+              {wallet?.withdrawalHistory.length ? (
+                <div className="space-y-2 mt-3">
+                  {wallet.withdrawalHistory.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <ArrowUpCircle className="w-5 h-5 text-destructive" />
+                        <div>
+                          <div className="font-medium text-sm">₹{tx.amount}</div>
+                          <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt!)}</div>
+                        </div>
+                      </div>
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
+                        {tx.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-sm">No withdrawal history</div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </AppLayout>
   );
