@@ -1,24 +1,11 @@
-import { createContext, useEffect, useState, ReactNode } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken, setToken, clearToken } from "@/lib/auth";
-import type { User } from "@workspace/api-client-react";
 import { getMe, login as apiLogin, register as apiRegister, logout as apiLogout } from "@workspace/api-client-react";
-
-interface AuthContextValue {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  register: (email: string, password: string) => Promise<User>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  setUser: (user: User) => void;
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<import("@workspace/api-client-react").User | null>(null);
   const [token, setTokenState] = useState<string | null>(getToken());
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<User> => {
+  const login = async (email: string, password: string) => {
     const res = await apiLogin({ email, password });
     setToken(res.token);
     setTokenState(res.token);
@@ -46,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   };
 
-  const register = async (email: string, password: string): Promise<User> => {
+  const register = async (email: string, password: string) => {
     const res = await apiRegister({ email, password });
     setToken(res.token);
     setTokenState(res.token);
@@ -73,4 +60,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
