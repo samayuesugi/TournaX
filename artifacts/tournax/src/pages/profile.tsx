@@ -222,11 +222,11 @@ function PublicProfile({ handle }: { handle: string }) {
   const { data: profile, isLoading, refetch } = useGetUserProfile(handle);
   const { mutateAsync: follow } = useFollowUser();
   const { mutateAsync: unfollow } = useUnfollowUser();
-  const [hostGroup, setHostGroup] = useState<{ id: number; name: string; avatar: string; memberCount: number } | null>(null);
+  const [hostGroup, setHostGroup] = useState<{ id: number; name: string; avatar: string; memberCount: number; isPublic: boolean } | null>(null);
 
   useEffect(() => {
     if (profile?.role === "host" && profile.id) {
-      customFetch<{ id: number; name: string; avatar: string; memberCount: number } | null>(
+      customFetch<{ id: number; name: string; avatar: string; memberCount: number; isPublic: boolean } | null>(
         `/api/groups/by-host/${profile.id}`
       ).then(setHostGroup).catch(() => {});
     }
@@ -317,20 +317,25 @@ function PublicProfile({ handle }: { handle: string }) {
           </div>
         </div>
 
-        {/* Host Group Card */}
+        {/* Host Group Card — shows for both public and private groups */}
         {profile.role === "host" && hostGroup && (
           <Link href={`/chat/group/${hostGroup.id}`}>
-            <div className="bg-card border border-blue-500/20 rounded-2xl p-4 cursor-pointer hover:bg-secondary/30 transition-all">
+            <div className={`bg-card border rounded-2xl p-4 cursor-pointer hover:bg-secondary/30 transition-all ${hostGroup.isPublic ? "border-blue-500/20" : "border-border"}`}>
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl shrink-0">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0 ${hostGroup.isPublic ? "bg-blue-500/20" : "bg-secondary"}`}>
                   {hostGroup.avatar}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <Crown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <p className="text-sm font-semibold truncate">{hostGroup.name}</p>
+                    {!hostGroup.isPublic && (
+                      <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full shrink-0">🔒 Private</span>
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">{hostGroup.memberCount} member{hostGroup.memberCount !== 1 ? "s" : ""} · Host broadcast group</p>
+                  <p className="text-xs text-muted-foreground">
+                    {hostGroup.memberCount} member{hostGroup.memberCount !== 1 ? "s" : ""} · {hostGroup.isPublic ? "Public" : "Private"} broadcast group
+                  </p>
                 </div>
                 <Users className="w-4 h-4 text-muted-foreground shrink-0" />
               </div>

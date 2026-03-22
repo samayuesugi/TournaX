@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock } from "lucide-react";
+import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock, CheckCircle, XCircle, Bell } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,8 @@ interface GroupInfo {
   isMember: boolean;
   memberCount: number;
   members: { id: number; name: string; handle: string; avatar: string; role: string }[];
+  requestStatus?: string | null;
+  pendingRequestCount?: number;
 }
 
 interface GroupMessage {
@@ -33,6 +35,15 @@ interface GroupMessage {
   senderHandle: string;
   senderAvatar: string;
   content: string;
+  createdAt: string;
+}
+
+interface JoinRequest {
+  id: number;
+  userId: number;
+  name: string;
+  handle: string;
+  avatar: string;
   createdAt: string;
 }
 
@@ -65,10 +76,13 @@ export default function GroupChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [showRequests, setShowRequests] = useState(false);
   const [addHandle, setAddHandle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [retentionDays, setRetentionDays] = useState<number>(3);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const isCreator = group?.createdBy === user?.id;
@@ -96,6 +110,16 @@ export default function GroupChatPage() {
     } catch {}
   };
 
+  const fetchJoinRequests = async () => {
+    if (!isCreator) return;
+    setIsLoadingRequests(true);
+    try {
+      const data = await customFetch<JoinRequest[]>(`/api/groups/${groupId}/requests`);
+      setJoinRequests(data);
+    } catch {}
+    finally { setIsLoadingRequests(false); }
+  };
+
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
@@ -116,15 +140,25 @@ export default function GroupChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (showRequests && isCreator) fetchJoinRequests();
+  }, [showRequests]);
+
   const handleJoin = async () => {
     setIsJoining(true);
     try {
-      await customFetch(`/api/groups/${groupId}/join`, { method: "POST" });
-      toast({ title: "Joined group!" });
+      const result = await customFetch<{ success: boolean; joined: boolean; requested?: boolean }>(
+        `/api/groups/${groupId}/join`, { method: "POST" }
+      );
+      if (result.joined) {
+        toast({ title: "Joined group!" });
+      } else {
+        toast({ title: "Request sent!", description: "The host will review your request." });
+      }
       await fetchGroup();
-      await fetchMessages();
+      if (result.joined) await fetchMessages();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error || "Failed to join", variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Failed", variant: "destructive" });
     } finally {
       setIsJoining(false);
     }
@@ -192,6 +226,20 @@ export default function GroupChatPage() {
     }
   };
 
+  const handleRequestAction = async (requestId: number, action: "approve" | "reject") => {
+    try {
+      await customFetch(`/api/groups/${groupId}/requests/${requestId}`, {
+        method: "PUT",
+        body: JSON.stringify({ action }),
+      });
+      toast({ title: action === "approve" ? "Request approved!" : "Request rejected" });
+      await fetchJoinRequests();
+      await fetchGroup();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Failed", variant: "destructive" });
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
@@ -218,8 +266,9 @@ export default function GroupChatPage() {
     );
   }
 
-  // Public group, non-member — show join screen
+  // Non-member view — public (join directly) or private (request to join)
   if (!isMember) {
+    const requestStatus = group.requestStatus;
     return (
       <AppLayout showBack hideNav title={group.name}>
         <div className="flex flex-col items-center justify-center h-64 text-center px-4 space-y-4">
@@ -227,13 +276,47 @@ export default function GroupChatPage() {
             {group.avatar}
           </div>
           <div>
-            <h2 className="text-xl font-bold">{group.name}</h2>
-            <p className="text-muted-foreground text-sm mt-1">{group.memberCount} member{group.memberCount !== 1 ? "s" : ""} · Public Group</p>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <h2 className="text-xl font-bold">{group.name}</h2>
+              {!group.isPublic && <Lock className="w-4 h-4 text-muted-foreground" />}
+            </div>
+            <p className="text-muted-foreground text-sm">
+              {group.memberCount} member{group.memberCount !== 1 ? "s" : ""} · {group.isPublic ? "Public" : "Private"} Group
+            </p>
           </div>
-          <Button className="w-48 gap-2" onClick={handleJoin} disabled={isJoining}>
-            <Users className="w-4 h-4" />
-            {isJoining ? "Joining..." : "Join Group"}
-          </Button>
+
+          {group.isPublic ? (
+            <Button className="w-48 gap-2" onClick={handleJoin} disabled={isJoining}>
+              <Users className="w-4 h-4" />
+              {isJoining ? "Joining..." : "Join Group"}
+            </Button>
+          ) : requestStatus === "pending" ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-medium">Request Sent · Pending Approval</span>
+              </div>
+              <p className="text-xs text-muted-foreground">The host will review your request</p>
+            </div>
+          ) : requestStatus === "rejected" ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
+                <XCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Request Rejected</span>
+              </div>
+              <Button variant="outline" size="sm" className="gap-2 mt-1" onClick={handleJoin} disabled={isJoining}>
+                {isJoining ? "Sending..." : "Request Again"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <Button className="w-48 gap-2" onClick={handleJoin} disabled={isJoining}>
+                <Lock className="w-4 h-4" />
+                {isJoining ? "Sending..." : "Request to Join"}
+              </Button>
+              <p className="text-xs text-muted-foreground">Host must approve your request</p>
+            </div>
+          )}
         </div>
       </AppLayout>
     );
@@ -264,7 +347,18 @@ export default function GroupChatPage() {
               {" · "}<Clock className="inline w-3 h-3 mb-0.5" /> {group?.messageRetentionDays}d
             </p>
           </div>
-          <Users className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-2">
+            {isCreator && (group?.pendingRequestCount ?? 0) > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowRequests(true); }}
+                className="relative flex items-center gap-1 bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 rounded-full px-2 py-0.5"
+              >
+                <Bell className="w-3 h-3" />
+                <span className="text-[10px] font-bold">{group.pendingRequestCount}</span>
+              </button>
+            )}
+            <Users className="w-4 h-4 text-muted-foreground" />
+          </div>
         </button>
 
         {/* Messages */}
@@ -375,7 +469,7 @@ export default function GroupChatPage() {
                     >
                       <Globe className="w-4 h-4" />
                       Public
-                      <span className="text-[10px] font-normal opacity-70">Shows on profile, anyone can join</span>
+                      <span className="text-[10px] font-normal opacity-70">Anyone can join</span>
                     </button>
                     <button
                       onClick={() => group?.isPublic && handleSaveSettings({ isPublic: false })}
@@ -389,7 +483,7 @@ export default function GroupChatPage() {
                     >
                       <Lock className="w-4 h-4" />
                       Private
-                      <span className="text-[10px] font-normal opacity-70">Hidden, invite only</span>
+                      <span className="text-[10px] font-normal opacity-70">Approve requests</span>
                     </button>
                   </div>
                 </div>
@@ -472,6 +566,53 @@ export default function GroupChatPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Join Requests Dialog (host only) */}
+      <Dialog open={showRequests} onOpenChange={setShowRequests}>
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-4 h-4" /> Join Requests
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 space-y-3">
+            {isLoadingRequests ? (
+              <div className="space-y-2">
+                <Skeleton className="h-14 rounded-xl" />
+                <Skeleton className="h-14 rounded-xl" />
+              </div>
+            ) : joinRequests.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No pending requests</p>
+            ) : (
+              joinRequests.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 bg-secondary/30 rounded-xl px-3 py-2.5">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
+                    {r.avatar}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{r.name || r.handle}</p>
+                    <p className="text-xs text-muted-foreground">@{r.handle}</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleRequestAction(r.id, "approve")}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleRequestAction(r.id, "reject")}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

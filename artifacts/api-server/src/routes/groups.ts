@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, groupsTable, groupMembersTable, groupMessagesTable } from "@workspace/db/schema";
+import { usersTable, groupsTable, groupMembersTable, groupMessagesTable, groupJoinRequestsTable } from "@workspace/db/schema";
 import { eq, and, gte } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -95,10 +95,30 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
   const isMember = memberRows.some(m => m.userId === user.id);
 
   if (!isMember) {
-    if (!group.isPublic) {
-      res.status(403).json({ error: "You are not a member of this group" }); return;
+    // Find the user's join request status (if any)
+    const [joinRequest] = await db.select().from(groupJoinRequestsTable)
+      .where(and(eq(groupJoinRequestsTable.groupId, groupId), eq(groupJoinRequestsTable.userId, user.id)));
+
+    // Return basic info for public OR private groups — both are visible
+    // (private groups show on profile but require a join request)
+    if (!group.isPublic && !joinRequest) {
+      // Private group with no existing request — show basic info only
+      return res.json({
+        id: group.id,
+        name: group.name,
+        avatar: group.avatar,
+        type: group.type,
+        createdBy: group.createdBy,
+        maxMembers: group.maxMembers,
+        messageRetentionDays: group.messageRetentionDays,
+        isPublic: group.isPublic,
+        isMember: false,
+        memberCount: memberRows.length,
+        members: [],
+        requestStatus: null,
+      });
     }
-    // Public group — return basic info so the UI can show a Join button
+
     return res.json({
       id: group.id,
       name: group.name,
@@ -111,6 +131,7 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
       isMember: false,
       memberCount: memberRows.length,
       members: [],
+      requestStatus: joinRequest?.status ?? null,
     });
   }
 
@@ -118,6 +139,10 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, m.userId));
     return u ? { id: u.id, name: u.name, handle: u.handle, avatar: u.avatar, role: u.role } : null;
   }));
+
+  // Pending join requests count (for host)
+  const pendingRequests = await db.select().from(groupJoinRequestsTable)
+    .where(and(eq(groupJoinRequestsTable.groupId, groupId), eq(groupJoinRequestsTable.status, "pending")));
 
   res.json({
     id: group.id,
@@ -131,6 +156,7 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
     isMember: true,
     memberCount: memberRows.length,
     members: members.filter(Boolean),
+    pendingRequestCount: pendingRequests.length,
   });
 });
 
@@ -139,18 +165,92 @@ router.post("/groups/:id/join", requireAuth, async (req: Request, res: Response)
   const groupId = Number(req.params.id);
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
-  if (!group.isPublic) { res.status(403).json({ error: "This group is private" }); return; }
 
   const memberRows = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
   if (memberRows.some(m => m.userId === user.id)) {
     res.status(400).json({ error: "Already a member" }); return;
   }
-  if (group.maxMembers && memberRows.length >= group.maxMembers) {
-    res.status(400).json({ error: `Group is full (max ${group.maxMembers} members)` }); return;
+
+  if (group.isPublic) {
+    // Public group — join directly
+    if (group.maxMembers && memberRows.length >= group.maxMembers) {
+      res.status(400).json({ error: `Group is full (max ${group.maxMembers} members)` }); return;
+    }
+    await db.insert(groupMembersTable).values({ groupId, userId: user.id });
+    res.json({ success: true, joined: true });
+  } else {
+    // Private group — create a join request
+    const [existing] = await db.select().from(groupJoinRequestsTable)
+      .where(and(eq(groupJoinRequestsTable.groupId, groupId), eq(groupJoinRequestsTable.userId, user.id)));
+
+    if (existing) {
+      if (existing.status === "pending") {
+        res.status(400).json({ error: "You already have a pending request" }); return;
+      }
+      // Re-request if previously rejected
+      await db.update(groupJoinRequestsTable)
+        .set({ status: "pending" })
+        .where(eq(groupJoinRequestsTable.id, existing.id));
+    } else {
+      await db.insert(groupJoinRequestsTable).values({ groupId, userId: user.id, status: "pending" });
+    }
+    res.json({ success: true, joined: false, requested: true });
+  }
+});
+
+// Get pending join requests (host/creator only)
+router.get("/groups/:id/requests", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const groupId = Number(req.params.id);
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+  if (group.createdBy !== user.id) { res.status(403).json({ error: "Only the group creator can view requests" }); return; }
+
+  const requests = await db.select().from(groupJoinRequestsTable)
+    .where(and(eq(groupJoinRequestsTable.groupId, groupId), eq(groupJoinRequestsTable.status, "pending")));
+
+  const withUsers = await Promise.all(requests.map(async (r) => {
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.id, r.userId));
+    return u ? { id: r.id, userId: r.userId, name: u.name, handle: u.handle, avatar: u.avatar, createdAt: r.createdAt?.toISOString() } : null;
+  }));
+
+  res.json(withUsers.filter(Boolean));
+});
+
+// Approve or reject a join request (host/creator only)
+router.put("/groups/:id/requests/:requestId", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const groupId = Number(req.params.id);
+  const requestId = Number(req.params.requestId);
+  const { action } = req.body; // 'approve' | 'reject'
+
+  if (!["approve", "reject"].includes(action)) {
+    res.status(400).json({ error: "action must be 'approve' or 'reject'" }); return;
   }
 
-  await db.insert(groupMembersTable).values({ groupId, userId: user.id });
-  res.json({ success: true });
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+  if (group.createdBy !== user.id) { res.status(403).json({ error: "Only the group creator can manage requests" }); return; }
+
+  const [request] = await db.select().from(groupJoinRequestsTable)
+    .where(and(eq(groupJoinRequestsTable.id, requestId), eq(groupJoinRequestsTable.groupId, groupId)));
+  if (!request) { res.status(404).json({ error: "Request not found" }); return; }
+
+  if (action === "approve") {
+    const memberRows = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, groupId));
+    if (group.maxMembers && memberRows.length >= group.maxMembers) {
+      res.status(400).json({ error: `Group is full (max ${group.maxMembers} members)` }); return;
+    }
+    // Check not already a member
+    if (!memberRows.some(m => m.userId === request.userId)) {
+      await db.insert(groupMembersTable).values({ groupId, userId: request.userId });
+    }
+    await db.update(groupJoinRequestsTable).set({ status: "approved" }).where(eq(groupJoinRequestsTable.id, requestId));
+    res.json({ success: true, action: "approved" });
+  } else {
+    await db.update(groupJoinRequestsTable).set({ status: "rejected" }).where(eq(groupJoinRequestsTable.id, requestId));
+    res.json({ success: true, action: "rejected" });
+  }
 });
 
 router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Response) => {
@@ -284,11 +384,12 @@ router.post("/groups/:id/messages", requireAuth, async (req: Request, res: Respo
   res.json({ success: true });
 });
 
+// Always return the host group (public or private) so it shows on the host's profile
 router.get("/groups/by-host/:hostId", async (req: Request, res: Response) => {
   const hostId = Number(req.params.hostId);
   const [group] = await db.select().from(groupsTable)
     .where(and(eq(groupsTable.createdBy, hostId), eq(groupsTable.type, "host")));
-  if (!group || !group.isPublic) { res.json(null); return; }
+  if (!group) { res.json(null); return; }
   const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, group.id));
   res.json({ id: group.id, name: group.name, avatar: group.avatar, memberCount: members.length, isPublic: group.isPublic });
 });
