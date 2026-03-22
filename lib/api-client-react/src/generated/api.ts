@@ -50,6 +50,7 @@ import type {
   SendMessageRequest,
   SetupProfileRequest,
   SquadMember,
+  SubmitResultRequest,
   SuccessResponse,
   UpdateProfileRequest,
   User,
@@ -1075,6 +1076,87 @@ export const useGoLive = <
   TContext
 > => {
   return useMutation(getGoLiveMutationOptions(options));
+};
+
+export const getSubmitResultUrl = (id: number) => {
+  return `/api/matches/${id}/submit-result`;
+};
+
+export const submitResult = async (
+  id: number,
+  submitResultRequest: SubmitResultRequest,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getSubmitResultUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(submitResultRequest),
+  });
+};
+
+export const getSubmitResultMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitResult>>,
+    TError,
+    { id: number; data: BodyType<SubmitResultRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitResult>>,
+  TError,
+  { id: number; data: BodyType<SubmitResultRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitResult"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitResult>>,
+    { id: number; data: BodyType<SubmitResultRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return submitResult(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitResultMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitResult>>
+>;
+export type SubmitResultMutationBody = BodyType<SubmitResultRequest>;
+export type SubmitResultMutationError = ErrorType<unknown>;
+
+export const useSubmitResult = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitResult>>,
+    TError,
+    { id: number; data: BodyType<SubmitResultRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitResult>>,
+  TError,
+  { id: number; data: BodyType<SubmitResultRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitResultMutationOptions(options));
 };
 
 export const getGetMatchPlayersUrl = (id: number) => {

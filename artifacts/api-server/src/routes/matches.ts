@@ -257,6 +257,51 @@ router.post("/matches/:id/go-live", requireAuth, async (req: Request, res: Respo
   res.json({ success: true, message: "Match is now live" });
 });
 
+router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, Number(req.params.id)));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (match.hostId !== user.id && user.role !== "admin") {
+    res.status(403).json({ error: "Unauthorized" }); return;
+  }
+  if (match.status === "completed") {
+    res.status(400).json({ error: "Result already submitted" }); return;
+  }
+
+  const { results } = req.body as {
+    results: { participantId: number; rank: number; reward: number }[];
+  };
+  if (!Array.isArray(results) || results.length === 0) {
+    res.status(400).json({ error: "Results are required" }); return;
+  }
+
+  const prizePool = parseFloat(match.prizePool as string);
+  const totalReward = results.reduce((sum, r) => sum + r.reward, 0);
+  if (totalReward > prizePool + 0.01) {
+    res.status(400).json({ error: `Total rewards (₹${totalReward}) exceed the prize pool (₹${prizePool})` }); return;
+  }
+
+  await db.transaction(async (tx) => {
+    for (const r of results) {
+      await tx.update(matchParticipantsTable).set({
+        rank: r.rank,
+        reward: String(r.reward),
+      }).where(eq(matchParticipantsTable.id, r.participantId));
+
+      if (r.reward > 0) {
+        await tx.execute(
+          sql`UPDATE users SET balance = balance + ${r.reward} WHERE id = (
+            SELECT user_id FROM match_participants WHERE id = ${r.participantId}
+          )`
+        );
+      }
+    }
+    await tx.update(matchesTable).set({ status: "completed" }).where(eq(matchesTable.id, match.id));
+  });
+
+  res.json({ success: true, message: "Result submitted and rewards distributed!" });
+});
+
 router.get("/matches/:id/players", requireAuth, async (req: Request, res: Response) => {
   const participants = await db.select().from(matchParticipantsTable)
     .where(eq(matchParticipantsTable.matchId, Number(req.params.id)))
@@ -270,6 +315,8 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
       id: p.id,
       teamName: p.teamName,
       teamNumber: p.teamNumber,
+      rank: p.rank ?? null,
+      reward: p.reward ? parseFloat(p.reward as string) : null,
       players: players.map(pl => ({ ign: pl.ign, uid: pl.uid, position: pl.position })),
     };
   }));

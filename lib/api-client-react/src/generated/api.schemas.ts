@@ -140,7 +140,19 @@ export interface MatchParticipant {
   id: number;
   teamName?: string;
   teamNumber: number;
+  rank?: number;
+  reward?: number;
   players: ParticipantPlayer[];
+}
+
+export type SubmitResultRequestResultsItem = {
+  participantId: number;
+  rank: number;
+  reward: number;
+};
+
+export interface SubmitResultRequest {
+  results: SubmitResultRequestResultsItem[];
 }
 
 export interface RoomCredentialsRequest {

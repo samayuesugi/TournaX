@@ -249,6 +249,25 @@ export const GoLiveResponse = zod.object({
   message: zod.string().optional(),
 });
 
+export const SubmitResultParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SubmitResultBody = zod.object({
+  results: zod.array(
+    zod.object({
+      participantId: zod.number(),
+      rank: zod.number(),
+      reward: zod.number(),
+    }),
+  ),
+});
+
+export const SubmitResultResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
+
 export const GetMatchPlayersParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -257,6 +276,8 @@ export const GetMatchPlayersResponseItem = zod.object({
   id: zod.number(),
   teamName: zod.string().optional(),
   teamNumber: zod.number(),
+  rank: zod.number().optional(),
+  reward: zod.number().optional(),
   players: zod.array(
     zod.object({
       ign: zod.string(),

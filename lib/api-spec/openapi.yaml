@@ -263,6 +263,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
 
+  /matches/{id}/submit-result:
+    post:
+      operationId: submitResult
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitResultRequest"
+      responses:
+        "200":
+          description: Result submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
   /matches/{id}/players:
     get:
       operationId: getMatchPlayers
@@ -1052,11 +1076,32 @@ components:
           type: string
         teamNumber:
           type: integer
+        rank:
+          type: integer
+        reward:
+          type: number
         players:
           type: array
           items:
             $ref: "#/components/schemas/ParticipantPlayer"
       required: [id, teamNumber, players]
+
+    SubmitResultRequest:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              participantId:
+                type: integer
+              rank:
+                type: integer
+              reward:
+                type: number
+            required: [participantId, rank, reward]
+      required: [results]
 
     ParticipantPlayer:
       type: object

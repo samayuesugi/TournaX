@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import {
-  useListMatches, useGoLive, useUpdateRoomCredentials, useDeleteMatch
+  useListMatches, useGoLive, useUpdateRoomCredentials, useDeleteMatch,
+  useSubmitResult, useGetMatchPlayers,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,13 +14,168 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle } from "lucide-react";
 
 function statusColor(status: string) {
   if (status === "live") return "bg-green-500/20 text-green-400 border-green-500/30";
   if (status === "upcoming") return "bg-primary/20 text-primary border-primary/30";
   if (status === "completed") return "bg-muted text-muted-foreground border-border";
   return "bg-secondary text-muted-foreground border-border";
+}
+
+function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const { data: participants, isLoading } = useGetMatchPlayers(match.id, { query: { enabled: open } });
+  const { mutateAsync: submitResult, isPending } = useSubmitResult();
+
+  const [ranks, setRanks] = useState<Record<number, string>>({});
+  const [rewards, setRewards] = useState<Record<number, string>>({});
+
+  const prizePool = parseFloat(String(match.prizePool || 0));
+  const totalRewarded = (participants || []).reduce((sum, p) => {
+    const val = parseFloat(rewards[p.id] || "0");
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+  const remaining = prizePool - totalRewarded;
+  const isOverBudget = totalRewarded > prizePool + 0.01;
+
+  const handleSubmit = async () => {
+    if (!participants || participants.length === 0) return;
+    const results = participants.map((p) => ({
+      participantId: p.id,
+      rank: parseInt(ranks[p.id] || "0"),
+      reward: parseFloat(rewards[p.id] || "0"),
+    }));
+    const invalid = results.find((r) => !r.rank || r.rank < 1);
+    if (invalid) {
+      toast({ title: "Enter a valid rank for all teams", variant: "destructive" });
+      return;
+    }
+    if (isOverBudget) {
+      toast({ title: "Total rewards exceed the prize pool", variant: "destructive" });
+      return;
+    }
+    try {
+      await submitResult({ id: match.id, data: { results } });
+      toast({ title: "Result submitted!", description: "Rewards have been distributed to winners." });
+      setOpen(false);
+      onAction();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Failed to submit result", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="flex-1 h-8 text-xs gap-1 bg-accent hover:bg-accent/90 text-accent-foreground">
+          <Medal className="w-3.5 h-3.5" /> Result
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-accent" /> Submit Match Result
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Prize Pool</span>
+              <span className="font-bold text-accent">₹{prizePool.toFixed(0)}</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-muted-foreground">Distributed</span>
+              <span className={cn("font-bold", isOverBudget ? "text-red-400" : "text-green-400")}>
+                ₹{totalRewarded.toFixed(0)}
+              </span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-muted-foreground">Remaining</span>
+              <span className={cn("font-bold", remaining < 0 ? "text-red-400" : "text-foreground")}>
+                ₹{remaining.toFixed(0)}
+              </span>
+            </div>
+          </div>
+
+          {isOverBudget && (
+            <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl p-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              Total rewards exceed the prize pool of ₹{prizePool.toFixed(0)}
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+            </div>
+          ) : !participants || participants.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              No participants have joined this match yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {participants.map((p) => (
+                <div key={p.id} className="bg-secondary/50 border border-border rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                      {p.teamNumber}
+                    </div>
+                    <span className="font-semibold text-sm">{p.teamName || `Team ${p.teamNumber}`}</span>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground mb-2 space-y-0.5">
+                    {p.players.map((pl, i) => (
+                      <div key={i} className="flex items-center gap-1">
+                        <span className="font-mono text-foreground">{pl.ign}</span>
+                        <span className="opacity-50">·</span>
+                        <span>{pl.uid}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Rank</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 1"
+                        className="h-8 text-sm"
+                        value={ranks[p.id] || ""}
+                        onChange={(e) => setRanks((r) => ({ ...r, [p.id]: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Reward (₹)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        className="h-8 text-sm"
+                        value={rewards[p.id] || ""}
+                        onChange={(e) => setRewards((r) => ({ ...r, [p.id]: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={isPending || isLoading || !participants || participants.length === 0 || isOverBudget}
+          >
+            {isPending ? "Submitting..." : "Submit Result & Distribute Rewards"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
@@ -127,58 +283,64 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
         )}
       </div>
 
-      {match.status !== "completed" && (
-        <div className="border-t border-card-border px-4 py-3 flex gap-2">
-          <Link href={`/matches/${match.id}`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1">
-              <ChevronRight className="w-3.5 h-3.5" /> View
-            </Button>
-          </Link>
-
-          <Dialog open={roomOpen} onOpenChange={setRoomOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1">
-                <Key className="w-3.5 h-3.5" /> Room
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-sm">
-              <DialogHeader><DialogTitle>Set Room Credentials</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">Players will see these credentials once released.</p>
-                <div className="space-y-1.5">
-                  <Label>Room ID</Label>
-                  <Input
-                    placeholder="Enter room ID"
-                    value={roomCreds.roomId}
-                    onChange={(e) => setRoomCreds(c => ({ ...c, roomId: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Room Password</Label>
-                  <Input
-                    placeholder="Enter password"
-                    value={roomCreds.roomPassword}
-                    onChange={(e) => setRoomCreds(c => ({ ...c, roomPassword: e.target.value }))}
-                  />
-                </div>
-                <Button className="w-full" onClick={handleUpdateRoom} disabled={isUpdatingRoom}>
-                  {isUpdatingRoom ? "Saving..." : "Release Room"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {match.status === "upcoming" && (
-            <Button size="sm" className="flex-1 h-8 text-xs gap-1 bg-green-600 hover:bg-green-700" onClick={handleGoLive} disabled={isGoingLive}>
-              <Radio className="w-3.5 h-3.5" /> {isGoingLive ? "..." : "Go Live"}
-            </Button>
-          )}
-
-          <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={handleDelete} disabled={isDeleting}>
-            <Trash2 className="w-3.5 h-3.5" />
+      <div className="border-t border-card-border px-4 py-3 flex gap-2">
+        <Link href={`/matches/${match.id}`} className="flex-1">
+          <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1">
+            <ChevronRight className="w-3.5 h-3.5" /> View
           </Button>
-        </div>
-      )}
+        </Link>
+
+        {match.status !== "completed" && (
+          <>
+            <Dialog open={roomOpen} onOpenChange={setRoomOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1">
+                  <Key className="w-3.5 h-3.5" /> Room
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader><DialogTitle>Set Room Credentials</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Players will see these credentials once released.</p>
+                  <div className="space-y-1.5">
+                    <Label>Room ID</Label>
+                    <Input
+                      placeholder="Enter room ID"
+                      value={roomCreds.roomId}
+                      onChange={(e) => setRoomCreds(c => ({ ...c, roomId: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Room Password</Label>
+                    <Input
+                      placeholder="Enter password"
+                      value={roomCreds.roomPassword}
+                      onChange={(e) => setRoomCreds(c => ({ ...c, roomPassword: e.target.value }))}
+                    />
+                  </div>
+                  <Button className="w-full" onClick={handleUpdateRoom} disabled={isUpdatingRoom}>
+                    {isUpdatingRoom ? "Saving..." : "Release Room"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {match.status === "upcoming" && (
+              <Button size="sm" className="flex-1 h-8 text-xs gap-1 bg-green-600 hover:bg-green-700" onClick={handleGoLive} disabled={isGoingLive}>
+                <Radio className="w-3.5 h-3.5" /> {isGoingLive ? "..." : "Go Live"}
+              </Button>
+            )}
+
+            {match.status === "live" && (
+              <SubmitResultDialog match={match} onAction={onAction} />
+            )}
+
+            <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={handleDelete} disabled={isDeleting}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -195,7 +357,6 @@ export default function HostDashboardPage() {
     .reduce((sum: number, m: any) => sum + (parseFloat(String(m.prizePool || 0)) * 0.2), 0);
 
   const liveCount = myMatches.filter((m: any) => m.status === "live").length;
-  const upcomingCount = myMatches.filter((m: any) => m.status === "upcoming").length;
 
   const STATUS_OPTS = ["all", "upcoming", "live", "completed"] as const;
 

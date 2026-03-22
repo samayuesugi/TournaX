@@ -11,5 +11,7 @@ export interface MatchParticipant {
   id: number;
   teamName?: string;
   teamNumber: number;
+  rank?: number;
+  reward?: number;
   players: ParticipantPlayer[];
 }

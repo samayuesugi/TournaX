@@ -51,6 +51,8 @@ export * from "./roomCredentialsRequest";
 export * from "./sendMessageRequest";
 export * from "./setupProfileRequest";
 export * from "./squadMember";
+export * from "./submitResultRequest";
+export * from "./submitResultRequestResultsItem";
 export * from "./successResponse";
 export * from "./updateProfileRequest";
 export * from "./user";
