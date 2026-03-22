@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetUserProfile, useFollowUser, useUnfollowUser,
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Camera, Loader2 } from "lucide-react";
 
 function canChat(senderRole: string, recipientRole: string): boolean {
   if (senderRole === "player" && recipientRole === "admin") return false;
@@ -24,6 +24,33 @@ function canChat(senderRole: string, recipientRole: string): boolean {
 }
 
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
+
+export function isImageAvatar(avatar: string | null | undefined): boolean {
+  return !!avatar && avatar.startsWith("/objects/");
+}
+
+export function AvatarDisplay({
+  avatar,
+  className = "w-16 h-16 rounded-2xl text-3xl",
+}: {
+  avatar?: string | null;
+  className?: string;
+}) {
+  if (isImageAvatar(avatar)) {
+    return (
+      <img
+        src={`/api/storage${avatar}`}
+        alt="avatar"
+        className={`${className} object-cover bg-secondary`}
+      />
+    );
+  }
+  return (
+    <div className={`${className} bg-primary/20 flex items-center justify-center`}>
+      {avatar || "🎮"}
+    </div>
+  );
+}
 
 function OwnProfile() {
   const { user, logout, refreshUser } = useAuth();
@@ -37,10 +64,14 @@ function OwnProfile() {
   const [profileForm, setProfileForm] = useState({ name: user?.name ?? "", handle: user?.handle ?? "", avatar: user?.avatar ?? "🎮" });
   const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profileOpen) {
       setProfileForm({ name: user?.name ?? "", handle: user?.handle ?? "", avatar: user?.avatar ?? "🎮" });
+      setPreviewUrl(null);
     }
   }, [profileOpen]);
 
@@ -58,6 +89,48 @@ function OwnProfile() {
       toast({ title: "Squad member added!" });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+    }
+  };
+
+  const handleAvatarImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be under 5 MB", variant: "destructive" });
+      return;
+    }
+
+    setPreviewUrl(URL.createObjectURL(file));
+    setIsUploading(true);
+    try {
+      const urlRes = await fetch("/api/storage/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+      if (!urlRes.ok) throw new Error("Failed to get upload URL");
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error("Failed to upload image");
+
+      setProfileForm(f => ({ ...f, avatar: objectPath }));
+      toast({ title: "Image uploaded!" });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      setPreviewUrl(null);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -80,9 +153,7 @@ function OwnProfile() {
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl">
-                {user.avatar || "🎮"}
-              </div>
+              <AvatarDisplay avatar={user.avatar} className="w-16 h-16 rounded-2xl text-3xl" />
               <div>
                 <h2 className="text-lg font-bold">{user.name || "Player"}</h2>
                 <p className="text-muted-foreground text-sm">@{user.handle || user.email}</p>
@@ -101,18 +172,53 @@ function OwnProfile() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Avatar</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {AVATARS.map((avatar) => (
-                          <button
-                            key={avatar}
-                            type="button"
-                            className={`text-2xl p-2.5 rounded-xl border transition-all ${profileForm.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
-                            onClick={() => setProfileForm(f => ({ ...f, avatar }))}
+
+                      {user.role === "host" ? (
+                        <div className="flex flex-col items-center gap-3 py-2">
+                          <div className="relative">
+                            {isUploading ? (
+                              <div className="w-24 h-24 rounded-2xl bg-secondary flex items-center justify-center">
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : previewUrl ? (
+                              <img src={previewUrl} alt="preview" className="w-24 h-24 rounded-2xl object-cover" />
+                            ) : (
+                              <AvatarDisplay avatar={profileForm.avatar} className="w-24 h-24 rounded-2xl text-4xl" />
+                            )}
+                          </div>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarImageSelect}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            disabled={isUploading}
+                            onClick={() => fileInputRef.current?.click()}
                           >
-                            {avatar}
-                          </button>
-                        ))}
-                      </div>
+                            <Camera className="w-4 h-4" />
+                            {isUploading ? "Uploading..." : "Choose from Gallery"}
+                          </Button>
+                          <p className="text-xs text-muted-foreground">Max 5 MB · JPG, PNG, GIF, WebP</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                          {AVATARS.map((avatar) => (
+                            <button
+                              key={avatar}
+                              type="button"
+                              className={`text-2xl p-2.5 rounded-xl border transition-all ${profileForm.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
+                              onClick={() => setProfileForm(f => ({ ...f, avatar }))}
+                            >
+                              {avatar}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label>Display Name</Label>
@@ -122,7 +228,7 @@ function OwnProfile() {
                       <Label>Handle</Label>
                       <Input value={profileForm.handle} onChange={(e) => setProfileForm(f => ({ ...f, handle: e.target.value }))} />
                     </div>
-                    <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating}>
+                    <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating || isUploading}>
                       {isUpdating ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
@@ -271,9 +377,7 @@ function PublicProfile({ handle }: { handle: string }) {
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl">
-                {profile.avatar || "🎮"}
-              </div>
+              <AvatarDisplay avatar={profile.avatar} className="w-16 h-16 rounded-2xl text-3xl" />
               <div>
                 <h2 className="text-lg font-bold">{profile.name || `@${handle}`}</h2>
                 <p className="text-muted-foreground text-sm">@{profile.handle}</p>
@@ -317,7 +421,7 @@ function PublicProfile({ handle }: { handle: string }) {
           </div>
         </div>
 
-        {/* Host Group Card — shows for both public and private groups */}
+        {/* Host Group Card */}
         {profile.role === "host" && hostGroup && (
           <Link href={`/chat/group/${hostGroup.id}`}>
             <div className={`bg-card border rounded-2xl p-4 cursor-pointer hover:bg-secondary/30 transition-all ${hostGroup.isPublic ? "border-blue-500/20" : "border-border"}`}>

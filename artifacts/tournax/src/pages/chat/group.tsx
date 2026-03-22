@@ -11,6 +11,15 @@ import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock,
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
+function SmallAvatar({ avatar, size = "sm" }: { avatar?: string | null; size?: "sm" | "md" }) {
+  const dim = size === "md" ? "w-10 h-10 text-xl" : "w-7 h-7 text-sm";
+  const dim9 = size === "md" ? "w-10 h-10" : "w-7 h-7";
+  if (avatar && avatar.startsWith("/objects/")) {
+    return <img src={`/api/storage${avatar}`} alt="avatar" className={`${dim9} rounded-full object-cover bg-secondary shrink-0 self-end`} />;
+  }
+  return <div className={`${dim} rounded-full bg-secondary flex items-center justify-center shrink-0 self-end`}>{avatar || "🔥"}</div>;
+}
+
 interface GroupInfo {
   id: number;
   name: string;
@@ -381,11 +390,7 @@ export default function GroupChatPage() {
                     </div>
                   )}
                   <div className={cn("flex gap-2", isMine ? "justify-end" : "justify-start")}>
-                    {!isMine && (
-                      <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 self-end">
-                        {msg.senderAvatar}
-                      </div>
-                    )}
+                    {!isMine && <SmallAvatar avatar={msg.senderAvatar} size="sm" />}
                     <div className={cn("max-w-[75%]", isMine ? "items-end" : "items-start", "flex flex-col")}>
                       {!isMine && (
                         <div className="flex items-center gap-1 mb-0.5 ml-1">
@@ -548,9 +553,7 @@ export default function GroupChatPage() {
             <div className="space-y-2">
               {group?.members.map((m) => (
                 <div key={m.id} className="flex items-center gap-3 bg-secondary/30 rounded-xl px-3 py-2">
-                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0">
-                    {m.avatar}
-                  </div>
+                  <SmallAvatar avatar={m.avatar} size="md" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-medium truncate">{m.name || m.handle}</p>
@@ -589,9 +592,7 @@ export default function GroupChatPage() {
             ) : (
               joinRequests.map((r) => (
                 <div key={r.id} className="flex items-center gap-3 bg-secondary/30 rounded-xl px-3 py-2.5">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
-                    {r.avatar}
-                  </div>
+                  <SmallAvatar avatar={r.avatar} size="md" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{r.name || r.handle}</p>
                     <p className="text-xs text-muted-foreground">@{r.handle}</p>
