@@ -72,7 +72,7 @@ export function AppLayout({
 
           {headerContent ? (
             <div className="flex-1 min-w-0">{headerContent}</div>
-          ) : title ? (
+          ) : title && showBack ? (
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm truncate">{title}</p>
             </div>
