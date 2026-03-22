@@ -27,7 +27,6 @@ function formatTime(iso: string) {
 
 export function MatchCard({ match, className }: MatchCardProps) {
   const slotsLeft = match.slots - match.filledSlots;
-  const fillPercent = (match.filledSlots / match.slots) * 100;
   const showcase = (match as any).showcasePrizePool ?? 0;
 
   return (
@@ -89,16 +88,14 @@ export function MatchCard({ match, className }: MatchCardProps) {
             )}
           </div>
 
-          <div className="mt-2.5">
-            <div className="h-1 bg-secondary rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  fillPercent >= 90 ? "bg-destructive" : fillPercent >= 70 ? "bg-amber-500" : "bg-primary"
-                )}
-                style={{ width: `${fillPercent}%` }}
-              />
-            </div>
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="w-3 h-3 shrink-0" />
+            <span>
+              <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
+                {match.filledSlots}
+              </span>
+              {" players joined"}
+            </span>
           </div>
         </div>
       </div>
