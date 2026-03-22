@@ -5,7 +5,7 @@ import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
   useGoLive, useDeleteMatch, useGetMySquad
 } from "@workspace/api-client-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

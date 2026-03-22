@@ -1,6 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { Home, Compass, Swords, User, LayoutDashboard, Plus, DollarSign, MessageCircle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 import { useGetConversations } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 

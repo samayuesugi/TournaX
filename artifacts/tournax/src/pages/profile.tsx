@@ -5,7 +5,7 @@ import {
   useGetMySquad, useAddSquadMember, useUpdateMyProfile, useGetMe,
   customFetch
 } from "@workspace/api-client-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MatchCard } from "@/components/match/MatchCard";
 import { Button } from "@/components/ui/button";

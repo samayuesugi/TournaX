@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useEffect, useState, ReactNode } from "react";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken, setToken, clearToken } from "@/lib/auth";
 import type { User } from "@workspace/api-client-react";
@@ -15,7 +15,7 @@ interface AuthContextValue {
   setUser: (user: User) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -74,8 +74,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
-}
