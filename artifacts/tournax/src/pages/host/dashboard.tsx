@@ -192,7 +192,7 @@ export default function HostDashboardPage() {
 
   const totalEarnings = myMatches
     .filter((m: any) => m.status === "completed")
-    .reduce((sum: number, m: any) => sum + m.prizePool * 0.2, 0);
+    .reduce((sum: number, m: any) => sum + (parseFloat(String(m.prizePool || 0)) * 0.2), 0);
 
   const liveCount = myMatches.filter((m: any) => m.status === "live").length;
   const upcomingCount = myMatches.filter((m: any) => m.status === "upcoming").length;

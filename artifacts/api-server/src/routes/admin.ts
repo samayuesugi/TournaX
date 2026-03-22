@@ -91,7 +91,11 @@ router.post("/admin/players/:id/ban", requireAdmin, async (req: Request, res: Re
 
 router.post("/admin/players/:id/add-balance", requireAdmin, async (req: Request, res: Response) => {
   const { amount } = req.body;
-  await db.execute(sql`UPDATE users SET balance = balance + ${amount} WHERE id = ${req.params.id}`);
+  const parsedAmount = parseFloat(String(amount));
+  if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    res.status(400).json({ error: "Invalid amount" }); return;
+  }
+  await db.execute(sql`UPDATE users SET balance = balance + ${parsedAmount} WHERE id = ${Number(req.params.id)}`);
   res.json({ success: true });
 });
 
