@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Users, UserPlus, UserMinus, Crown, Lock, Megaphone } from "lucide-react";
+import { Send, Users, UserPlus, UserMinus, Crown, Lock, Megaphone, Clock } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +18,7 @@ interface GroupInfo {
   type: string;
   createdBy: number;
   maxMembers: number | null;
+  messageRetentionDays: number;
   members: { id: number; name: string; handle: string; avatar: string; role: string }[];
 }
 
@@ -61,16 +62,20 @@ export default function GroupChatPage() {
   const [showMembers, setShowMembers] = useState(false);
   const [addHandle, setAddHandle] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [retentionDays, setRetentionDays] = useState<number>(3);
+  const [isSavingRetention, setIsSavingRetention] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const isCreator = group?.createdBy === user?.id;
   const isHostGroup = group?.type === "host";
   const canSend = isHostGroup ? isCreator : true;
+  const maxRetentionDays = isHostGroup ? 2 : 7;
 
   const fetchGroup = async () => {
     try {
       const data = await customFetch<GroupInfo>(`/api/groups/${groupId}`);
       setGroup(data);
+      setRetentionDays(data.messageRetentionDays);
       setNotMember(false);
     } catch (err: any) {
       if (err?.status === 403) setNotMember(true);
@@ -146,6 +151,22 @@ export default function GroupChatPage() {
     }
   };
 
+  const handleSaveRetention = async () => {
+    setIsSavingRetention(true);
+    try {
+      await customFetch(`/api/groups/${groupId}/settings`, {
+        method: "PUT",
+        body: JSON.stringify({ messageRetentionDays: retentionDays }),
+      });
+      await fetchGroup();
+      toast({ title: "Settings saved", description: `Messages will be kept for ${retentionDays} day${retentionDays > 1 ? "s" : ""}` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Failed to save", variant: "destructive" });
+    } finally {
+      setIsSavingRetention(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
@@ -190,6 +211,7 @@ export default function GroupChatPage() {
             <p className="text-xs text-muted-foreground">
               {group?.members.length} member{group?.members.length !== 1 ? "s" : ""}
               {isHostGroup && " · Broadcast only"}
+              {" · "}<Clock className="inline w-3 h-3 mb-0.5" /> {group?.messageRetentionDays}d
             </p>
           </div>
           <Users className="w-4 h-4 text-muted-foreground" />
@@ -264,15 +286,53 @@ export default function GroupChatPage() {
         )}
       </div>
 
-      {/* Members Dialog */}
+      {/* Members + Settings Dialog */}
       <Dialog open={showMembers} onOpenChange={setShowMembers}>
-        <DialogContent className="max-w-sm max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span>{group?.avatar}</span> {group?.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 space-y-3">
+          <div className="overflow-y-auto flex-1 space-y-4">
+            {/* Retention setting — creator only */}
+            {isCreator && (
+              <div className="bg-secondary/40 rounded-xl p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <Clock className="w-3.5 h-3.5" /> Auto-Delete Messages
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={1}
+                    max={maxRetentionDays}
+                    value={retentionDays}
+                    onChange={(e) => setRetentionDays(Number(e.target.value))}
+                    className="flex-1 accent-primary"
+                  />
+                  <span className="text-sm font-bold w-16 text-right shrink-0">
+                    {retentionDays === 1 ? "24 hrs" : `${retentionDays} days`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Messages older than {retentionDays === 1 ? "24 hours" : `${retentionDays} days`} are hidden
+                    {" "}(max {maxRetentionDays === 1 ? "24 hrs" : `${maxRetentionDays} days`})
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs shrink-0 ml-2"
+                    onClick={handleSaveRetention}
+                    disabled={isSavingRetention || retentionDays === group?.messageRetentionDays}
+                  >
+                    {isSavingRetention ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Add member — creator only */}
             {isCreator && (
               <div className="flex gap-2">
                 <Input
@@ -286,11 +346,13 @@ export default function GroupChatPage() {
                 </Button>
               </div>
             )}
+
             {group?.maxMembers && (
               <p className="text-xs text-muted-foreground">
                 {group.members.length} / {group.maxMembers} members
               </p>
             )}
+
             <div className="space-y-2">
               {group?.members.map((m) => (
                 <div key={m.id} className="flex items-center gap-3 bg-secondary/30 rounded-xl px-3 py-2">

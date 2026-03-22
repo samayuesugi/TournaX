@@ -7,6 +7,7 @@ export const groupsTable = pgTable("groups", {
   type: text("type").notNull(),
   createdBy: integer("created_by").notNull(),
   maxMembers: integer("max_members"),
+  messageRetentionDays: integer("message_retention_days").notNull().default(3),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

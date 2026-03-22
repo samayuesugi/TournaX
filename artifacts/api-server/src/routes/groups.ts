@@ -1,10 +1,21 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable, groupsTable, groupMembersTable, groupMessagesTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
+
+const PLAYER_RETENTION_DEFAULT = 3;
+const PLAYER_RETENTION_MAX = 7;
+const HOST_RETENTION_DEFAULT = 1;
+const HOST_RETENTION_MAX = 2;
+
+function retentionCutoff(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d;
+}
 
 router.post("/groups", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
@@ -24,6 +35,7 @@ router.post("/groups", requireAuth, async (req: Request, res: Response) => {
       type: "host",
       createdBy: user.id,
       maxMembers: null,
+      messageRetentionDays: HOST_RETENTION_DEFAULT,
     }).returning();
     await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id });
     res.json(group);
@@ -34,6 +46,7 @@ router.post("/groups", requireAuth, async (req: Request, res: Response) => {
       type: "player",
       createdBy: user.id,
       maxMembers: 10,
+      messageRetentionDays: PLAYER_RETENTION_DEFAULT,
     }).returning();
     await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id });
     res.json(group);
@@ -49,8 +62,10 @@ router.get("/groups", requireAuth, async (req: Request, res: Response) => {
     const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, m.groupId));
     if (!group) return null;
     const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, group.id));
-    const lastMsgs = await db.select().from(groupMessagesTable).where(eq(groupMessagesTable.groupId, group.id));
-    lastMsgs.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    const cutoff = retentionCutoff(group.messageRetentionDays);
+    const allMsgs = await db.select().from(groupMessagesTable)
+      .where(and(eq(groupMessagesTable.groupId, group.id), gte(groupMessagesTable.createdAt, cutoff)));
+    allMsgs.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
     return {
       id: group.id,
       name: group.name,
@@ -58,9 +73,10 @@ router.get("/groups", requireAuth, async (req: Request, res: Response) => {
       type: group.type,
       createdBy: group.createdBy,
       maxMembers: group.maxMembers,
+      messageRetentionDays: group.messageRetentionDays,
       memberCount: members.length,
-      lastMessage: lastMsgs[0]?.content || "",
-      lastMessageAt: lastMsgs[0]?.createdAt?.toISOString() || group.createdAt?.toISOString() || "",
+      lastMessage: allMsgs[0]?.content || "",
+      lastMessageAt: allMsgs[0]?.createdAt?.toISOString() || group.createdAt?.toISOString() || "",
     };
   }));
   res.json(groups.filter(Boolean));
@@ -89,8 +105,33 @@ router.get("/groups/:id", requireAuth, async (req: Request, res: Response) => {
     type: group.type,
     createdBy: group.createdBy,
     maxMembers: group.maxMembers,
+    messageRetentionDays: group.messageRetentionDays,
     members: members.filter(Boolean),
   });
+});
+
+router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const groupId = Number(req.params.id);
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+  if (group.createdBy !== user.id) { res.status(403).json({ error: "Only the group creator can change settings" }); return; }
+
+  const { messageRetentionDays } = req.body;
+  if (messageRetentionDays == null) { res.status(400).json({ error: "messageRetentionDays required" }); return; }
+
+  const days = Number(messageRetentionDays);
+  const isHost = group.type === "host";
+  const maxDays = isHost ? HOST_RETENTION_MAX : PLAYER_RETENTION_MAX;
+  const minDays = 1;
+
+  if (!Number.isInteger(days) || days < minDays || days > maxDays) {
+    res.status(400).json({ error: `Retention must be between ${minDays} and ${maxDays} days` });
+    return;
+  }
+
+  await db.update(groupsTable).set({ messageRetentionDays: days }).where(eq(groupsTable.id, groupId));
+  res.json({ success: true, messageRetentionDays: days });
 });
 
 router.post("/groups/:id/members", requireAuth, async (req: Request, res: Response) => {
@@ -147,7 +188,13 @@ router.get("/groups/:id/messages", requireAuth, async (req: Request, res: Respon
     .where(and(eq(groupMembersTable.groupId, groupId), eq(groupMembersTable.userId, user.id)));
   if (!isMember.length) { res.status(403).json({ error: "Not a member" }); return; }
 
-  const msgs = await db.select().from(groupMessagesTable).where(eq(groupMessagesTable.groupId, groupId));
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, groupId));
+  if (!group) { res.status(404).json({ error: "Group not found" }); return; }
+
+  const cutoff = retentionCutoff(group.messageRetentionDays);
+  const msgs = await db.select().from(groupMessagesTable)
+    .where(and(eq(groupMessagesTable.groupId, groupId), gte(groupMessagesTable.createdAt, cutoff)));
+
   const withSenders = await Promise.all(msgs.map(async (m) => {
     const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, m.fromUserId));
     return {
