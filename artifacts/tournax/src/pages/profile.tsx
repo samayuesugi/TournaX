@@ -23,6 +23,8 @@ function canChat(senderRole: string, recipientRole: string): boolean {
   return true;
 }
 
+const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
+
 function OwnProfile() {
   const { user, logout, refreshUser } = useAuth();
   const [, navigate] = useLocation();
@@ -32,9 +34,15 @@ function OwnProfile() {
   const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateMyProfile();
 
   const [squadForm, setSquadForm] = useState({ name: "", uid: "" });
-  const [profileForm, setProfileForm] = useState({ name: user?.name ?? "", handle: user?.handle ?? "" });
+  const [profileForm, setProfileForm] = useState({ name: user?.name ?? "", handle: user?.handle ?? "", avatar: user?.avatar ?? "🎮" });
   const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
+
+  useEffect(() => {
+    if (profileOpen) {
+      setProfileForm({ name: user?.name ?? "", handle: user?.handle ?? "", avatar: user?.avatar ?? "🎮" });
+    }
+  }, [profileOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -91,6 +99,21 @@ function OwnProfile() {
                 <DialogContent className="max-w-sm">
                   <DialogHeader><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
                   <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Avatar</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {AVATARS.map((avatar) => (
+                          <button
+                            key={avatar}
+                            type="button"
+                            className={`text-2xl p-2.5 rounded-xl border transition-all ${profileForm.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
+                            onClick={() => setProfileForm(f => ({ ...f, avatar }))}
+                          >
+                            {avatar}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="space-y-1.5">
                       <Label>Display Name</Label>
                       <Input value={profileForm.name} onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))} />
