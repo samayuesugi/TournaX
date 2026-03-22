@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Zap, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { useSetupProfile } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,11 @@ export default function SetupProfilePage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <Zap className="w-6 h-6 text-primary fill-primary" />
+            <img
+              src={`${import.meta.env.BASE_URL}logo.png`}
+              alt="TournaX"
+              className="w-10 h-10 object-contain"
+            />
             <span className="text-xl font-bold">TournaX</span>
           </div>
           <h2 className="text-xl font-bold">Set Up Your Profile</h2>

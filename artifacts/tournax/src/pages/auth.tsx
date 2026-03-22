@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Zap, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,10 +58,12 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-primary fill-primary" />
-            </div>
+          <div className="flex items-center justify-center mb-3">
+            <img
+              src={`${import.meta.env.BASE_URL}logo.png`}
+              alt="TournaX"
+              className="w-20 h-20 object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">TournaX</h1>
           <p className="text-muted-foreground text-sm mt-1">Compete. Win. Dominate.</p>
