@@ -78,21 +78,50 @@ export function MatchCard({ match, className }: MatchCardProps) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-1 min-w-0">
               <Clock className="w-3 h-3 shrink-0" />
               <span className="truncate">{formatTime(match.startTime)}</span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            {match.isJoined && (
+              <span className="text-xs font-medium text-green-400 shrink-0">✓ Joined</span>
+            )}
+          </div>
+
+          {/* Process line */}
+          <div>
+            <div className="flex gap-0.5 mb-1.5">
+              {Array.from({ length: Math.min(match.slots, 16) }).map((_, i) => {
+                const segments = Math.min(match.slots, 16);
+                const filled = match.slots <= 16
+                  ? match.filledSlots
+                  : Math.round((match.filledSlots / match.slots) * segments);
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "flex-1 h-2 rounded-sm transition-all duration-300",
+                      i < filled
+                        ? slotsLeft === 0 ? "bg-destructive" : "bg-primary"
+                        : "bg-secondary"
+                    )}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1 text-muted-foreground">
                 <Users className="w-3 h-3" />
                 <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
                   {match.filledSlots}
                 </span>
-                <span>joined</span>
+                <span>/ {match.slots} joined</span>
               </span>
-              {match.isJoined && (
-                <span className="text-xs font-medium text-green-400">✓ Joined</span>
+              {slotsLeft > 0 && (
+                <span className="text-muted-foreground">{slotsLeft} slots left</span>
+              )}
+              {slotsLeft === 0 && (
+                <span className="text-destructive font-medium">Full</span>
               )}
             </div>
           </div>
