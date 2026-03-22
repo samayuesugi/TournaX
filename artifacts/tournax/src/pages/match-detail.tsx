@@ -37,7 +37,7 @@ interface LivePrizePoolProps {
 }
 
 function LivePrizePool({ match }: LivePrizePoolProps) {
-  const { filledSlots, entryFee, showcasePrizePool, livePrizePool, hostCut, platformCut, totalPool, winnersPercent, hostPercent, status } = match;
+  const { filledSlots, entryFee, livePrizePool, hostCut, platformCut, winnersPercent, hostPercent, status } = match;
 
   return (
     <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-4">
@@ -76,10 +76,6 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground mt-2.5 flex items-start gap-1">
-        <span>ⓘ</span>
-        <span>Pool grows as more players join. Final amount locked when match goes live.</span>
-      </p>
     </div>
   );
 }
