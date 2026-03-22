@@ -83,19 +83,18 @@ export function MatchCard({ match, className }: MatchCardProps) {
               <Clock className="w-3 h-3 shrink-0" />
               <span className="truncate">{formatTime(match.startTime)}</span>
             </div>
-            {match.isJoined && (
-              <span className="text-xs font-medium text-green-400 shrink-0">✓ Joined</span>
-            )}
-          </div>
-
-          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="w-3 h-3 shrink-0" />
-            <span>
-              <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
-                {match.filledSlots}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Users className="w-3 h-3" />
+                <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
+                  {match.filledSlots}
+                </span>
+                <span>joined</span>
               </span>
-              {" players joined"}
-            </span>
+              {match.isJoined && (
+                <span className="text-xs font-medium text-green-400">✓ Joined</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
