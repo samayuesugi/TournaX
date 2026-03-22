@@ -74,7 +74,7 @@ export default function SetupProfilePage() {
                 <Input
                   placeholder="yourhandle"
                   value={form.handle}
-                  onChange={(e) => setForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
+                  onChange={(e) => setForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "") }))}
                   className="pl-7"
                   required
                 />

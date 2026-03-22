@@ -116,7 +116,10 @@ router.post("/auth/logout", requireAuth, async (_req: Request, res: Response) =>
 
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { avatar, game, ign, handle, gameUid } = req.body;
+  const { avatar, game, ign, gameUid } = req.body;
+  const handle = typeof req.body.handle === "string"
+    ? req.body.handle.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "")
+    : "";
   if (!handle || !ign || !gameUid || !game) {
     res.status(400).json({ error: "All fields required" });
     return;
