@@ -30,6 +30,7 @@ interface GroupMessage {
   groupId: number;
   fromUserId: number;
   senderName: string;
+  senderHandle: string;
   senderAvatar: string;
   content: string;
   createdAt: string;
@@ -292,7 +293,14 @@ export default function GroupChatPage() {
                       </div>
                     )}
                     <div className={cn("max-w-[75%]", isMine ? "items-end" : "items-start", "flex flex-col")}>
-                      {!isMine && <p className="text-[10px] text-muted-foreground mb-0.5 ml-1">{msg.senderName}</p>}
+                      {!isMine && (
+                        <div className="flex items-center gap-1 mb-0.5 ml-1">
+                          <p className="text-[10px] font-semibold text-foreground/80">{msg.senderName}</p>
+                          {msg.senderHandle && (
+                            <p className="text-[10px] text-muted-foreground">@{msg.senderHandle}</p>
+                          )}
+                        </div>
+                      )}
                       <div className={cn(
                         "px-3 py-2 rounded-2xl text-sm",
                         isMine ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-card-border rounded-bl-sm"

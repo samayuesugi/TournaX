@@ -253,6 +253,7 @@ router.get("/groups/:id/messages", requireAuth, async (req: Request, res: Respon
       groupId: m.groupId,
       fromUserId: m.fromUserId,
       senderName: sender?.name || sender?.handle || "Unknown",
+      senderHandle: sender?.handle || "",
       senderAvatar: sender?.avatar || "🔥",
       content: m.content,
       createdAt: m.createdAt?.toISOString(),
