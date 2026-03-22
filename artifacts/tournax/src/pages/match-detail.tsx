@@ -78,7 +78,7 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
 
       <p className="text-[11px] text-muted-foreground mt-2.5 flex items-start gap-1">
         <span>ⓘ</span>
-        <span>Pool grows as more players join · Guaranteed showcase: ₹{showcasePrizePool}</span>
+        <span>Pool grows as more players join. Final amount locked when match goes live.</span>
       </p>
     </div>
   );
