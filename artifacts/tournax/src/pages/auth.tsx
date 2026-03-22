@@ -84,6 +84,7 @@ export default function AuthPage() {
                     id="login-email"
                     type="email"
                     placeholder="you@example.com"
+                    autoComplete="email"
                     value={loginForm.email}
                     onChange={(e) => setLoginForm(f => ({ ...f, email: e.target.value }))}
                     required
@@ -96,6 +97,7 @@ export default function AuthPage() {
                       id="login-password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
+                      autoComplete="current-password"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm(f => ({ ...f, password: e.target.value }))}
                       required
@@ -123,6 +125,7 @@ export default function AuthPage() {
                     id="reg-email"
                     type="email"
                     placeholder="you@example.com"
+                    autoComplete="email"
                     value={registerForm.email}
                     onChange={(e) => setRegisterForm(f => ({ ...f, email: e.target.value }))}
                     required
@@ -135,6 +138,7 @@ export default function AuthPage() {
                       id="reg-password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Min 6 characters"
+                      autoComplete="new-password"
                       value={registerForm.password}
                       onChange={(e) => setRegisterForm(f => ({ ...f, password: e.target.value }))}
                       required
@@ -155,6 +159,7 @@ export default function AuthPage() {
                     id="reg-confirm-password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Re-enter your password"
+                    autoComplete="new-password"
                     value={registerForm.confirmPassword}
                     onChange={(e) => setRegisterForm(f => ({ ...f, confirmPassword: e.target.value }))}
                     required
