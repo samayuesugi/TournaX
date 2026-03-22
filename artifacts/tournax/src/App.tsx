@@ -129,7 +129,7 @@ function Router() {
       </Route>
 
       <Route path="/wallet">
-        <ProtectedRoute roles={["player"]}>
+        <ProtectedRoute roles={["player", "host"]}>
           <WalletPage />
         </ProtectedRoute>
       </Route>
