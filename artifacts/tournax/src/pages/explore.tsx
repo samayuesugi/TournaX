@@ -70,7 +70,7 @@ export default function ExplorePage() {
 
             <TabsContent value="hosts">
               {data?.recommendedHosts.length ? (
-                <div className="space-y-1 mt-3">
+                <div className="flex flex-col gap-1 mt-3">
                   {data.recommendedHosts.map((h) => <UserCard key={h.id} profile={h} />)}
                 </div>
               ) : (
@@ -80,7 +80,7 @@ export default function ExplorePage() {
 
             <TabsContent value="players">
               {data?.mostActivePlayers.length ? (
-                <div className="space-y-1 mt-3">
+                <div className="flex flex-col gap-1 mt-3">
                   {data.mostActivePlayers.map((p) => <UserCard key={p.id} profile={p} />)}
                 </div>
               ) : (
