@@ -9,30 +9,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { UserProfile } from "@workspace/api-client-react";
 
 function UserCard({ profile }: { profile: UserProfile }) {
-  return (
-    <Link href={`/profile/${profile.handle}`}>
-      <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:border-primary/30 transition-all cursor-pointer">
-        {profile.avatar?.startsWith("/objects/") ? (
-          <img src={`/api/storage${profile.avatar}`} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-secondary shrink-0" />
-        ) : (
-          <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center text-xl shrink-0">
-            {profile.avatar || "🎮"}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm truncate">{profile.name || `@${profile.handle}`}</div>
-          <div className="text-xs text-muted-foreground">@{profile.handle} · {profile.role}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{profile.followersCount} followers · {profile.matchesCount} matches</div>
+  const inner = (
+    <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:border-primary/30 transition-all cursor-pointer">
+      {profile.avatar?.startsWith("/objects/") ? (
+        <img src={`/api/storage${profile.avatar}`} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-secondary shrink-0" />
+      ) : (
+        <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center text-xl shrink-0">
+          {profile.avatar || "🎮"}
         </div>
-        {profile.rating && (
-          <div className="shrink-0 text-right">
-            <div className="text-sm font-bold text-accent">{profile.rating.toFixed(1)}</div>
-            <div className="text-xs text-muted-foreground">rating</div>
-          </div>
-        )}
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate">{profile.name || `@${profile.handle}`}</div>
+        <div className="text-xs text-muted-foreground">@{profile.handle || "no handle"} · {profile.role}</div>
+        <div className="text-xs text-muted-foreground mt-0.5">{profile.followersCount} followers · {profile.matchesCount} matches</div>
       </div>
-    </Link>
+      {profile.rating && (
+        <div className="shrink-0 text-right">
+          <div className="text-sm font-bold text-accent">{profile.rating.toFixed(1)}</div>
+          <div className="text-xs text-muted-foreground">rating</div>
+        </div>
+      )}
+    </div>
   );
+
+  if (!profile.handle) return inner;
+  return <Link href={`/profile/${profile.handle}`}>{inner}</Link>;
 }
 
 export default function ExplorePage() {

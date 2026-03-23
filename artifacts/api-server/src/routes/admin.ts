@@ -172,8 +172,18 @@ router.post("/admin/create-host", requireAdmin, async (req: Request, res: Respon
   const { email, password, name, game } = req.body;
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) { res.status(400).json({ error: "Email already exists" }); return; }
+
+  const baseHandle = (name || "host").toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+  let handle = baseHandle;
+  let suffix = 1;
+  while (true) {
+    const [taken] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.handle, handle));
+    if (!taken) break;
+    handle = `${baseHandle}_${suffix++}`;
+  }
+
   await db.insert(usersTable).values({
-    email, password: hashPassword(password), name, game: game || null, role: "host", status: "active", profileSetup: true, balance: "0",
+    email, password: hashPassword(password), name, handle, game: game || null, role: "host", status: "active", profileSetup: true, balance: "0",
   });
   res.json({ success: true });
 });
