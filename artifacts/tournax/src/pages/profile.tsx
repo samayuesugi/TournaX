@@ -256,10 +256,13 @@ function OwnProfile() {
           </div>
 
           {user.game && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span>🎮</span>
-              <span>{user.game}</span>
-              {user.handle && <span>· IGN: <span className="text-foreground font-medium">{user.handle}</span></span>}
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
+                🎮 {user.game} Host
+              </span>
+              {user.handle && (
+                <span className="text-xs text-muted-foreground">IGN: <span className="text-foreground font-medium">{user.handle}</span></span>
+              )}
             </div>
           )}
         </div>
@@ -419,6 +422,14 @@ function PublicProfile({ handle }: { handle: string }) {
               <div className="text-xs text-muted-foreground">Matches</div>
             </div>
           </div>
+
+          {(profile as any).game && profile.role === "host" && (
+            <div className="mt-3">
+              <span className="flex items-center gap-1.5 w-fit text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
+                🎮 {(profile as any).game} Host
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Host Group Card */}

@@ -219,6 +219,7 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     handle: user.handle,
     avatar: user.avatar || "🔥",
     role: user.role,
+    game: user.game,
     followersCount: user.followersCount,
     followingCount: user.followingCount,
     rating: null,

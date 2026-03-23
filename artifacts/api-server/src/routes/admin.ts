@@ -58,7 +58,7 @@ router.get("/admin/dashboard", requireAdmin, async (req: Request, res: Response)
     platformFees,
     complaintsCount: complaints.length,
     adminList: admins.map(a => ({ id: a.id, email: a.email, name: a.name, role: a.role })),
-    hostList: hosts.map(h => ({ id: h.id, email: h.email, name: h.name, role: h.role })),
+    hostList: hosts.map(h => ({ id: h.id, email: h.email, name: h.name, role: h.role, game: h.game })),
   });
 });
 
@@ -168,11 +168,11 @@ router.post("/admin/finance/withdrawals/:id/reject", requireAdmin, async (req: R
 });
 
 router.post("/admin/create-host", requireAdmin, async (req: Request, res: Response) => {
-  const { email, password, name } = req.body;
+  const { email, password, name, game } = req.body;
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) { res.status(400).json({ error: "Email already exists" }); return; }
   await db.insert(usersTable).values({
-    email, password: hashPassword(password), name, role: "host", status: "active", profileSetup: true, balance: "0",
+    email, password: hashPassword(password), name, game: game || null, role: "host", status: "active", profileSetup: true, balance: "0",
   });
   res.json({ success: true });
 });

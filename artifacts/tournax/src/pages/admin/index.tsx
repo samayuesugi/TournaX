@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  useAdminDashboard, useAdminCreateHost, useAdminCreateAdmin
+  useAdminDashboard, useAdminCreateHost, useAdminCreateAdmin, customFetch
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity } from "lucide-react";
+import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2 } from "lucide-react";
 
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
   return (
@@ -29,17 +29,26 @@ export default function AdminDashboardPage() {
   const { mutateAsync: createHost, isPending: isCreatingHost } = useAdminCreateHost();
   const { mutateAsync: createAdmin, isPending: isCreatingAdmin } = useAdminCreateAdmin();
 
-  const [hostForm, setHostForm] = useState({ email: "", password: "", name: "" });
+  const [hostForm, setHostForm] = useState({ email: "", password: "", name: "", game: "" });
   const [adminForm, setAdminForm] = useState({ email: "", password: "", name: "" });
   const [hostOpen, setHostOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [games, setGames] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    if (hostOpen) {
+      customFetch<{ id: number; name: string; modes: any[] }[]>("/api/games", { responseType: "json" })
+        .then((res) => setGames(res.map(g => ({ id: g.id, name: g.name }))))
+        .catch(() => {});
+    }
+  }, [hostOpen]);
 
   const handleCreateHost = async () => {
     try {
       await createHost({ data: hostForm });
       toast({ title: "Host account created!" });
       setHostOpen(false);
-      setHostForm({ email: "", password: "", name: "" });
+      setHostForm({ email: "", password: "", name: "", game: "" });
       refetch();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
@@ -102,6 +111,21 @@ export default function AdminDashboardPage() {
                         <Label>Password</Label>
                         <Input type="password" value={hostForm.password} onChange={(e) => setHostForm(f => ({ ...f, password: e.target.value }))} placeholder="Password" />
                       </div>
+                      <div className="space-y-1.5">
+                        <Label className="flex items-center gap-1.5">
+                          <Gamepad2 className="w-3.5 h-3.5" /> Game Specialization
+                        </Label>
+                        <select
+                          value={hostForm.game}
+                          onChange={(e) => setHostForm(f => ({ ...f, game: e.target.value }))}
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          <option value="">— Select game —</option>
+                          {games.map(g => (
+                            <option key={g.id} value={g.name}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
                       <Button className="w-full" onClick={handleCreateHost} disabled={isCreatingHost}>
                         {isCreatingHost ? "Creating..." : "Create Host"}
                       </Button>
@@ -143,12 +167,18 @@ export default function AdminDashboardPage() {
               <div className="bg-card border border-card-border rounded-2xl p-4">
                 <h3 className="font-semibold text-sm mb-3">Hosts ({data.hostList.length})</h3>
                 <div className="space-y-2">
-                  {data.hostList.map((h) => (
+                  {data.hostList.map((h: any) => (
                     <div key={h.id} className="flex items-center justify-between bg-secondary/40 rounded-lg px-3 py-2">
                       <div>
                         <div className="text-sm font-medium">{h.name || h.email}</div>
                         <div className="text-xs text-muted-foreground">{h.email}</div>
                       </div>
+                      {h.game && (
+                        <span className="flex items-center gap-1 text-xs font-medium bg-primary/15 text-primary border border-primary/30 rounded-full px-2 py-0.5 shrink-0">
+                          <Gamepad2 className="w-3 h-3" />
+                          {h.game} Host
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
