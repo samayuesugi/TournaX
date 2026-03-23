@@ -536,7 +536,7 @@ function PublicProfile({ handle }: { handle: string }) {
                 <p className="text-muted-foreground text-sm">@{profile.handle}</p>
                 {profile.role === "admin" ? (
                   <span className="inline-flex items-center gap-1 text-xs font-bold bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-500/40 rounded-full px-2.5 py-0.5 mt-0.5">
-                    👑 Administrator
+                    Administrator
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 rounded-full px-2.5 py-0.5 mt-0.5">
