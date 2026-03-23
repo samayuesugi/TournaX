@@ -22,6 +22,7 @@ import AdminDashboardPage from "@/pages/admin/index";
 import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
 import AdminComplaintsPage from "@/pages/admin/complaints";
+import AdminProfilePage from "@/pages/admin/profile";
 import AdminGamesPage from "@/pages/admin/games";
 import AdminWalletPage from "@/pages/admin/wallet";
 import ChatListPage from "@/pages/chat/index";
@@ -184,6 +185,12 @@ function Router() {
       <Route path="/admin/complaints">
         <ProtectedRoute roles={["admin"]}>
           <AdminComplaintsPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/profile">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminProfilePage />
         </ProtectedRoute>
       </Route>
 

@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, MessageCircle, Swords, User, Wallet } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, MessageCircle, User, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { useGetConversations } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ const adminNav = [
   { href: "/admin/players", icon: User, label: "Players" },
   { href: "/admin/finance", icon: DollarSign, label: "Finance" },
   { href: "/admin/wallet", icon: Wallet, label: "Wallet" },
-  { href: "/admin/complaints", icon: Swords, label: "Issues" },
+  { href: "/admin/profile", icon: User, label: "Profile" },
 ];
 
 export function BottomNav() {
