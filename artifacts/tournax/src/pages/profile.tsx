@@ -621,7 +621,7 @@ function PublicProfile({ handle }: { handle: string }) {
             {profile.activeMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Live / Active</h3>
-                <div className="space-y-8">
+                <div className="flex flex-col gap-8">
                   {profile.activeMatches.map((m) => <MatchCard key={m.id} match={m} />)}
                 </div>
               </div>
@@ -629,7 +629,7 @@ function PublicProfile({ handle }: { handle: string }) {
             {profile.upcomingMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
-                <div className="space-y-8">
+                <div className="flex flex-col gap-8">
                   {profile.upcomingMatches.map((m) => <MatchCard key={m.id} match={m} />)}
                 </div>
               </div>
