@@ -534,7 +534,15 @@ function PublicProfile({ handle }: { handle: string }) {
               <div>
                 <h2 className="text-lg font-bold">{profile.name || `@${handle}`}</h2>
                 <p className="text-muted-foreground text-sm">@{profile.handle}</p>
-                <p className="text-xs capitalize text-muted-foreground">{profile.role}</p>
+                {profile.role === "admin" ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-500/40 rounded-full px-2.5 py-0.5 mt-0.5">
+                    👑 Founder
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 rounded-full px-2.5 py-0.5 mt-0.5">
+                    🎮 {(profile as any).game ? `${(profile as any).game} ${profile.role === "host" ? "Host" : "Player"}` : profile.role === "host" ? "Host" : "Player"}
+                  </span>
+                )}
               </div>
             </div>
             {!isOwnProfile && currentUser && (
