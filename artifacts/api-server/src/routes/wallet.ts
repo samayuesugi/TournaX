@@ -62,19 +62,28 @@ router.post("/wallet/withdraw", requireAuth, async (req: Request, res: Response)
   const { amount, upiId } = req.body;
   if (!amount || !upiId) { res.status(400).json({ error: "Amount and UPI ID required" }); return; }
   const numericAmount = Number(amount);
-  if (numericAmount <= 0) { res.status(400).json({ error: "Invalid amount" }); return; }
-  const result = await db.execute(
-    sql`UPDATE users SET balance = balance - ${numericAmount} WHERE id = ${user.id} AND balance >= ${numericAmount} RETURNING balance`
-  );
-  if (!result.rows || result.rows.length === 0) {
-    res.status(400).json({ error: "Insufficient balance" }); return;
+  if (isNaN(numericAmount) || numericAmount <= 0) { res.status(400).json({ error: "Invalid amount" }); return; }
+  try {
+    await db.transaction(async (tx) => {
+      const result = await tx.execute(
+        sql`UPDATE users SET balance = balance - ${numericAmount} WHERE id = ${user.id} AND balance >= ${numericAmount} RETURNING balance`
+      );
+      if (!result.rows || result.rows.length === 0) {
+        throw new Error("Insufficient balance");
+      }
+      await tx.insert(withdrawalRequestsTable).values({
+        userId: user.id,
+        amount: String(numericAmount),
+        upiId,
+        status: "pending",
+      });
+    });
+  } catch (err: any) {
+    if (err?.message === "Insufficient balance") {
+      res.status(400).json({ error: "Insufficient balance" }); return;
+    }
+    throw err;
   }
-  await db.insert(withdrawalRequestsTable).values({
-    userId: user.id,
-    amount: String(amount),
-    upiId,
-    status: "pending",
-  });
   res.json({ success: true, message: "Withdrawal requested" });
 });
 

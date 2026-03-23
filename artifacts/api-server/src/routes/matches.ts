@@ -121,19 +121,41 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     return;
   }
   const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool } = req.body;
+  if (!game || !mode || !startTime) {
+    res.status(400).json({ error: "game, mode, and startTime are required" }); return;
+  }
+  const parsedTeamSize = Number(teamSize);
+  const parsedSlots = Number(slots);
+  const parsedEntryFee = Number(entryFee);
+  if (!Number.isInteger(parsedTeamSize) || parsedTeamSize < 1 || parsedTeamSize > 100) {
+    res.status(400).json({ error: "teamSize must be a positive integer" }); return;
+  }
+  if (!Number.isInteger(parsedSlots) || parsedSlots < 2 || parsedSlots > 10000) {
+    res.status(400).json({ error: "slots must be between 2 and 10000" }); return;
+  }
+  if (isNaN(parsedEntryFee) || parsedEntryFee < 0) {
+    res.status(400).json({ error: "entryFee must be a non-negative number" }); return;
+  }
+  const parsedStartTime = new Date(startTime);
+  if (isNaN(parsedStartTime.getTime())) {
+    res.status(400).json({ error: "Invalid startTime" }); return;
+  }
+  if (parsedStartTime <= new Date()) {
+    res.status(400).json({ error: "startTime must be in the future" }); return;
+  }
   const code = generateCode();
   const [match] = await db.insert(matchesTable).values({
     code,
     game,
     mode,
-    teamSize: Number(teamSize),
-    entryFee: String(entryFee),
-    slots: Number(slots),
+    teamSize: parsedTeamSize,
+    entryFee: String(parsedEntryFee),
+    slots: parsedSlots,
     hostId: user.id,
-    startTime: new Date(startTime),
+    startTime: parsedStartTime,
     status: "upcoming",
     filledSlots: 0,
-    showcasePrizePool: showcasePrizePool != null ? String(showcasePrizePool) : "0",
+    showcasePrizePool: showcasePrizePool != null ? String(Number(showcasePrizePool)) : "0",
     roomReleased: false,
   }).returning();
 

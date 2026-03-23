@@ -23,6 +23,7 @@ const DEFAULT_ACCOUNTS = [
     handle: "samplehost",
     avatar: "🎮",
     role: "host" as const,
+    recommended: true,
   },
 ];
 
@@ -65,8 +66,11 @@ export async function seedDefaults() {
         balance: "0",
         followersCount: 0,
         followingCount: 0,
+        recommended: (account as any).recommended ?? false,
       });
       console.log(`[seed] Created default ${account.role}: ${account.email}`);
+    } else if ((account as any).recommended) {
+      await db.update(usersTable).set({ recommended: true }).where(eq(usersTable.id, existing.id));
     }
   }
 }
