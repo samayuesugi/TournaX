@@ -187,15 +187,12 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   const { teamName, players } = req.body;
 
   if (match.teamSize > 1) {
-    const squadMembers = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
-    if (squadMembers.length < match.teamSize) {
-      res.status(400).json({
-        error: `You need at least ${match.teamSize} squad members to join this match. You have ${squadMembers.length}. Add more members in your Profile → My Squad.`
-      });
+    if (!players || players.length !== match.teamSize) {
+      res.status(400).json({ error: `Provide exactly ${match.teamSize} players to join.` });
       return;
     }
-    if (!players || players.length !== match.teamSize) {
-      res.status(400).json({ error: `Select exactly ${match.teamSize} players from your squad to join.` });
+    if (players.some((p: any) => !p.ign || !p.uid)) {
+      res.status(400).json({ error: "All players must have an IGN and UID." });
       return;
     }
   }
