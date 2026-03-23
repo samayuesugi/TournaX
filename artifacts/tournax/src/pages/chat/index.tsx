@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Users, Plus, Crown } from "lucide-react";
+import { MessageCircle, Users, Plus, Crown, Hash } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
@@ -40,9 +40,25 @@ function timeAgo(iso: string) {
 }
 
 function roleBadge(role: string) {
-  if (role === "host") return <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Host</span>;
-  if (role === "admin") return <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">Admin</span>;
+  if (role === "host") return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/25">Host</span>
+  );
+  if (role === "admin") return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-semibold border border-orange-500/25">Admin</span>
+  );
   return null;
+}
+
+function SectionLabel({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-1 mb-2.5">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-full bg-primary" />
+        <span className="text-xs font-bold text-foreground uppercase tracking-widest">{children}</span>
+      </div>
+      {action}
+    </div>
+  );
 }
 
 export default function ChatListPage() {
@@ -89,111 +105,133 @@ export default function ChatListPage() {
 
   return (
     <AppLayout title="Messages">
-      <div className="space-y-1 pb-4">
-        {/* Groups section */}
-        <div className="flex items-center justify-between mb-2 mt-1">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Groups</h3>
-          {(user?.role === "player" || user?.role === "host") && (
-            <button
-              onClick={() => setCreateOpen(true)}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" /> New Group
-            </button>
+      <div className="space-y-5 pb-4">
+
+        {/* ── Groups ── */}
+        <div>
+          <SectionLabel action={
+            (user?.role === "player" || user?.role === "host") ? (
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+              >
+                <Plus className="w-3.5 h-3.5" /> New Group
+              </button>
+            ) : null
+          }>
+            Groups
+          </SectionLabel>
+
+          {groupsLoading ? (
+            <Skeleton className="h-16 rounded-2xl" />
+          ) : groups.length > 0 ? (
+            <div className="space-y-2">
+              {groups.map((g) => (
+                <Link key={g.id} href={`/chat/group/${g.id}`}>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-violet-500/5 to-card border border-violet-500/20 rounded-2xl px-4 py-3.5 hover:border-violet-500/40 hover:from-violet-500/10 transition-all cursor-pointer active:scale-[0.99]">
+                    <div className="w-11 h-11 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center text-xl shrink-0">
+                      {g.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Hash className="w-3 h-3 text-violet-400 shrink-0" />
+                        <span className="font-bold text-sm text-foreground truncate">{g.name}</span>
+                        {g.type === "host" && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/25 flex items-center gap-0.5 shrink-0">
+                            <Crown className="w-2.5 h-2.5" /> Host
+                          </span>
+                        )}
+                        {g.createdBy === user?.id && g.type === "player" && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-semibold border border-yellow-500/25 shrink-0">Mine</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {g.lastMessage || `${g.memberCount} member${g.memberCount !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-[10px] text-muted-foreground">{timeAgo(g.lastMessageAt)}</span>
+                      <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Users className="w-3 h-3" /> {g.memberCount}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-7 text-muted-foreground text-sm border border-dashed border-border rounded-2xl">
+              <Users className="w-7 h-7 mb-2 opacity-40" />
+              <span>No groups yet.</span>
+              {(user?.role === "player" || user?.role === "host") && (
+                <button onClick={() => setCreateOpen(true)} className="text-primary text-xs mt-1 underline underline-offset-2">Create one</button>
+              )}
+            </div>
           )}
         </div>
 
-        {groupsLoading ? (
-          <Skeleton className="h-16 rounded-xl" />
-        ) : groups.length > 0 ? (
-          <div className="space-y-2 mb-4">
-            {groups.map((g) => (
-              <Link key={g.id} href={`/chat/group/${g.id}`}>
-                <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer">
-                  <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
-                    {g.avatar}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="font-semibold text-sm truncate">{g.name}</span>
-                      {g.type === "host" && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium flex items-center gap-0.5">
-                          <Crown className="w-2.5 h-2.5" /> Host
-                        </span>
-                      )}
-                      {g.createdBy === user?.id && g.type === "player" && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-medium">Mine</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {g.lastMessage || `${g.memberCount} member${g.memberCount !== 1 ? "s" : ""}`}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-[10px] text-muted-foreground">{timeAgo(g.lastMessageAt)}</span>
-                    <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <Users className="w-3 h-3" /> {g.memberCount}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-xl mb-4">
-            No groups yet.{" "}
-            {(user?.role === "player" || user?.role === "host") && (
-              <button onClick={() => setCreateOpen(true)} className="text-primary underline">Create one</button>
-            )}
-          </div>
-        )}
+        {/* ── Direct Messages ── */}
+        <div>
+          <SectionLabel>Direct Messages</SectionLabel>
 
-        {/* DMs section */}
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Direct Messages</h3>
-
-        {isLoading ? (
-          [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
-        ) : conversations && conversations.length > 0 ? (
-          conversations.map((conv) => (
-            <Link key={conv.userId} href={`/chat/${conv.userId}`}>
-              <div
-                className={cn(
-                  "flex items-center gap-3 bg-card border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer",
-                  conv.unreadCount > 0 ? "border-primary/30" : "border-card-border"
-                )}
-              >
-                <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
-                  {conv.avatar}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="font-semibold text-sm truncate">{conv.name || conv.handle}</span>
-                    {roleBadge(conv.role)}
-                  </div>
-                  <p className={cn(
-                    "text-xs truncate",
-                    conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-[72px] rounded-2xl" />)}
+            </div>
+          ) : conversations && conversations.length > 0 ? (
+            <div className="space-y-2">
+              {conversations.map((conv) => (
+                <Link key={conv.userId} href={`/chat/${conv.userId}`}>
+                  <div className={cn(
+                    "flex items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all cursor-pointer active:scale-[0.99]",
+                    conv.unreadCount > 0
+                      ? "bg-primary/5 border-primary/30 hover:border-primary/50"
+                      : "bg-card border-card-border hover:border-primary/25 hover:bg-secondary/20"
                   )}>
-                    {conv.lastMessage}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[10px] text-muted-foreground">{timeAgo(conv.lastMessageAt)}</span>
-                  {conv.unreadCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                      {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <div className="text-center py-10 text-muted-foreground text-sm">
-            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            No direct messages yet
-          </div>
-        )}
+                    {/* Avatar with online-style ring for unread */}
+                    <div className={cn(
+                      "w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 bg-secondary",
+                      conv.unreadCount > 0 && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                    )}>
+                      {conv.avatar}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className={cn("font-semibold text-sm truncate", conv.unreadCount > 0 ? "text-foreground" : "text-foreground/80")}>
+                          {conv.name || conv.handle}
+                        </span>
+                        {roleBadge(conv.role)}
+                      </div>
+                      <p className={cn(
+                        "text-xs truncate",
+                        conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                      )}>
+                        {conv.lastMessage}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <span className="text-[10px] text-muted-foreground">{timeAgo(conv.lastMessageAt)}</span>
+                      {conv.unreadCount > 0 ? (
+                        <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                          {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
+                        </span>
+                      ) : (
+                        <MessageCircle className="w-3.5 h-3.5 text-muted-foreground/40" />
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-10 text-muted-foreground text-sm">
+              <MessageCircle className="w-8 h-8 mb-2 opacity-40" />
+              No direct messages yet
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Create Group Dialog */}
