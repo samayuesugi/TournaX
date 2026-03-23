@@ -18,6 +18,7 @@ export const usersTable = pgTable("users", {
   balance: numeric("balance", { precision: 10, scale: 2 }).notNull().default("0"),
   status: statusEnum("status").notNull().default("pending"),
   profileSetup: boolean("profile_setup").notNull().default(false),
+  recommended: boolean("recommended").notNull().default(false),
   followersCount: integer("followers_count").notNull().default(0),
   followingCount: integer("following_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),

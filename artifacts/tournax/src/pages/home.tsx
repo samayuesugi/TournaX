@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Search, Filter } from "lucide-react";
+import { Link } from "wouter";
+import { Search, Users } from "lucide-react";
 import { useListMatches } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MatchCard } from "@/components/match/MatchCard";
 import { Input } from "@/components/ui/input";
@@ -14,11 +16,21 @@ type Filter = typeof FILTERS[number];
 export default function HomePage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const { user } = useAuth();
 
   const { data: matches, isLoading } = useListMatches(
     { status: filter === "all" ? undefined : filter, search: search || undefined },
     { query: { staleTime: 10000 } }
   );
+
+  const isPlayer = user?.role === "player";
+
+  const followingMatches = isPlayer
+    ? (matches ?? []).filter((m: any) => !m.isRecommended)
+    : (matches ?? []);
+  const recommendedMatches = isPlayer
+    ? (matches ?? []).filter((m: any) => m.isRecommended)
+    : [];
 
   return (
     <AppLayout>
@@ -64,20 +76,80 @@ export default function HomePage() {
               <Skeleton key={i} className="h-44 rounded-xl" />
             ))}
           </div>
-        ) : matches && matches.length > 0 ? (
-          <div className="space-y-4">
-            {matches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
+        ) : isPlayer ? (
+          <>
+            {/* Following section */}
+            {followingMatches.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-foreground">Following</h2>
+                  <span className="text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
+                    {followingMatches.length}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {followingMatches.map((match) => (
+                    <MatchCard key={match.id} match={match} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommended section */}
+            {recommendedMatches.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-foreground">Recommended</h2>
+                  <span className="text-xs font-medium bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
+                    For You
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {recommendedMatches.map((match) => (
+                    <MatchCard key={match.id} match={match} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {followingMatches.length === 0 && recommendedMatches.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-3">🎮</div>
+                <h3 className="font-semibold text-base mb-1">No matches yet</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  {search
+                    ? "Try a different search"
+                    : "Follow hosts to see their matches here"}
+                </p>
+                {!search && (
+                  <Link href="/explore">
+                    <Button variant="outline" className="gap-2">
+                      <Users className="w-4 h-4" />
+                      Find Hosts
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="text-center py-16">
-            <div className="text-4xl mb-3">🎮</div>
-            <h3 className="font-semibold text-base mb-1">No matches found</h3>
-            <p className="text-muted-foreground text-sm">
-              {search ? "Try a different search" : "Check back later for upcoming tournaments"}
-            </p>
-          </div>
+          /* Host / Admin: show all matches */
+          matches && matches.length > 0 ? (
+            <div className="space-y-4">
+              {matches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-4xl mb-3">🎮</div>
+              <h3 className="font-semibold text-base mb-1">No matches found</h3>
+              <p className="text-muted-foreground text-sm">
+                {search ? "Try a different search" : "Check back later for upcoming tournaments"}
+              </p>
+            </div>
+          )
         )}
       </div>
     </AppLayout>

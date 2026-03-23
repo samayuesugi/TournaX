@@ -58,7 +58,7 @@ router.get("/admin/dashboard", requireAdmin, async (req: Request, res: Response)
     platformFees,
     complaintsCount: complaints.length,
     adminList: admins.map(a => ({ id: a.id, email: a.email, name: a.name, role: a.role })),
-    hostList: hosts.map(h => ({ id: h.id, email: h.email, name: h.name, role: h.role, game: h.game })),
+    hostList: hosts.map(h => ({ id: h.id, email: h.email, name: h.name, role: h.role, game: h.game, recommended: h.recommended })),
   });
 });
 
@@ -175,6 +175,14 @@ router.post("/admin/create-host", requireAdmin, async (req: Request, res: Respon
     email, password: hashPassword(password), name, game: game || null, role: "host", status: "active", profileSetup: true, balance: "0",
   });
   res.json({ success: true });
+});
+
+router.patch("/admin/hosts/:id/recommend", requireAdmin, async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  const [host] = await db.select().from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.role, "host")));
+  if (!host) { res.status(404).json({ error: "Host not found" }); return; }
+  const [updated] = await db.update(usersTable).set({ recommended: !host.recommended }).where(eq(usersTable.id, id)).returning();
+  res.json({ recommended: updated.recommended });
 });
 
 router.post("/admin/create-admin", requireAdmin, async (req: Request, res: Response) => {

@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable } from "@workspace/db/schema";
-import { eq, and, ilike, or, sql } from "drizzle-orm";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, followsTable } from "@workspace/db/schema";
+import { eq, and, ilike, or, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
@@ -20,7 +20,6 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
   let isFollowingHost = false;
   let isJoined = false;
   if (userId) {
-    const { followsTable } = await import("@workspace/db/schema");
     const [follow] = await db.select().from(followsTable).where(
       and(eq(followsTable.followerId, userId), eq(followsTable.followingId, match.hostId))
     );
@@ -67,6 +66,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     hostAvatar: host?.avatar || "🛡️",
     hostFollowers: host?.followersCount || 0,
     isFollowingHost,
+    isRecommended: !isFollowingHost && !!host?.recommended,
     isJoined,
     roomReleased: match.roomReleased,
   };
@@ -81,8 +81,7 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
   const { search, status } = req.query;
   const user = (req as any).user;
 
-  let query = db.select().from(matchesTable);
-  const conditions = [];
+  const conditions: any[] = [];
   if (status && status !== "all") conditions.push(eq(matchesTable.status, status as any));
   if (search) {
     conditions.push(or(
@@ -91,9 +90,25 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
       ilike(matchesTable.mode, `%${search}%`)
     ));
   }
+
+  // Players only see matches from hosts they follow + recommended hosts
+  if (user.role === "player") {
+    const follows = await db.select({ followingId: followsTable.followingId })
+      .from(followsTable).where(eq(followsTable.followerId, user.id));
+    const followedIds = follows.map(f => f.followingId);
+
+    const recommendedHosts = await db.select({ id: usersTable.id })
+      .from(usersTable).where(and(eq(usersTable.role, "host"), eq(usersTable.recommended, true)));
+    const recommendedIds = recommendedHosts.map(h => h.id);
+
+    const allowedIds = [...new Set([...followedIds, ...recommendedIds])];
+    if (allowedIds.length === 0) { res.json([]); return; }
+    conditions.push(inArray(matchesTable.hostId, allowedIds));
+  }
+
   const matches = conditions.length > 0
-    ? await query.where(and(...conditions)).orderBy(matchesTable.createdAt)
-    : await query.orderBy(matchesTable.createdAt);
+    ? await db.select().from(matchesTable).where(and(...conditions)).orderBy(matchesTable.createdAt)
+    : await db.select().from(matchesTable).orderBy(matchesTable.createdAt);
 
   const serialized = await Promise.all(matches.map(m => serializeMatch(m, user.id)));
   res.json(serialized);

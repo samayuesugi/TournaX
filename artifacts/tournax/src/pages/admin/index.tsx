@@ -11,6 +11,58 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2 } from "lucide-react";
 
+function HostRow({ host }: { host: any }) {
+  const { toast } = useToast();
+  const [recommended, setRecommended] = useState<boolean>(host.recommended);
+  const [loading, setLoading] = useState(false);
+
+  const toggle = async () => {
+    setLoading(true);
+    try {
+      const res = await customFetch<{ recommended: boolean }>(`/api/admin/hosts/${host.id}/recommend`, {
+        method: "PATCH",
+        responseType: "json",
+      });
+      setRecommended(res.recommended);
+      toast({ title: res.recommended ? "Recommendation ON" : "Recommendation OFF" });
+    } catch {
+      toast({ title: "Failed to update", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-secondary/40 rounded-lg px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium truncate">{host.name || host.email}</div>
+          <div className="text-xs text-muted-foreground truncate">{host.email}</div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {host.game && (
+            <span className="flex items-center gap-1 text-xs font-medium bg-primary/15 text-primary border border-primary/30 rounded-full px-2 py-0.5">
+              <Gamepad2 className="w-3 h-3" />
+              {host.game}
+            </span>
+          )}
+          <button
+            onClick={toggle}
+            disabled={loading}
+            className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border transition-all ${
+              recommended
+                ? "bg-green-500/20 text-green-400 border-green-500/40"
+                : "bg-secondary text-muted-foreground border-border hover:border-primary/40"
+            }`}
+          >
+            {recommended ? "✓ Recommended" : "Recommend"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4">
@@ -168,18 +220,7 @@ export default function AdminDashboardPage() {
                 <h3 className="font-semibold text-sm mb-3">Hosts ({data.hostList.length})</h3>
                 <div className="space-y-2">
                   {data.hostList.map((h: any) => (
-                    <div key={h.id} className="flex items-center justify-between bg-secondary/40 rounded-lg px-3 py-2">
-                      <div>
-                        <div className="text-sm font-medium">{h.name || h.email}</div>
-                        <div className="text-xs text-muted-foreground">{h.email}</div>
-                      </div>
-                      {h.game && (
-                        <span className="flex items-center gap-1 text-xs font-medium bg-primary/15 text-primary border border-primary/30 rounded-full px-2 py-0.5 shrink-0">
-                          <Gamepad2 className="w-3 h-3" />
-                          {h.game} Host
-                        </span>
-                      )}
-                    </div>
+                    <HostRow key={h.id} host={h} />
                   ))}
                 </div>
               </div>
