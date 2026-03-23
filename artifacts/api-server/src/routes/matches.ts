@@ -348,8 +348,14 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
 });
 
 router.get("/matches/:id/players", requireAuth, async (req: Request, res: Response) => {
+  const requestingUser = (req as any).user;
+  const matchId = Number(req.params.id);
+
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+  const canSeeFullUid = match && (requestingUser.role === "admin" || requestingUser.id === match.hostId);
+
   const participants = await db.select().from(matchParticipantsTable)
-    .where(eq(matchParticipantsTable.matchId, Number(req.params.id)))
+    .where(eq(matchParticipantsTable.matchId, matchId))
     .orderBy(matchParticipantsTable.teamNumber);
 
   const result = await Promise.all(participants.map(async (p) => {
@@ -362,7 +368,11 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
       teamNumber: p.teamNumber,
       rank: p.rank ?? null,
       reward: p.reward ? parseFloat(p.reward as string) : null,
-      players: players.map(pl => ({ ign: pl.ign, uid: pl.uid, position: pl.position })),
+      players: players.map(pl => ({
+        ign: pl.ign,
+        uid: canSeeFullUid ? pl.uid : (pl.uid ? pl.uid.slice(0, 3) + "****" : "****"),
+        position: pl.position,
+      })),
     };
   }));
   res.json(result);
