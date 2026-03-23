@@ -51,20 +51,9 @@ export function MatchCard({ match, className }: MatchCardProps) {
                 <span>{match.teamSize}v{match.teamSize}</span>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border", statusColors[match.status])}>
-                {statusLabels[match.status]}
-              </span>
-              {slotsLeft === 0 ? (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-destructive/20 text-destructive border-destructive/30">
-                  Full
-                </span>
-              ) : slotsLeft <= 5 ? (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-orange-500/20 text-orange-400 border-orange-500/30">
-                  {slotsLeft} left
-                </span>
-              ) : null}
-            </div>
+            <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
+              {statusLabels[match.status]}
+            </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-3">
