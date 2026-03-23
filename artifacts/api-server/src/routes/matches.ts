@@ -161,15 +161,17 @@ router.delete("/matches/:id", requireAuth, async (req: Request, res: Response) =
   if (match.hostId !== user.id && user.role !== "admin") {
     res.status(403).json({ error: "Unauthorized" }); return;
   }
-  // Refund all participants
-  const participants = await db.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
-  for (const p of participants) {
+  // Refund all participants atomically
+  await db.transaction(async (tx) => {
+    const participants = await tx.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
     const fee = parseFloat(match.entryFee as string) * match.teamSize;
-    await db.execute(sql`UPDATE users SET balance = balance + ${fee} WHERE id = ${p.userId}`);
-  }
-  await db.delete(matchPlayersTable).where(eq(matchPlayersTable.matchId, match.id));
-  await db.delete(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
-  await db.delete(matchesTable).where(eq(matchesTable.id, match.id));
+    for (const p of participants) {
+      await tx.execute(sql`UPDATE users SET balance = balance + ${fee} WHERE id = ${p.userId}`);
+    }
+    await tx.delete(matchPlayersTable).where(eq(matchPlayersTable.matchId, match.id));
+    await tx.delete(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
+    await tx.delete(matchesTable).where(eq(matchesTable.id, match.id));
+  });
   res.json({ success: true, message: "Match deleted and refunds processed" });
 });
 

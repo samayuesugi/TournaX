@@ -155,17 +155,23 @@ router.get("/admin/finance/withdrawals", requireAdmin, async (req: Request, res:
 });
 
 router.post("/admin/finance/withdrawals/:id/approve", requireAdmin, async (req: Request, res: Response) => {
-  await db.update(withdrawalRequestsTable).set({ status: "approved" }).where(eq(withdrawalRequestsTable.id, Number(req.params.id)));
+  const requestId = Number(req.params.id);
+  const [request] = await db.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, requestId));
+  if (!request) { res.status(404).json({ error: "Not found" }); return; }
+  if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
+  await db.update(withdrawalRequestsTable).set({ status: "approved" }).where(eq(withdrawalRequestsTable.id, requestId));
   res.json({ success: true });
 });
 
 router.post("/admin/finance/withdrawals/:id/reject", requireAdmin, async (req: Request, res: Response) => {
-  const [request] = await db.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, Number(req.params.id)));
-  if (!request) { res.status(404).json({ error: "Not found" }); return; }
-  if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
-  await db.update(withdrawalRequestsTable).set({ status: "rejected" }).where(eq(withdrawalRequestsTable.id, request.id));
-  await db.execute(sql`UPDATE users SET balance = balance + ${request.amount} WHERE id = ${request.userId}`);
-  res.json({ success: true });
+  await db.transaction(async (tx) => {
+    const [request] = await tx.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, Number(req.params.id)));
+    if (!request) { res.status(404).json({ error: "Not found" }); return; }
+    if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
+    await tx.update(withdrawalRequestsTable).set({ status: "rejected" }).where(eq(withdrawalRequestsTable.id, request.id));
+    await tx.execute(sql`UPDATE users SET balance = balance + ${request.amount} WHERE id = ${request.userId}`);
+    res.json({ success: true });
+  });
 });
 
 router.post("/admin/create-host", requireAdmin, async (req: Request, res: Response) => {
@@ -216,7 +222,7 @@ router.get("/admin/complaints", requireAdmin, async (req: Request, res: Response
       userName: user?.name || user?.email,
       userHandle: user?.handle || null,
       userAvatar: user?.avatar || null,
-      userWallet: user?.walletBalance ?? null,
+      userWallet: user?.balance ? parseFloat(user.balance as string) : null,
       userEmail: user?.email || null,
       userRole: user?.role || "player",
       userMatchCount: matchCount,
