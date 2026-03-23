@@ -10,6 +10,7 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
   const user = (req as any).user;
   const { search } = req.query;
 
+  const admins = await db.select().from(usersTable).where(eq(usersTable.role, "admin"));
   let hostsQuery = db.select().from(usersTable).where(eq(usersTable.role, "host"));
   const hosts = await hostsQuery;
 
@@ -46,7 +47,10 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
     };
   };
 
-  const recommendedHosts = await Promise.all(hosts.slice(0, 5).map(h => serializeProfile(h)));
+  // Admins appear first, then hosts
+  const adminProfiles = await Promise.all(admins.map(a => serializeProfile(a)));
+  const hostProfiles = await Promise.all(hosts.slice(0, 5).map(h => serializeProfile(h)));
+  const recommendedHosts = [...adminProfiles, ...hostProfiles];
   const mostActivePlayers = (await Promise.all(players.map(async (p) => {
     const participations = await db.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, p.id));
     return { user: p, matchesCount: participations.length };
@@ -111,7 +115,7 @@ router.get("/notifications", requireAuth, async (req: Request, res: Response) =>
 
 function canChat(senderRole: string, recipientRole: string): boolean {
   if (senderRole === "admin" || senderRole === "host") return true;
-  if (senderRole === "player" && (recipientRole === "host" || recipientRole === "admin")) return true;
+  if (senderRole === "player" && recipientRole === "host") return true;
   return false;
 }
 
