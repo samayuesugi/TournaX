@@ -66,7 +66,7 @@ export default function CreateMatchPage() {
   const slotsNum = parseInt(form.slots) || 0;
   const previewPlayers = Math.min(slotsNum, 4);
   const previewTotal = previewPlayers * entryFeeNum;
-  const previewIsLarge = previewPlayers >= 8;
+  const previewIsLarge = slotsNum >= 8;
   const previewWinners = Math.round(previewTotal * (previewIsLarge ? 0.85 : 0.90));
   const previewHost = Math.round(previewTotal * (previewIsLarge ? 0.10 : 0.05));
   const previewPlatform = Math.round(previewTotal * 0.05);

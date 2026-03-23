@@ -199,53 +199,51 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
 
   const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
 
-  let joinError: string | null = null;
-  await db.transaction(async (tx) => {
-    const deductResult = await tx.execute(
-      sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id} AND balance >= ${totalFee} RETURNING balance`
-    );
-    if (!deductResult.rows || deductResult.rows.length === 0) {
-      joinError = "Insufficient balance";
-      return;
-    }
+  try {
+    await db.transaction(async (tx) => {
+      const deductResult = await tx.execute(
+        sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id} AND balance >= ${totalFee} RETURNING balance`
+      );
+      if (!deductResult.rows || deductResult.rows.length === 0) {
+        throw new Error("Insufficient balance");
+      }
 
-    const slotResult = await tx.execute(
-      sql`UPDATE matches SET filled_slots = filled_slots + ${match.teamSize}
-      WHERE id = ${match.id} AND filled_slots + ${match.teamSize} <= slots
-      RETURNING filled_slots`
-    );
-    if (!slotResult.rows || slotResult.rows.length === 0) {
-      joinError = "Match is full";
-      return;
-    }
+      const slotResult = await tx.execute(
+        sql`UPDATE matches SET filled_slots = filled_slots + ${match.teamSize}
+        WHERE id = ${match.id} AND filled_slots + ${match.teamSize} <= slots
+        RETURNING filled_slots`
+      );
+      if (!slotResult.rows || slotResult.rows.length === 0) {
+        throw new Error("Match is full");
+      }
 
-    const newFilledSlots = (slotResult.rows[0] as any).filled_slots as number;
-    const teamNumber = Math.ceil(newFilledSlots / match.teamSize);
+      const newFilledSlots = (slotResult.rows[0] as any).filled_slots as number;
+      const teamNumber = Math.ceil(newFilledSlots / match.teamSize);
 
-    const [participant] = await tx.insert(matchParticipantsTable).values({
-      matchId: match.id,
-      userId: user.id,
-      teamName: teamName || null,
-      teamNumber,
-    }).returning();
-
-    const playerList = players || [{ ign: user.name || user.email, uid: user.gameUid || "0" }];
-    for (let i = 0; i < playerList.length; i++) {
-      await tx.insert(matchPlayersTable).values({
-        participantId: participant.id,
+      const [participant] = await tx.insert(matchParticipantsTable).values({
         matchId: match.id,
-        ign: playerList[i].ign,
-        uid: playerList[i].uid,
-        position: i + 1,
-      });
-    }
-  });
+        userId: user.id,
+        teamName: teamName || null,
+        teamNumber,
+      }).returning();
 
-  if (joinError === "Insufficient balance") {
-    res.status(400).json({ error: joinError }); return;
-  }
-  if (joinError === "Match is full") {
-    res.status(400).json({ error: joinError }); return;
+      const playerList = players || [{ ign: user.name || user.email, uid: user.gameUid || "0" }];
+      for (let i = 0; i < playerList.length; i++) {
+        await tx.insert(matchPlayersTable).values({
+          participantId: participant.id,
+          matchId: match.id,
+          ign: playerList[i].ign,
+          uid: playerList[i].uid,
+          position: i + 1,
+        });
+      }
+    });
+  } catch (err: any) {
+    const msg = err?.message;
+    if (msg === "Insufficient balance" || msg === "Match is full") {
+      res.status(400).json({ error: msg }); return;
+    }
+    throw err;
   }
 
   res.json({ success: true, message: "Joined successfully! Check the Room tab for credentials." });
