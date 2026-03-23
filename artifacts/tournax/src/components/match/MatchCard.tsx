@@ -33,7 +33,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
     <Link href={`/matches/${match.id}`}>
       <div
         className={cn(
-          "bg-card rounded-xl overflow-hidden hover:bg-card/80 transition-all cursor-pointer active:scale-[0.99]",
+          "bg-card border border-white/10 rounded-xl overflow-hidden hover:border-primary/40 transition-all cursor-pointer active:scale-[0.99]",
           className
         )}
       >

@@ -87,7 +87,7 @@ export default function HomePage() {
                     {followingMatches.length}
                   </span>
                 </div>
-                <div className="space-y-5">
+                <div className="space-y-8">
                   {followingMatches.map((match) => (
                     <MatchCard key={match.id} match={match} />
                   ))}
@@ -104,7 +104,7 @@ export default function HomePage() {
                     For You
                   </span>
                 </div>
-                <div className="space-y-5">
+                <div className="space-y-8">
                   {recommendedMatches.map((match) => (
                     <MatchCard key={match.id} match={match} />
                   ))}
@@ -136,7 +136,7 @@ export default function HomePage() {
         ) : (
           /* Host / Admin: show all matches */
           matches && matches.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-8">
               {matches.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
