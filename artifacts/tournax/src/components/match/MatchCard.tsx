@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Clock, Users, Trophy, Zap } from "lucide-react";
+import { Clock, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Match } from "@workspace/api-client-react";
 
@@ -8,34 +8,16 @@ interface MatchCardProps {
   className?: string;
 }
 
-const statusConfig = {
-  upcoming: { label: "Upcoming", cls: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  live: { label: "🔴 Live", cls: "bg-green-500/20 text-green-400 border-green-500/30" },
-  completed: { label: "Completed", cls: "bg-muted text-muted-foreground border-border" },
+const statusColors = {
+  upcoming: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  live: "bg-green-500/20 text-green-400 border-green-500/30",
+  completed: "bg-muted text-muted-foreground border-border",
 };
 
-const gameColors: Record<string, string> = {
-  "BGMI": "from-orange-500/20 to-orange-900/10",
-  "Free Fire": "from-yellow-500/20 to-yellow-900/10",
-  "COD Mobile": "from-green-500/20 to-green-900/10",
-  "Valorant": "from-red-500/20 to-red-900/10",
-  "PUBG PC": "from-amber-500/20 to-amber-900/10",
-};
-
-const gameAccents: Record<string, string> = {
-  "BGMI": "border-orange-500/30",
-  "Free Fire": "border-yellow-500/30",
-  "COD Mobile": "border-green-500/30",
-  "Valorant": "border-red-500/30",
-  "PUBG PC": "border-amber-500/30",
-};
-
-const gameEmojis: Record<string, string> = {
-  "BGMI": "🔫",
-  "Free Fire": "🔥",
-  "COD Mobile": "💣",
-  "Valorant": "🎯",
-  "PUBG PC": "🪖",
+const statusLabels = {
+  upcoming: "Upcoming",
+  live: "🔴 Live",
+  completed: "Completed",
 };
 
 function formatTime(iso: string) {
@@ -46,88 +28,92 @@ function formatTime(iso: string) {
 export function MatchCard({ match, className }: MatchCardProps) {
   const slotsLeft = match.slots - match.filledSlots;
   const showcase = (match as any).showcasePrizePool ?? 0;
-  const fillPercent = Math.min((match.filledSlots / match.slots) * 100, 100);
-  const gradient = gameColors[match.game] ?? "from-primary/20 to-primary/5";
-  const accentBorder = gameAccents[match.game] ?? "border-primary/30";
-  const emoji = gameEmojis[match.game] ?? "🎮";
-  const status = statusConfig[match.status];
 
   return (
     <Link href={`/matches/${match.id}`}>
-      <div className={cn(
-        "rounded-2xl overflow-hidden border transition-all cursor-pointer active:scale-[0.99] hover:shadow-lg hover:shadow-black/20",
-        accentBorder,
-        "bg-card hover:border-opacity-60",
-        className
-      )}>
-        {/* Game header banner */}
-        <div className={cn("bg-gradient-to-r px-4 pt-3.5 pb-3 flex items-center justify-between", gradient)}>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl leading-none">{emoji}</span>
-            <div>
-              <div className="font-bold text-sm text-foreground leading-tight">{match.game}</div>
-              <div className="text-xs text-muted-foreground">{match.mode} · {match.teamSize}v{match.teamSize}</div>
+      <div
+        className={cn(
+          "bg-card border border-card-border rounded-xl overflow-hidden hover:border-primary/40 hover:bg-card/80 transition-all cursor-pointer active:scale-[0.99]",
+          className
+        )}
+      >
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-bold text-sm text-foreground truncate">{match.game}</span>
+                <span className="text-muted-foreground text-xs">·</span>
+                <span className="text-muted-foreground text-xs">{match.mode}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="font-mono text-accent">#{match.code}</span>
+                <span>·</span>
+                <span>{match.teamSize}v{match.teamSize}</span>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded-full border", status.cls)}>
-              {status.label}
+            <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
+              {statusLabels[match.status]}
             </span>
-            <span className="font-mono text-[10px] text-muted-foreground">#{match.code}</span>
           </div>
-        </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
-          <div className="px-3 py-2.5 text-center">
-            <div className="text-[10px] text-muted-foreground mb-0.5">Entry</div>
-            <div className="font-bold text-sm text-primary">₹{match.entryFee}</div>
-          </div>
-          <div className="px-3 py-2.5 text-center bg-amber-500/5">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <Trophy className="w-2.5 h-2.5 text-amber-400" />
-              <span className="text-[10px] text-amber-400/80">Prize</span>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-secondary/50 rounded-lg p-2 text-center">
+              <div className="text-xs text-muted-foreground mb-0.5">Entry</div>
+              <div className="font-bold text-sm text-primary">₹{match.entryFee}</div>
             </div>
-            <div className="font-bold text-sm text-amber-300">₹{showcase}</div>
-          </div>
-          <div className="px-3 py-2.5 text-center">
-            <div className="text-[10px] text-muted-foreground mb-0.5 flex items-center justify-center gap-0.5">
-              <Users className="w-2.5 h-2.5" /> Slots
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Trophy className="w-3 h-3 text-amber-400" />
+                <span className="text-xs text-amber-400/80">Prize</span>
+              </div>
+              <div className="font-bold text-sm text-amber-300">₹{showcase}</div>
             </div>
-            <div className={cn("font-bold text-sm", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
-              {slotsLeft === 0 ? "Full" : `${slotsLeft}/${match.slots}`}
+            <div className="bg-secondary/50 rounded-lg p-2 text-center">
+              <div className="text-xs text-muted-foreground mb-0.5 flex items-center justify-center gap-1">
+                <Users className="w-3 h-3" /> Slots
+              </div>
+              <div className={cn("font-bold text-sm", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
+                {slotsLeft}/{match.slots}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-border space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-3 mb-2.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-1 min-w-0">
               <Clock className="w-3 h-3 shrink-0" />
-              <span>{formatTime(match.startTime)}</span>
+              <span className="truncate">{formatTime(match.startTime)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              {match.isJoined && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-green-400">
-                  <Zap className="w-3 h-3" /> Joined
-                </span>
-              )}
-              <span className="text-xs text-muted-foreground">
-                {match.filledSlots}/{match.slots} joined
-              </span>
-            </div>
+            {match.isJoined && (
+              <span className="text-xs font-medium text-green-400 shrink-0">✓ Joined</span>
+            )}
           </div>
 
-          {/* Progress bar */}
-          <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-500",
-                slotsLeft === 0 ? "bg-destructive" : fillPercent >= 75 ? "bg-amber-400" : "bg-primary"
+          {/* Progress line */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Users className="w-3 h-3" />
+                <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
+                  {match.filledSlots}
+                </span>
+                <span>/ {match.slots} joined</span>
+              </span>
+              {slotsLeft > 0 && (
+                <span className="text-muted-foreground">{slotsLeft} slots left</span>
               )}
-              style={{ width: `${fillPercent}%` }}
-            />
+              {slotsLeft === 0 && (
+                <span className="text-destructive font-medium">Full</span>
+              )}
+            </div>
+            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  slotsLeft === 0 ? "bg-destructive" : "bg-primary"
+                )}
+                style={{ width: `${Math.min((match.filledSlots / match.slots) * 100, 100)}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>
