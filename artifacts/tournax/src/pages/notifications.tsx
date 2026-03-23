@@ -26,7 +26,7 @@ export default function NotificationsPage() {
   const { data: notifications, isLoading } = useGetNotifications();
 
   return (
-    <AppLayout showBack title="Notifications">
+    <AppLayout showBack backHref="/" title="Notifications">
       <div className="space-y-2 pb-4">
         {isLoading ? (
           <>

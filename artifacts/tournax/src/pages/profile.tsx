@@ -506,7 +506,7 @@ function PublicProfile({ handle }: { handle: string }) {
 
   if (isLoading) {
     return (
-      <AppLayout showBack title="Profile">
+      <AppLayout showBack backHref="/explore" title="Profile">
         <div className="space-y-4">
           <Skeleton className="h-40 rounded-2xl" />
         </div>
@@ -516,7 +516,7 @@ function PublicProfile({ handle }: { handle: string }) {
 
   if (!profile) {
     return (
-      <AppLayout showBack title="Profile">
+      <AppLayout showBack backHref="/explore" title="Profile">
         <div className="text-center py-16 text-muted-foreground">User not found</div>
       </AppLayout>
     );
@@ -525,7 +525,7 @@ function PublicProfile({ handle }: { handle: string }) {
   const isOwnProfile = currentUser?.handle === handle;
 
   return (
-    <AppLayout showBack title={`@${handle}`}>
+    <AppLayout showBack backHref="/explore" title={`@${handle}`}>
       <div className="space-y-4 pb-4">
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between gap-3">

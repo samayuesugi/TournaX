@@ -196,9 +196,11 @@ export default function MatchDetailPage() {
     }
   };
 
+  const backHref = user?.role === "host" ? "/host" : "/";
+
   if (isLoading) {
     return (
-      <AppLayout showBack title="Match Details">
+      <AppLayout showBack backHref={backHref} title="Match Details">
         <div className="space-y-4">
           <Skeleton className="h-48 rounded-xl" />
           <Skeleton className="h-32 rounded-xl" />
@@ -209,7 +211,7 @@ export default function MatchDetailPage() {
 
   if (!match) {
     return (
-      <AppLayout showBack title="Match Details">
+      <AppLayout showBack backHref={backHref} title="Match Details">
         <div className="text-center py-16 text-muted-foreground">Match not found</div>
       </AppLayout>
     );
@@ -222,7 +224,7 @@ export default function MatchDetailPage() {
   };
 
   return (
-    <AppLayout showBack title="Match Details">
+    <AppLayout showBack backHref={backHref} title="Match Details">
       <div className="space-y-4 pb-4">
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between mb-4">

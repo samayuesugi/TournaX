@@ -72,7 +72,7 @@ export default function CreateMatchPage() {
   const previewPlatform = Math.round(previewTotal * 0.05);
 
   return (
-    <AppLayout showBack title="Create Match">
+    <AppLayout showBack backHref="/host" title="Create Match">
       <form onSubmit={handleSubmit} className="space-y-4 pb-8">
         <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Match Details</h3>
