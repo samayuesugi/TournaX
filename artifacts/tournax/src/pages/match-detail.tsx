@@ -261,7 +261,7 @@ export default function MatchDetailPage() {
             <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/40 rounded-xl px-3 py-2.5">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <p className="text-xs text-red-400 leading-relaxed">
-                <span className="font-semibold">Slot Warning:</span> Slot count stays fixed as shown. If you join a slot already taken by another player, you will be automatically removed from the match.
+                <span className="font-semibold">Slot Warning:</span> Slots are fixed as shown. If you join another player's or team's slot, you will be removed from the match.
               </p>
             </div>
           )}
