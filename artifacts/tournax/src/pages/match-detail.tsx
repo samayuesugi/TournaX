@@ -113,8 +113,10 @@ export default function MatchDetailPage() {
   const [joinOpen, setJoinOpen] = useState(false);
   const [roomOpen, setRoomOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
-  const [joinPlayers, setJoinPlayers] = useState([{ ign: "", uid: "" }]);
+  const [joinPlayers, setJoinPlayers] = useState<{ ign: string; uid: string }[]>([]);
   const [selectedSquadIds, setSelectedSquadIds] = useState<Set<number>>(new Set());
+  const [soloSquadId, setSoloSquadId] = useState<number | null>(null);
+  const [soloManual, setSoloManual] = useState({ ign: "", uid: "" });
   const [roomCreds, setRoomCreds] = useState({ roomId: "", roomPassword: "" });
 
   const isHost = user?.id === match?.hostId;
@@ -124,25 +126,38 @@ export default function MatchDetailPage() {
   const handleJoin = async () => {
     if (!match) return;
     let players: { ign: string; uid: string }[];
-    if (match.teamSize > 1) {
-      const selected = (squad ?? []).filter(m => selectedSquadIds.has(m.id!));
-      if (selected.length !== match.teamSize) {
-        toast({ title: `Select exactly ${match.teamSize} players`, variant: "destructive" });
-        return;
+    if (match.teamSize === 1) {
+      if (soloSquadId !== null) {
+        const member = (squad ?? []).find(m => m.id === soloSquadId);
+        if (!member) { toast({ title: "Squad member not found", variant: "destructive" }); return; }
+        players = [{ ign: member.name, uid: member.uid }];
+      } else {
+        if (!soloManual.ign || !soloManual.uid) {
+          toast({ title: "Fill in your IGN and UID", variant: "destructive" });
+          return;
+        }
+        players = [{ ign: soloManual.ign, uid: soloManual.uid }];
       }
-      players = selected.map(m => ({ ign: m.name, uid: m.uid }));
     } else {
-      if (joinPlayers.some(p => !p.ign || !p.uid)) {
-        toast({ title: "Fill in your player details", variant: "destructive" });
+      const squadPlayers = (squad ?? [])
+        .filter(m => selectedSquadIds.has(m.id!))
+        .map(m => ({ ign: m.name, uid: m.uid }));
+      const remaining = match.teamSize - squadPlayers.length;
+      const manualFilled = joinPlayers.slice(0, remaining).filter(p => p.ign && p.uid);
+      players = [...squadPlayers, ...manualFilled];
+      if (players.length !== match.teamSize) {
+        toast({ title: `Fill all ${match.teamSize} player slots`, variant: "destructive" });
         return;
       }
-      players = joinPlayers;
     }
     try {
       await joinMatch({ id: matchId, data: { teamName: teamName || undefined, players } });
       toast({ title: "Joined successfully!" });
       setJoinOpen(false);
       setSelectedSquadIds(new Set());
+      setSoloSquadId(null);
+      setSoloManual({ ign: "", uid: "" });
+      setJoinPlayers([]);
       refetch();
     } catch (err: any) {
       toast({ title: "Failed to join", description: err?.data?.error, variant: "destructive" });
@@ -271,16 +286,8 @@ export default function MatchDetailPage() {
         )}
 
         {!match.isJoined && match.status === "upcoming" && user?.role === "player" && (
-          match.teamSize > 1 && (squad ?? []).length < match.teamSize ? (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 text-center space-y-1">
-              <p className="text-sm font-semibold text-destructive">Squad Required</p>
-              <p className="text-xs text-muted-foreground">
-                This is a {match.teamSize === 2 ? "Duo" : "Squad"} match — you need {match.teamSize} squad members to join.
-                You currently have {(squad ?? []).length}. Add more in Profile → My Squad.
-              </p>
-            </div>
-          ) : (
-            <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([{ ign: "", uid: "" }]); } }}>
+          (
+            <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([]); setSoloSquadId(null); setSoloManual({ ign: "", uid: "" }); } }}>
               <DialogTrigger asChild>
                 <Button className="w-full" size="lg">
                   Join Match · ₹{match.entryFee}
@@ -291,7 +298,66 @@ export default function MatchDetailPage() {
                   <DialogTitle>Join Match</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  {match.teamSize > 1 ? (
+                  {match.teamSize === 1 ? (
+                    /* ── SOLO ── */
+                    <div className="space-y-3">
+                      {(squad ?? []).length > 0 && (
+                        <>
+                          <Label>Pick from My Squad</Label>
+                          <div className="space-y-1.5">
+                            {(squad ?? []).map((m) => {
+                              const isSelected = soloSquadId === m.id;
+                              return (
+                                <button
+                                  key={m.id}
+                                  className={cn(
+                                    "w-full flex items-center justify-between text-sm rounded-lg px-3 py-2.5 transition-colors border",
+                                    isSelected
+                                      ? "bg-primary/20 border-primary/50 text-foreground"
+                                      : "bg-secondary/50 border-transparent hover:bg-secondary"
+                                  )}
+                                  onClick={() => { setSoloSquadId(isSelected ? null : m.id!); setSoloManual({ ign: "", uid: "" }); }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+                                      isSelected ? "bg-primary border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {isSelected && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
+                                    </div>
+                                    <span className="font-medium">{m.name}</span>
+                                  </div>
+                                  <span className="text-muted-foreground text-xs font-mono">{m.uid}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                            <div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">or enter manually</span></div>
+                          </div>
+                        </>
+                      )}
+                      <div className="space-y-1.5">
+                        {(squad ?? []).length === 0 && <Label>Your Player Info</Label>}
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="IGN"
+                            value={soloManual.ign}
+                            disabled={soloSquadId !== null}
+                            onChange={(e) => { setSoloManual(f => ({ ...f, ign: e.target.value })); setSoloSquadId(null); }}
+                          />
+                          <Input
+                            placeholder="UID"
+                            value={soloManual.uid}
+                            disabled={soloSquadId !== null}
+                            onChange={(e) => { setSoloManual(f => ({ ...f, uid: e.target.value })); setSoloSquadId(null); }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── TEAM / DUO ── */
                     <>
                       <div className="space-y-1.5">
                         <Label>Team Name (optional)</Label>
@@ -306,88 +372,102 @@ export default function MatchDetailPage() {
                           <Label>Select {match.teamSize === 2 ? "Duo" : "Squad"} Players</Label>
                           <span className={cn(
                             "text-xs font-medium px-2 py-0.5 rounded-full",
-                            selectedSquadIds.size === match.teamSize
+                            selectedSquadIds.size + joinPlayers.filter(p => p.ign && p.uid).length === match.teamSize
                               ? "bg-green-500/20 text-green-400"
                               : "bg-secondary text-muted-foreground"
                           )}>
-                            {selectedSquadIds.size}/{match.teamSize} selected
+                            {selectedSquadIds.size + joinPlayers.filter(p => p.ign && p.uid).length}/{match.teamSize}
                           </span>
                         </div>
-                        <div className="space-y-1.5">
-                          {(squad ?? []).map((m) => {
-                            const isSelected = selectedSquadIds.has(m.id!);
-                            return (
-                              <button
-                                key={m.id}
-                                className={cn(
-                                  "w-full flex items-center justify-between text-sm rounded-lg px-3 py-2.5 transition-colors border",
-                                  isSelected
-                                    ? "bg-primary/20 border-primary/50 text-foreground"
-                                    : "bg-secondary/50 border-transparent hover:bg-secondary"
-                                )}
-                                onClick={() => {
-                                  setSelectedSquadIds(prev => {
-                                    const next = new Set(prev);
-                                    if (next.has(m.id!)) {
-                                      next.delete(m.id!);
-                                    } else if (next.size < match.teamSize) {
-                                      next.add(m.id!);
-                                    }
-                                    return next;
-                                  });
-                                }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div className={cn(
-                                    "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
-                                    isSelected ? "bg-primary border-primary" : "border-muted-foreground"
-                                  )}>
-                                    {isSelected && <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 text-primary-foreground fill-current"><path d="M1 5l3 3 5-5" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>}
+                        {(squad ?? []).length > 0 && (
+                          <div className="space-y-1.5">
+                            {(squad ?? []).map((m) => {
+                              const isSelected = selectedSquadIds.has(m.id!);
+                              return (
+                                <button
+                                  key={m.id}
+                                  className={cn(
+                                    "w-full flex items-center justify-between text-sm rounded-lg px-3 py-2.5 transition-colors border",
+                                    isSelected
+                                      ? "bg-primary/20 border-primary/50 text-foreground"
+                                      : "bg-secondary/50 border-transparent hover:bg-secondary"
+                                  )}
+                                  onClick={() => {
+                                    setSelectedSquadIds(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(m.id!)) { next.delete(m.id!); }
+                                      else if (next.size < match.teamSize) { next.add(m.id!); }
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn(
+                                      "w-4 h-4 rounded border-2 flex items-center justify-center shrink-0",
+                                      isSelected ? "bg-primary border-primary" : "border-muted-foreground"
+                                    )}>
+                                      {isSelected && <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 text-primary-foreground fill-current"><path d="M1 5l3 3 5-5" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>}
+                                    </div>
+                                    <span className="font-medium">{m.name}</span>
                                   </div>
-                                  <span className="font-medium">{m.name}</span>
-                                </div>
-                                <span className="text-muted-foreground text-xs font-mono">{m.uid}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {selectedSquadIds.size === match.teamSize && (
-                          <p className="text-xs text-green-400 text-center">All players selected!</p>
+                                  <span className="text-muted-foreground text-xs font-mono">{m.uid}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         )}
+                        {/* Manual slots for remaining players not in squad */}
+                        {(() => {
+                          const remaining = match.teamSize - selectedSquadIds.size;
+                          if (remaining <= 0) return null;
+                          return (
+                            <div className="space-y-1.5">
+                              {remaining < match.teamSize && (
+                                <div className="relative">
+                                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                                  <div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">add {remaining} more manually</span></div>
+                                </div>
+                              )}
+                              {remaining === match.teamSize && (squad ?? []).length > 0 && (
+                                <p className="text-xs text-muted-foreground">Or add players manually below</p>
+                              )}
+                              {Array.from({ length: remaining }).map((_, i) => (
+                                <div key={i} className="flex gap-2">
+                                  <Input
+                                    placeholder={`Player ${i + 1} IGN`}
+                                    value={joinPlayers[i]?.ign ?? ""}
+                                    onChange={(e) => {
+                                      const next = Array.from({ length: remaining }, (_, j) => joinPlayers[j] ?? { ign: "", uid: "" });
+                                      next[i] = { ...next[i], ign: e.target.value };
+                                      setJoinPlayers(next);
+                                    }}
+                                  />
+                                  <Input
+                                    placeholder="UID"
+                                    value={joinPlayers[i]?.uid ?? ""}
+                                    onChange={(e) => {
+                                      const next = Array.from({ length: remaining }, (_, j) => joinPlayers[j] ?? { ign: "", uid: "" });
+                                      next[i] = { ...next[i], uid: e.target.value };
+                                      setJoinPlayers(next);
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label>Your Player Info</Label>
-                      {joinPlayers.map((p, i) => (
-                        <div key={i} className="flex gap-2">
-                          <Input
-                            placeholder="IGN"
-                            value={p.ign}
-                            onChange={(e) => {
-                              const next = [...joinPlayers];
-                              next[i] = { ...next[i], ign: e.target.value };
-                              setJoinPlayers(next);
-                            }}
-                          />
-                          <Input
-                            placeholder="UID"
-                            value={p.uid}
-                            onChange={(e) => {
-                              const next = [...joinPlayers];
-                              next[i] = { ...next[i], uid: e.target.value };
-                              setJoinPlayers(next);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
                   )}
 
                   <Button
                     className="w-full"
                     onClick={handleJoin}
-                    disabled={isJoining || (match.teamSize > 1 && selectedSquadIds.size !== match.teamSize)}
+                    disabled={isJoining || (
+                      match.teamSize === 1
+                        ? (soloSquadId === null && (!soloManual.ign || !soloManual.uid))
+                        : (selectedSquadIds.size + joinPlayers.filter(p => p.ign && p.uid).length !== match.teamSize)
+                    )}
                   >
                     {isJoining ? "Joining..." : `Confirm · ₹${match.entryFee}`}
                   </Button>
