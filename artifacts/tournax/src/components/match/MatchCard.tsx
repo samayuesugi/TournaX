@@ -88,28 +88,9 @@ export function MatchCard({ match, className }: MatchCardProps) {
             )}
           </div>
 
-          {/* Process line */}
+          {/* Progress line */}
           <div>
-            <div className="flex gap-0.5 mb-1.5">
-              {Array.from({ length: Math.min(match.slots, 16) }).map((_, i) => {
-                const segments = Math.min(match.slots, 16);
-                const filled = match.slots <= 16
-                  ? match.filledSlots
-                  : Math.round((match.filledSlots / match.slots) * segments);
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex-1 h-2 rounded-sm transition-all duration-300",
-                      i < filled
-                        ? slotsLeft === 0 ? "bg-destructive" : "bg-primary"
-                        : "bg-secondary"
-                    )}
-                  />
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="flex items-center gap-1 text-muted-foreground">
                 <Users className="w-3 h-3" />
                 <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
@@ -123,6 +104,15 @@ export function MatchCard({ match, className }: MatchCardProps) {
               {slotsLeft === 0 && (
                 <span className="text-destructive font-medium">Full</span>
               )}
+            </div>
+            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  slotsLeft === 0 ? "bg-destructive" : "bg-primary"
+                )}
+                style={{ width: `${Math.min((match.filledSlots / match.slots) * 100, 100)}%` }}
+              />
             </div>
           </div>
         </div>
