@@ -87,11 +87,16 @@ export default function ConversationPage() {
   let lastDate = "";
 
   const partnerHeaderContent = partner ? (
-    <div className="min-w-0">
-      <p className="font-semibold text-sm truncate leading-tight">{partner.name || partner.handle || `User ${partnerId}`}</p>
-      {partner.handle && (
-        <p className="text-xs text-muted-foreground truncate leading-tight">@{partner.handle}</p>
-      )}
+    <div className="flex items-center gap-2.5 min-w-0">
+      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0">
+        {partner.avatar || "🔥"}
+      </div>
+      <div className="min-w-0">
+        <p className="font-semibold text-sm truncate leading-tight">{partner.name || partner.handle || `User ${partnerId}`}</p>
+        {partner.handle && (
+          <p className="text-xs text-muted-foreground truncate leading-tight">@{partner.handle}</p>
+        )}
+      </div>
     </div>
   ) : (
     <p className="font-semibold text-sm truncate">{`User ${partnerId}`}</p>
