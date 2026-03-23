@@ -151,11 +151,11 @@ function canChat(senderRole: string, recipientRole: string): boolean {
 
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
 
-export function isImageAvatar(avatar: string | null | undefined): boolean {
+function isImageAvatar(avatar: string | null | undefined): boolean {
   return !!avatar && (avatar.startsWith("/") || avatar.startsWith("http"));
 }
 
-export function resolveAvatarSrc(avatar: string): string {
+function resolveAvatarSrc(avatar: string): string {
   if (avatar.startsWith("/objects/")) return `/api/storage${avatar}`;
   return avatar;
 }
