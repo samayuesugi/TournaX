@@ -226,7 +226,7 @@ function OwnProfile() {
                     </div>
                     <div className="space-y-1.5">
                       <Label>Handle</Label>
-                      <Input value={profileForm.handle} onChange={(e) => setProfileForm(f => ({ ...f, handle: e.target.value }))} />
+                      <Input value={profileForm.handle} onChange={(e) => setProfileForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
                     </div>
                     <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating || isUploading}>
                       {isUpdating ? "Saving..." : "Save Changes"}
