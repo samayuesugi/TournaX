@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, MessageCircle, User, Wallet } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, MessageCircle, User, Wallet, Swords } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { useGetConversations } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
