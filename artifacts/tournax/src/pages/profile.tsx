@@ -258,7 +258,7 @@ function OwnProfile() {
           {user.game && (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
-                🎮 {user.game} Host
+                🎮 {user.game} {user.role === "host" ? "Host" : "Player"}
               </span>
               {user.handle && (
                 <span className="text-xs text-muted-foreground">IGN: <span className="text-foreground font-medium">{user.handle}</span></span>
@@ -423,10 +423,10 @@ function PublicProfile({ handle }: { handle: string }) {
             </div>
           </div>
 
-          {(profile as any).game && profile.role === "host" && (
+          {(profile as any).game && (
             <div className="mt-3">
               <span className="flex items-center gap-1.5 w-fit text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
-                🎮 {(profile as any).game} Host
+                🎮 {(profile as any).game} {profile.role === "host" ? "Host" : "Player"}
               </span>
             </div>
           )}
