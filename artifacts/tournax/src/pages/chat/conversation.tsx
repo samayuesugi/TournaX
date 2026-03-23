@@ -103,7 +103,7 @@ export default function ConversationPage() {
   );
 
   return (
-    <AppLayout showBack hideNav headerContent={partnerHeaderContent}>
+    <AppLayout showBack backHref="/chat" hideNav headerContent={partnerHeaderContent}>
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         <div className="flex-1 overflow-y-auto space-y-1 pb-2">
           {isLoading ? (

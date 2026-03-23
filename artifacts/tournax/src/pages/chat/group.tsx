@@ -256,7 +256,7 @@ export default function GroupChatPage() {
 
   if (isLoading) {
     return (
-      <AppLayout showBack hideNav title="Group">
+      <AppLayout showBack backHref="/chat" hideNav title="Group">
         <div className="space-y-3 py-4">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className={cn("h-10 w-2/3 rounded-2xl", i % 2 === 0 && "ml-auto")} />
@@ -268,7 +268,7 @@ export default function GroupChatPage() {
 
   if (notFound || !group) {
     return (
-      <AppLayout showBack hideNav title="Group">
+      <AppLayout showBack backHref="/chat" hideNav title="Group">
         <div className="flex flex-col items-center justify-center h-64 text-center px-4">
           <p className="text-muted-foreground">Group not found.</p>
         </div>
@@ -280,7 +280,7 @@ export default function GroupChatPage() {
   if (!isMember) {
     const requestStatus = group.requestStatus;
     return (
-      <AppLayout showBack hideNav title={group.name}>
+      <AppLayout showBack backHref="/chat" hideNav title={group.name}>
         <div className="flex flex-col items-center justify-center h-64 text-center px-4 space-y-4">
           <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-4xl">
             {group.avatar}
@@ -335,7 +335,7 @@ export default function GroupChatPage() {
   let lastDate = "";
 
   return (
-    <AppLayout showBack hideNav title={group?.name || "Group"}>
+    <AppLayout showBack backHref="/chat" hideNav title={group?.name || "Group"}>
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         {/* Group info bar */}
         <button
