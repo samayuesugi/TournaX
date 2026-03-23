@@ -2,7 +2,8 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
   usersTable, matchesTable, matchParticipantsTable,
-  addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable
+  addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable,
+  platformEarningsTable
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
@@ -205,6 +206,28 @@ router.get("/admin/complaints", requireAdmin, async (req: Request, res: Response
     };
   }));
   res.json(result);
+});
+
+router.get("/admin/platform-earnings", requireAdmin, async (req: Request, res: Response) => {
+  const earnings = await db.select().from(platformEarningsTable).orderBy(platformEarningsTable.createdAt);
+  const result = await Promise.all(earnings.map(async (e) => {
+    const [host] = await db.select().from(usersTable).where(eq(usersTable.id, e.hostId));
+    return {
+      id: e.id,
+      matchCode: e.matchCode,
+      amount: e.amount,
+      createdAt: e.createdAt?.toISOString(),
+      hostName: host?.name || host?.email || "Unknown Host",
+      hostHandle: host?.handle || null,
+    };
+  }));
+  const total = earnings.reduce((sum, e) => sum + parseFloat(e.amount as string), 0);
+  res.json({ earnings: result, total: total.toFixed(2) });
+});
+
+router.delete("/admin/platform-earnings", requireAdmin, async (req: Request, res: Response) => {
+  await db.delete(platformEarningsTable);
+  res.json({ success: true });
 });
 
 export default router;

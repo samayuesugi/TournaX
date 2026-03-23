@@ -32,6 +32,15 @@ export const hostEarningsTable = pgTable("host_earnings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const platformEarningsTable = pgTable("platform_earnings", {
+  id: serial("id").primaryKey(),
+  hostId: integer("host_id").notNull(),
+  matchId: integer("match_id").notNull(),
+  matchCode: text("match_code").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertAddBalanceSchema = createInsertSchema(addBalanceRequestsTable).omit({ id: true, createdAt: true });
 export type InsertAddBalance = z.infer<typeof insertAddBalanceSchema>;
 

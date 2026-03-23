@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, followsTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -333,6 +333,16 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
         matchId: match.id,
         matchCode: match.code,
         amount: String(hostCut),
+      });
+    }
+
+    const platformCut = parseFloat((totalPool * 0.05).toFixed(2));
+    if (platformCut > 0) {
+      await tx.insert(platformEarningsTable).values({
+        hostId: match.hostId,
+        matchId: match.id,
+        matchCode: match.code,
+        amount: String(platformCut),
       });
     }
 

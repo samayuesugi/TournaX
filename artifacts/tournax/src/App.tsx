@@ -23,6 +23,7 @@ import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
 import AdminComplaintsPage from "@/pages/admin/complaints";
 import AdminGamesPage from "@/pages/admin/games";
+import AdminWalletPage from "@/pages/admin/wallet";
 import ChatListPage from "@/pages/chat/index";
 import ConversationPage from "@/pages/chat/conversation";
 import GroupChatPage from "@/pages/chat/group";
@@ -171,6 +172,12 @@ function Router() {
       <Route path="/admin/games">
         <ProtectedRoute roles={["admin"]}>
           <AdminGamesPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/wallet">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminWalletPage />
         </ProtectedRoute>
       </Route>
 
