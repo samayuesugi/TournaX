@@ -207,11 +207,19 @@ router.post("/admin/create-admin", requireAdmin, async (req: Request, res: Respo
 });
 
 router.get("/admin/complaints", requireAdmin, async (req: Request, res: Response) => {
-  const complaints = await db.select().from(complaintsTable);
+  const complaints = await db.select().from(complaintsTable).orderBy(complaintsTable.createdAt);
   const result = await Promise.all(complaints.map(async c => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, c.userId));
+    const matchCount = await db.$count(matchParticipantsTable, eq(matchParticipantsTable.userId, c.userId));
     return {
-      id: c.id, userId: c.userId, userName: user?.name || user?.email,
+      id: c.id, userId: c.userId,
+      userName: user?.name || user?.email,
+      userHandle: user?.handle || null,
+      userAvatar: user?.avatar || null,
+      userWallet: user?.walletBalance ?? null,
+      userEmail: user?.email || null,
+      userRole: user?.role || "player",
+      userMatchCount: matchCount,
       subject: c.subject, description: c.description,
       hostHandle: c.hostHandle || null,
       imageUrl: c.imageUrl || null,
