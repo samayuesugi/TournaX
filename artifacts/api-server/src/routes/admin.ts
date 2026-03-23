@@ -212,7 +212,10 @@ router.get("/admin/complaints", requireAdmin, async (req: Request, res: Response
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, c.userId));
     return {
       id: c.id, userId: c.userId, userName: user?.name || user?.email,
-      subject: c.subject, description: c.description, createdAt: c.createdAt?.toISOString(),
+      subject: c.subject, description: c.description,
+      hostHandle: c.hostHandle || null,
+      imageUrl: c.imageUrl || null,
+      createdAt: c.createdAt?.toISOString(),
     };
   }));
   res.json(result);

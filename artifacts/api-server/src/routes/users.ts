@@ -204,8 +204,17 @@ router.post("/messages", requireAuth, async (req: Request, res: Response) => {
 
 router.post("/complaints", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { subject, description } = req.body;
-  await db.insert(complaintsTable).values({ userId: user.id, subject, description });
+  const { subject, description, hostHandle, imageUrl } = req.body;
+  if (!subject || !description?.trim()) {
+    res.status(400).json({ error: "Subject and description required" }); return;
+  }
+  await db.insert(complaintsTable).values({
+    userId: user.id,
+    subject,
+    description: description.trim(),
+    hostHandle: hostHandle?.trim() || null,
+    imageUrl: imageUrl || null,
+  });
   res.json({ success: true });
 });
 

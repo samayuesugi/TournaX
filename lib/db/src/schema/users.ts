@@ -44,6 +44,8 @@ export const complaintsTable = pgTable("complaints", {
   userId: integer("user_id").notNull(),
   subject: text("subject").notNull(),
   description: text("description").notNull(),
+  hostHandle: text("host_handle"),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
