@@ -27,7 +27,7 @@ export default function MyMatchesPage() {
 
             <TabsContent value="active">
               {data?.participated.length ? (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {data.participated.map((m) => <MatchCard key={m.id} match={m} />)}
                 </div>
               ) : (
@@ -41,7 +41,7 @@ export default function MyMatchesPage() {
 
             <TabsContent value="history">
               {data?.history.length ? (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   {data.history.map((m) => <MatchCard key={m.id} match={m} />)}
                 </div>
               ) : (
