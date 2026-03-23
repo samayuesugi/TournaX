@@ -208,14 +208,18 @@ router.post("/complaints", requireAuth, async (req: Request, res: Response) => {
   if (!subject || !description?.trim()) {
     res.status(400).json({ error: "Subject and description required" }); return;
   }
-  await db.insert(complaintsTable).values({
-    userId: user.id,
-    subject,
-    description: description.trim(),
-    hostHandle: hostHandle?.trim() || null,
-    imageUrl: imageUrl || null,
-  });
-  res.json({ success: true });
+  try {
+    await db.insert(complaintsTable).values({
+      userId: user.id,
+      subject,
+      description: description.trim(),
+      hostHandle: hostHandle?.trim() || null,
+      imageUrl: imageUrl || null,
+    });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to save complaint. Please try again." });
+  }
 });
 
 router.get("/users/:handle", requireAuth, async (req: Request, res: Response) => {

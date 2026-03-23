@@ -189,6 +189,7 @@ function RaiseComplaintDialog() {
               <div className="relative rounded-xl overflow-hidden border border-border">
                 <img src={imagePreview} alt="Screenshot" className="w-full max-h-44 object-contain bg-black" />
                 <button
+                  type="button"
                   onClick={removeImage}
                   className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black transition-colors"
                 >
@@ -197,6 +198,7 @@ function RaiseComplaintDialog() {
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => imgRef.current?.click()}
                 className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-5 hover:border-primary/50 hover:bg-primary/5 transition-colors"
               >
