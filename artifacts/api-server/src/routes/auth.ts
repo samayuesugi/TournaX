@@ -141,4 +141,25 @@ router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Respon
   res.json(serializeUser(updated));
 });
 
+router.patch("/auth/me", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { name, handle } = req.body;
+  if (!name?.trim() && !handle?.trim()) {
+    res.status(400).json({ error: "Nothing to update" }); return;
+  }
+  const updates: Record<string, any> = {};
+  if (name?.trim()) updates.name = name.trim();
+  if (handle?.trim()) {
+    const cleaned = handle.trim().toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (!cleaned) { res.status(400).json({ error: "Invalid handle" }); return; }
+    const existing = await db.select().from(usersTable).where(eq(usersTable.handle, cleaned));
+    if (existing.length > 0 && existing[0].id !== user.id) {
+      res.status(400).json({ error: "Handle already taken" }); return;
+    }
+    updates.handle = cleaned;
+  }
+  const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
+  res.json(serializeUser(updated));
+});
+
 export default router;

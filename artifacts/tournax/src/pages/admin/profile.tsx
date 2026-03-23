@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { useAdminListComplaints, useGetMe } from "@workspace/api-client-react";
+import { useAdminListComplaints, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertCircle, ImageIcon, ChevronDown, ChevronUp,
-  Wallet, Swords, User, Mail, LogOut, Flag, ShieldCheck,
+  Wallet, Swords, User, Mail, LogOut, Flag, ShieldCheck, Settings,
 } from "lucide-react";
 
 function resolveAvatarSrc(avatar: string): string {
@@ -156,8 +160,37 @@ function ComplaintCard({ c }: { c: any }) {
 }
 
 export default function AdminProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
+  const { toast } = useToast();
   const { data: complaints, isLoading } = useAdminListComplaints();
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editHandle, setEditHandle] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const openEdit = () => {
+    setEditName(user?.name || "");
+    setEditHandle(user?.handle || "");
+    setEditOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editName.trim() && !editHandle.trim()) return;
+    setIsSaving(true);
+    try {
+      await customFetch("/api/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify({ name: editName.trim() || undefined, handle: editHandle.trim() || undefined }),
+      });
+      await refreshUser();
+      toast({ title: "Profile updated!" });
+      setEditOpen(false);
+    } catch (err: any) {
+      toast({ title: "Failed to update", description: err?.data?.error, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <AppLayout title="Profile">
@@ -179,15 +212,59 @@ export default function AdminProfilePage() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={logout}
-              title="Logout"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </Button>
+            <div className="flex gap-2">
+              <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={openEdit}>
+                    <Settings className="w-3.5 h-3.5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle>Edit Profile</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-1">
+                    <div className="space-y-1.5">
+                      <Label>Display Name</Label>
+                      <Input
+                        placeholder="Your name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Handle</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                        <Input
+                          placeholder="yourhandle"
+                          value={editHandle}
+                          onChange={(e) => setEditHandle(e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, ""))}
+                          className="pl-7"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Lowercase letters, numbers and underscores only</p>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleSave}
+                      disabled={isSaving || (!editName.trim() && !editHandle.trim())}
+                    >
+                      {isSaving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={logout}
+                title="Logout"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
