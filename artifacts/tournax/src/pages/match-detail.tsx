@@ -72,7 +72,7 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
         <div>
           <div className="text-sm font-bold text-foreground">₹{Math.round(platformCut)}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Platform</div>
-          <div className="text-[10px] text-muted-foreground">5%</div>
+          <div className="text-[10px] text-muted-foreground">{100 - winnersPercent - hostPercent}%</div>
         </div>
       </div>
 
@@ -280,7 +280,7 @@ export default function MatchDetailPage() {
               </p>
             </div>
           ) : (
-            <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) setSelectedSquadIds(new Set()); }}>
+            <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([{ ign: "", uid: "" }]); } }}>
               <DialogTrigger asChild>
                 <Button className="w-full" size="lg">
                   Join Match · ₹{match.entryFee}

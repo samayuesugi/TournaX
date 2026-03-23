@@ -45,6 +45,8 @@ router.post("/wallet/add-balance", requireAuth, async (req: Request, res: Respon
   const user = (req as any).user;
   const { utrNumber, amount, receiptUrl } = req.body;
   if (!utrNumber || !amount) { res.status(400).json({ error: "UTR and amount required" }); return; }
+  const numericAmount = Number(amount);
+  if (isNaN(numericAmount) || numericAmount <= 0) { res.status(400).json({ error: "Amount must be a positive number" }); return; }
   await db.insert(addBalanceRequestsTable).values({
     userId: user.id,
     utrNumber,
