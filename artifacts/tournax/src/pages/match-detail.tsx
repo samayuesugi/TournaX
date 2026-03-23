@@ -242,7 +242,14 @@ export default function MatchDetailPage() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="text-xs text-muted-foreground mb-1">Entry Fee</div>
-              <div className="font-bold text-primary">₹{match.entryFee}</div>
+              <div className="font-bold text-primary">
+                {match.teamSize > 1 ? `₹${match.entryFee}/player` : `₹${match.entryFee}`}
+              </div>
+              {match.teamSize > 1 && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  ₹{Number(match.entryFee) * match.teamSize} total
+                </div>
+              )}
             </div>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1"><Users className="w-3 h-3" />Slots</div>
@@ -292,7 +299,8 @@ export default function MatchDetailPage() {
             <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([]); setSoloSquadId(null); setSoloManual({ ign: "", uid: "" }); } }}>
               <DialogTrigger asChild>
                 <Button className="w-full" size="lg">
-                  Join Match · ₹{match.entryFee}
+                  Join Match · ₹{match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee}
+                  {match.teamSize > 1 && <span className="opacity-70 text-xs ml-1">(₹{match.entryFee}×{match.teamSize})</span>}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-sm">
@@ -471,7 +479,7 @@ export default function MatchDetailPage() {
                         : (selectedSquadIds.size + joinPlayers.filter(p => p.ign && p.uid).length !== match.teamSize)
                     )}
                   >
-                    {isJoining ? "Joining..." : `Confirm · ₹${match.entryFee}`}
+                    {isJoining ? "Joining..." : `Confirm · ₹${match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee}`}
                   </Button>
                 </div>
               </DialogContent>
