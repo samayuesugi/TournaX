@@ -77,7 +77,7 @@ export default function HomePage() {
             ))}
           </div>
         ) : isPlayer ? (
-          <>
+          <div className="space-y-6">
             {/* Following section */}
             {followingMatches.length > 0 && (
               <div className="space-y-3">
@@ -87,7 +87,7 @@ export default function HomePage() {
                     {followingMatches.length}
                   </span>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {followingMatches.map((match) => (
                     <MatchCard key={match.id} match={match} />
                   ))}
@@ -104,7 +104,7 @@ export default function HomePage() {
                     For You
                   </span>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {recommendedMatches.map((match) => (
                     <MatchCard key={match.id} match={match} />
                   ))}
@@ -132,11 +132,11 @@ export default function HomePage() {
                 )}
               </div>
             )}
-          </>
+          </div>
         ) : (
           /* Host / Admin: show all matches */
           matches && matches.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {matches.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
