@@ -41,6 +41,12 @@ router.post("/groups", requireAuth, async (req: Request, res: Response) => {
     await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id });
     res.json(group);
   } else if (user.role === "player") {
+    const existingPlayerGroups = await db.select().from(groupsTable)
+      .where(and(eq(groupsTable.createdBy, user.id), eq(groupsTable.type, "player")));
+    if (existingPlayerGroups.length >= 5) {
+      res.status(400).json({ error: "You have reached the maximum limit of 5 groups." });
+      return;
+    }
     const [group] = await db.insert(groupsTable).values({
       name: name.trim(),
       avatar: avatar || "⚔️",
