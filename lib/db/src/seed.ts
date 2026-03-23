@@ -13,7 +13,7 @@ const DEFAULT_ACCOUNTS = [
     password: "admin@123",
     name: "Admin",
     handle: "admin",
-    avatar: "⚡",
+    avatar: "/admin-avatar.jpeg",
     role: "admin" as const,
   },
   {
