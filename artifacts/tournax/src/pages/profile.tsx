@@ -228,7 +228,12 @@ function canChat(senderRole: string, recipientRole: string): boolean {
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
 
 export function isImageAvatar(avatar: string | null | undefined): boolean {
-  return !!avatar && avatar.startsWith("/objects/");
+  return !!avatar && (avatar.startsWith("/") || avatar.startsWith("http"));
+}
+
+export function resolveAvatarSrc(avatar: string): string {
+  if (avatar.startsWith("/objects/")) return `/api/storage${avatar}`;
+  return avatar;
 }
 
 export function AvatarDisplay({
@@ -241,7 +246,7 @@ export function AvatarDisplay({
   if (isImageAvatar(avatar)) {
     return (
       <img
-        src={`/api/storage${avatar}`}
+        src={resolveAvatarSrc(avatar!)}
         alt="avatar"
         className={`${className} object-cover bg-secondary`}
       />

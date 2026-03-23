@@ -4,9 +4,14 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, ImageIcon, ChevronDown, ChevronUp, Wallet, Swords, User, Mail } from "lucide-react";
 
+function resolveAvatarSrc(avatar: string): string {
+  if (avatar.startsWith("/objects/")) return `/api/storage${avatar}`;
+  return avatar;
+}
+
 function AvatarDisplay({ avatar, name, className }: { avatar?: string | null; name?: string | null; className?: string }) {
-  if (avatar?.startsWith("/objects/") || avatar?.startsWith("http")) {
-    return <img src={avatar} alt={name || ""} className={`object-cover ${className ?? ""}`} />;
+  if (avatar && (avatar.startsWith("/") || avatar.startsWith("http"))) {
+    return <img src={resolveAvatarSrc(avatar)} alt={name || ""} className={`object-cover ${className ?? ""}`} />;
   }
   return (
     <div className={`flex items-center justify-center bg-secondary text-2xl ${className ?? ""}`}>

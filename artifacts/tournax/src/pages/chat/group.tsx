@@ -14,8 +14,9 @@ import { cn } from "@/lib/utils";
 function SmallAvatar({ avatar, size = "sm" }: { avatar?: string | null; size?: "sm" | "md" }) {
   const dim = size === "md" ? "w-10 h-10 text-xl" : "w-7 h-7 text-sm";
   const dim9 = size === "md" ? "w-10 h-10" : "w-7 h-7";
-  if (avatar && avatar.startsWith("/objects/")) {
-    return <img src={`/api/storage${avatar}`} alt="avatar" className={`${dim9} rounded-full object-cover bg-secondary shrink-0 self-end`} />;
+  if (avatar && (avatar.startsWith("/") || avatar.startsWith("http"))) {
+    const src = avatar.startsWith("/objects/") ? `/api/storage${avatar}` : avatar;
+    return <img src={src} alt="avatar" className={`${dim9} rounded-full object-cover bg-secondary shrink-0 self-end`} />;
   }
   return <div className={`${dim} rounded-full bg-secondary flex items-center justify-center shrink-0 self-end`}>{avatar || "🔥"}</div>;
 }

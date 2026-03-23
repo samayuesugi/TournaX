@@ -11,8 +11,8 @@ import type { UserProfile } from "@workspace/api-client-react";
 function UserCard({ profile }: { profile: UserProfile }) {
   const inner = (
     <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:border-primary/30 transition-all cursor-pointer">
-      {profile.avatar?.startsWith("/objects/") ? (
-        <img src={`/api/storage${profile.avatar}`} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-secondary shrink-0" />
+      {(profile.avatar?.startsWith("/") || profile.avatar?.startsWith("http")) ? (
+        <img src={profile.avatar.startsWith("/objects/") ? `/api/storage${profile.avatar}` : profile.avatar} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-secondary shrink-0" />
       ) : (
         <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center text-xl shrink-0">
           {profile.avatar || "🎮"}
