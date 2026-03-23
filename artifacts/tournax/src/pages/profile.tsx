@@ -80,6 +80,16 @@ function OwnProfile() {
     navigate("/auth");
   };
 
+  const handleDeleteMember = async (memberId: number) => {
+    try {
+      await customFetch(`/api/users/me/squad/${memberId}`, { method: "DELETE" });
+      refetchSquad();
+      toast({ title: "Member removed" });
+    } catch {
+      toast({ title: "Failed to remove member", variant: "destructive" });
+    }
+  };
+
   const handleAddMember = async () => {
     if (!squadForm.name || !squadForm.uid) return;
     try {
@@ -312,6 +322,14 @@ function OwnProfile() {
                       <div className="text-sm font-medium">{m.name}</div>
                       <div className="text-xs text-muted-foreground font-mono">{m.uid}</div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteMember(m.id!)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
                 ))}
               </div>

@@ -74,6 +74,16 @@ router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) 
   res.json({ id: member.id, name: member.name, uid: member.uid });
 });
 
+router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const memberId = parseInt(req.params.memberId);
+  const [member] = await db.select().from(squadMembersTable)
+    .where(and(eq(squadMembersTable.id, memberId), eq(squadMembersTable.userId, user.id)));
+  if (!member) { res.status(404).json({ error: "Squad member not found" }); return; }
+  await db.delete(squadMembersTable).where(eq(squadMembersTable.id, memberId));
+  res.json({ success: true });
+});
+
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { name, handle, avatar } = req.body;
