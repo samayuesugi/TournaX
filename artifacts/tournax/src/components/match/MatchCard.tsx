@@ -56,34 +56,6 @@ export function MatchCard({ match, className }: MatchCardProps) {
             </span>
           </div>
 
-          {/* Slots progress — top */}
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Users className="w-3 h-3" />
-                <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
-                  {match.filledSlots}
-                </span>
-                <span>/ {match.slots} joined</span>
-              </span>
-              {slotsLeft > 0 && (
-                <span className="text-muted-foreground">{slotsLeft} slots left</span>
-              )}
-              {slotsLeft === 0 && (
-                <span className="text-destructive font-medium">Full</span>
-              )}
-            </div>
-            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all duration-500",
-                  slotsLeft === 0 ? "bg-destructive" : "bg-primary"
-                )}
-                style={{ width: `${Math.min((match.filledSlots / match.slots) * 100, 100)}%` }}
-              />
-            </div>
-          </div>
-
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="bg-secondary/50 rounded-lg p-2 text-center">
               <div className="text-xs text-muted-foreground mb-0.5">Entry</div>
@@ -116,6 +88,33 @@ export function MatchCard({ match, className }: MatchCardProps) {
             )}
           </div>
 
+          {/* Progress line */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Users className="w-3 h-3" />
+                <span className={cn("font-semibold", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
+                  {match.filledSlots}
+                </span>
+                <span>/ {match.slots} joined</span>
+              </span>
+              {slotsLeft > 0 && (
+                <span className="text-muted-foreground">{slotsLeft} slots left</span>
+              )}
+              {slotsLeft === 0 && (
+                <span className="text-destructive font-medium">Full</span>
+              )}
+            </div>
+            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  slotsLeft === 0 ? "bg-destructive" : "bg-primary"
+                )}
+                style={{ width: `${Math.min((match.filledSlots / match.slots) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </Link>
