@@ -106,7 +106,7 @@ export default function ChatListPage() {
         {groupsLoading ? (
           <Skeleton className="h-16 rounded-xl" />
         ) : groups.length > 0 ? (
-          <div className="space-y-2 mb-4">
+          <div className="flex flex-col gap-1 mb-4">
             {groups.map((g) => (
               <Link key={g.id} href={`/chat/group/${g.id}`}>
                 <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer">
@@ -154,7 +154,8 @@ export default function ChatListPage() {
         {isLoading ? (
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : conversations && conversations.length > 0 ? (
-          conversations.map((conv) => (
+          <div className="flex flex-col gap-1">
+          {conversations.map((conv) => (
             <Link key={conv.userId} href={`/chat/${conv.userId}`}>
               <div
                 className={cn(
@@ -187,7 +188,8 @@ export default function ChatListPage() {
                 </div>
               </div>
             </Link>
-          ))
+          ))}
+          </div>
         ) : (
           <div className="text-center py-10 text-muted-foreground text-sm">
             <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
