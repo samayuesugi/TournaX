@@ -11,7 +11,14 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
   const { search } = req.query;
 
   const admins = await db.select().from(usersTable).where(eq(usersTable.role, "admin"));
-  let hostsQuery = db.select().from(usersTable).where(eq(usersTable.role, "host"));
+  let hostsQuery = search
+    ? db.select().from(usersTable).where(
+        and(
+          eq(usersTable.role, "host"),
+          or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`))
+        )
+      )
+    : db.select().from(usersTable).where(eq(usersTable.role, "host"));
   const hosts = await hostsQuery;
 
   let playersQuery = db.select().from(usersTable).where(eq(usersTable.role, "player"));
