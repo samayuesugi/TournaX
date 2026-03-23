@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Camera, Loader2, Flag, ImagePlus, X } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Camera, Loader2, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const COMPLAINT_TOPICS = [
@@ -33,58 +33,12 @@ function RaiseComplaintDialog() {
   const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
   const [hostHandle, setHostHandle] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const imgRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setTopic("");
     setDescription("");
     setHostHandle("");
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
-    if (imgRef.current) imgRef.current.value = "";
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    const objectUrl = URL.createObjectURL(file);
-    setImagePreview(objectUrl);
-  };
-
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const MAX = 1024;
-        let { width, height } = img;
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round((height / width) * MAX); width = MAX; }
-          else { width = Math.round((width / height) * MAX); height = MAX; }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.75));
-      };
-      img.onerror = reject;
-      img.src = url;
-    });
-  };
-
-  const removeImage = () => {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
-    if (imgRef.current) imgRef.current.value = "";
   };
 
   const handleSubmit = async () => {
@@ -98,17 +52,12 @@ function RaiseComplaintDialog() {
     }
     setIsSubmitting(true);
     try {
-      let imageUrl: string | null = null;
-      if (imageFile) {
-        imageUrl = await compressImage(imageFile);
-      }
       await customFetch("/api/complaints", {
         method: "POST",
         body: JSON.stringify({
           subject: topic,
           description: description.trim(),
           hostHandle: topic === "Host Issues" ? hostHandle.trim() : undefined,
-          imageUrl,
         }),
       });
       toast({ title: "Complaint submitted!", description: "Our team will review it shortly." });
@@ -180,32 +129,6 @@ function RaiseComplaintDialog() {
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[100px] resize-none"
             />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Screenshot (optional)</Label>
-            <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-            {imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden border border-border">
-                <img src={imagePreview} alt="Screenshot" className="w-full max-h-44 object-contain bg-black" />
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black transition-colors"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => imgRef.current?.click()}
-                className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-5 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-              >
-                <ImagePlus className="w-6 h-6 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Attach a screenshot</span>
-              </button>
-            )}
           </div>
 
           <Button
