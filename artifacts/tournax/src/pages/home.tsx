@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-const FILTERS = ["all", "upcoming", "live", "completed"] as const;
+const FILTERS = ["all", "upcoming", "live"] as const;
 type Filter = typeof FILTERS[number];
 
 export default function HomePage() {
@@ -18,10 +18,11 @@ export default function HomePage() {
   const [filter, setFilter] = useState<Filter>("all");
   const { user } = useAuth();
 
-  const { data: matches, isLoading } = useListMatches(
+  const { data: rawMatches, isLoading } = useListMatches(
     { status: filter === "all" ? undefined : filter, search: search || undefined },
     { query: { staleTime: 10000 } }
   );
+  const matches = (rawMatches ?? []).filter((m: any) => m.status !== "completed");
 
   const isPlayer = user?.role === "player";
 
