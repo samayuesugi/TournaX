@@ -69,6 +69,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     isRecommended: !isFollowingHost && !!host?.recommended,
     isJoined,
     roomReleased: match.roomReleased,
+    description: match.description ?? null,
   };
   if (isJoined && match.roomReleased) {
     result.roomId = match.roomId;
@@ -120,7 +121,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description } = req.body;
   if (!game || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
   }
@@ -157,6 +158,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     filledSlots: 0,
     showcasePrizePool: showcasePrizePool != null ? String(Number(showcasePrizePool)) : "0",
     roomReleased: false,
+    description: description ? String(description).trim() : null,
   }).returning();
 
   res.json(await serializeMatch(match, user.id));

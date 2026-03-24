@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Gift } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 const GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile", "Other"];
 
@@ -31,6 +32,7 @@ export default function CreateMatchPage() {
     slots: "",
     startTime: "",
     showcasePrizePool: "",
+    description: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,6 +55,7 @@ export default function CreateMatchPage() {
           slots: parseInt(form.slots),
           startTime: new Date(form.startTime).toISOString(),
           showcasePrizePool: parseFloat(form.showcasePrizePool),
+          description: form.description.trim() || undefined,
         } as any,
       });
       toast({ title: "Match created!" });
@@ -166,6 +169,17 @@ export default function CreateMatchPage() {
               type="datetime-local"
               value={form.startTime}
               onChange={(e) => setForm(f => ({ ...f, startTime: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Textarea
+              placeholder="Add match rules, requirements, or any extra info for players..."
+              value={form.description}
+              onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={3}
+              className="resize-none"
             />
           </div>
         </div>

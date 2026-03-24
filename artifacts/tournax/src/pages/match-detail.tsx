@@ -239,6 +239,10 @@ export default function MatchDetailPage() {
 
           <div className="font-mono text-accent text-sm font-medium mb-4">Match Code: #{match.code}</div>
 
+          {(match as any).description && (
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed whitespace-pre-wrap">{(match as any).description}</p>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="text-xs text-muted-foreground mb-1">Entry Fee</div>

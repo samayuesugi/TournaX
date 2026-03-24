@@ -20,6 +20,7 @@ export const matchesTable = pgTable("matches", {
   roomId: text("room_id"),
   roomPassword: text("room_password"),
   roomReleased: boolean("room_released").notNull().default(false),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
