@@ -150,13 +150,21 @@ function canChat(senderRole: string, recipientRole: string): boolean {
 }
 
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
-const HOST_AVATARS = [
-  "/avatars/ff-avatar-1.jpeg",
-  "/avatars/ff-avatar-2.jpeg",
-  "/avatars/ff-avatar-3.jpeg",
-  "/avatars/ff-avatar-4.jpeg",
-  "/avatars/ff-avatar-5.jpeg",
-];
+const HOST_AVATARS: Record<string, string[]> = {
+  "Free Fire": [
+    "/avatars/ff-avatar-1.jpeg",
+    "/avatars/ff-avatar-2.jpeg",
+    "/avatars/ff-avatar-3.jpeg",
+    "/avatars/ff-avatar-4.jpeg",
+    "/avatars/ff-avatar-5.jpeg",
+  ],
+  "BGMI": [
+    "/avatars/bgmi-avatar-1.jpeg",
+    "/avatars/bgmi-avatar-2.jpeg",
+    "/avatars/bgmi-avatar-3.jpeg",
+    "/avatars/bgmi-avatar-4.jpeg",
+  ],
+};
 
 function isImageAvatar(avatar: string | null | undefined): boolean {
   return !!avatar && (avatar.startsWith("/") || avatar.startsWith("http"));
@@ -363,23 +371,41 @@ function OwnProfile() {
                       <Label>Avatar</Label>
 
                       {user.role === "host" ? (
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-5 gap-2">
-                            {HOST_AVATARS.map((src) => (
-                              <button
-                                key={src}
-                                type="button"
-                                onClick={() => setProfileForm(f => ({ ...f, avatar: src }))}
-                                className={`rounded-xl overflow-hidden border-2 transition-all aspect-square ${profileForm.avatar === src ? "border-primary scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}
-                              >
-                                <img src={src} alt="avatar" className="w-full h-full object-cover" />
-                              </button>
-                            ))}
-                          </div>
-                          <div className="flex justify-center">
-                            <AvatarDisplay avatar={profileForm.avatar} className="w-14 h-14 rounded-xl text-2xl" />
-                          </div>
-                        </div>
+                        (() => {
+                          const gameAvatars = user.game ? HOST_AVATARS[user.game] : undefined;
+                          return gameAvatars ? (
+                            <div className="space-y-2">
+                              <div className={`grid gap-2 ${gameAvatars.length >= 5 ? "grid-cols-5" : "grid-cols-4"}`}>
+                                {gameAvatars.map((src) => (
+                                  <button
+                                    key={src}
+                                    type="button"
+                                    onClick={() => setProfileForm(f => ({ ...f, avatar: src }))}
+                                    className={`rounded-xl overflow-hidden border-2 transition-all aspect-square ${profileForm.avatar === src ? "border-primary scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}
+                                  >
+                                    <img src={src} alt="avatar" className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex justify-center">
+                                <AvatarDisplay avatar={profileForm.avatar} className="w-14 h-14 rounded-xl text-2xl" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-4 gap-2">
+                              {AVATARS.map((avatar) => (
+                                <button
+                                  key={avatar}
+                                  type="button"
+                                  className={`text-2xl p-2.5 rounded-xl border transition-all ${profileForm.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
+                                  onClick={() => setProfileForm(f => ({ ...f, avatar }))}
+                                >
+                                  {avatar}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()
                       ) : (
                         <div className="grid grid-cols-4 gap-2">
                           {AVATARS.map((avatar) => (
