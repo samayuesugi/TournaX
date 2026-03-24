@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetUserProfile, useFollowUser, useUnfollowUser,
@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Camera, Loader2, Flag, ShieldCheck } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const COMPLAINT_TOPICS = [
@@ -150,6 +150,13 @@ function canChat(senderRole: string, recipientRole: string): boolean {
 }
 
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
+const HOST_AVATARS = [
+  "/avatars/ff-avatar-1.jpeg",
+  "/avatars/ff-avatar-2.jpeg",
+  "/avatars/ff-avatar-3.jpeg",
+  "/avatars/ff-avatar-4.jpeg",
+  "/avatars/ff-avatar-5.jpeg",
+];
 
 function isImageAvatar(avatar: string | null | undefined): boolean {
   return !!avatar && (avatar.startsWith("/") || avatar.startsWith("http"));
@@ -271,9 +278,6 @@ function OwnProfile() {
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profileOpen) {
@@ -287,7 +291,6 @@ function OwnProfile() {
         youtube: user?.youtube ?? "",
         twitch: user?.twitch ?? "",
       });
-      setPreviewUrl(null);
     }
   }, [profileOpen]);
 
@@ -318,47 +321,6 @@ function OwnProfile() {
     }
   };
 
-  const handleAvatarImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Please select an image file", variant: "destructive" });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Image must be under 5 MB", variant: "destructive" });
-      return;
-    }
-
-    setPreviewUrl(URL.createObjectURL(file));
-    setIsUploading(true);
-    try {
-      const { uploadURL, objectPath } = await customFetch<{ uploadURL: string; objectPath: string }>(
-        "/api/storage/uploads/request-url",
-        {
-          method: "POST",
-          body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
-          responseType: "json",
-        }
-      );
-
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploadRes.ok) throw new Error("Failed to upload image");
-
-      setProfileForm(f => ({ ...f, avatar: objectPath }));
-      toast({ title: "Image uploaded!" });
-    } catch (err: any) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
-      setPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   const handleUpdateProfile = async () => {
     try {
@@ -401,36 +363,22 @@ function OwnProfile() {
                       <Label>Avatar</Label>
 
                       {user.role === "host" ? (
-                        <div className="flex flex-col items-center gap-3 py-2">
-                          <div className="relative">
-                            {isUploading ? (
-                              <div className="w-24 h-24 rounded-2xl bg-secondary flex items-center justify-center">
-                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                              </div>
-                            ) : previewUrl ? (
-                              <img src={previewUrl} alt="preview" className="w-24 h-24 rounded-2xl object-cover" />
-                            ) : (
-                              <AvatarDisplay avatar={profileForm.avatar} className="w-24 h-24 rounded-2xl text-4xl" />
-                            )}
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-5 gap-2">
+                            {HOST_AVATARS.map((src) => (
+                              <button
+                                key={src}
+                                type="button"
+                                onClick={() => setProfileForm(f => ({ ...f, avatar: src }))}
+                                className={`rounded-xl overflow-hidden border-2 transition-all aspect-square ${profileForm.avatar === src ? "border-primary scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}
+                              >
+                                <img src={src} alt="avatar" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
                           </div>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleAvatarImageSelect}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            disabled={isUploading}
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Camera className="w-4 h-4" />
-                            {isUploading ? "Uploading..." : "Choose from Gallery"}
-                          </Button>
-                          <p className="text-xs text-muted-foreground">Max 5 MB · JPG, PNG, GIF, WebP</p>
+                          <div className="flex justify-center">
+                            <AvatarDisplay avatar={profileForm.avatar} className="w-14 h-14 rounded-xl text-2xl" />
+                          </div>
                         </div>
                       ) : (
                         <div className="grid grid-cols-4 gap-2">
@@ -496,7 +444,7 @@ function OwnProfile() {
                         )}
                       </div>
                     </div>
-                    <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating || isUploading}>
+                    <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating}>
                       {isUpdating ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
