@@ -186,7 +186,7 @@ export default function ExplorePage() {
           <TabsList className="w-full">
             <TabsTrigger value="hosts" className="flex-1">Top Hosts</TabsTrigger>
             <TabsTrigger value="players" className="flex-1 gap-1.5">
-              <Trophy className="w-3.5 h-3.5" /> Top Players
+              <Trophy className="w-3.5 h-3.5" /> Leaderboard
             </TabsTrigger>
           </TabsList>
 
