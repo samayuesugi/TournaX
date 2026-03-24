@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Camera, Loader2, Flag } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Camera, Loader2, Flag, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const COMPLAINT_TOPICS = [
@@ -652,9 +652,10 @@ function PublicProfile({ handle }: { handle: string }) {
                 <h2 className="text-lg font-bold">{profile.name || `@${handle}`}</h2>
                 <p className="text-muted-foreground text-sm">@{profile.handle}</p>
                 {profile.role === "admin" ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-500/40 rounded-full px-2.5 py-0.5 mt-0.5">
-                    Administrator
-                  </span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">Administrator</span>
+                  </div>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 rounded-full px-2.5 py-0.5 mt-0.5">
                     🎮 {(profile as any).game ? `${(profile as any).game} ${profile.role === "host" ? "Host" : "Player"}` : profile.role === "host" ? "Host" : "Player"}
