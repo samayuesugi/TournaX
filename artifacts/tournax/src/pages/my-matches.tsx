@@ -1,4 +1,5 @@
 import { useGetMyMatches } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MatchCard } from "@/components/match/MatchCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function MyMatchesPage() {
   const { data, isLoading } = useGetMyMatches();
+  const { user } = useAuth();
+  const isHost = user?.role === "host" || user?.role === "admin";
 
   return (
     <AppLayout title="My Matches">
@@ -18,7 +21,7 @@ export default function MyMatchesPage() {
           <Tabs defaultValue="active">
             <TabsList className="w-full mb-4">
               <TabsTrigger value="active" className="flex-1">
-                Active ({data?.participated.length ?? 0})
+                {isHost ? "My Matches" : "Active"} ({data?.participated.length ?? 0})
               </TabsTrigger>
               <TabsTrigger value="history" className="flex-1">
                 History ({data?.history.length ?? 0})

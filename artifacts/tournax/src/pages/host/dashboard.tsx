@@ -347,18 +347,19 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
 
 export default function HostDashboardPage() {
   const { user } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "live" | "completed">("all");
-  const { data: allMatches, isLoading, refetch } = useListMatches({ status: statusFilter });
+  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "live">("all");
+  const { data: allMatches, isLoading, refetch } = useListMatches({ status: statusFilter === "all" ? undefined : statusFilter });
+  const { data: allMatchesForEarnings } = useListMatches({});
 
-  const myMatches = allMatches?.filter((m: any) => m.hostId === user?.id) ?? [];
+  const myMatches = (allMatches?.filter((m: any) => m.hostId === user?.id) ?? []).filter((m: any) => m.status !== "completed");
 
-  const totalEarnings = myMatches
+  const totalEarnings = (allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? [])
     .filter((m: any) => m.status === "completed")
     .reduce((sum: number, m: any) => sum + (parseFloat(String(m.hostCut || 0))), 0);
 
   const liveCount = myMatches.filter((m: any) => m.status === "live").length;
 
-  const STATUS_OPTS = ["all", "upcoming", "live", "completed"] as const;
+  const STATUS_OPTS = ["all", "upcoming", "live"] as const;
 
   return (
     <AppLayout title="Host Panel">

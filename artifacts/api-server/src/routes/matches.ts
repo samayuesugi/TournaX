@@ -404,6 +404,16 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
 
 router.get("/my-matches", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
+
+  if (user.role === "host" || user.role === "admin") {
+    const hostedMatches = await db.select().from(matchesTable).where(eq(matchesTable.hostId, user.id));
+    const serialized = await Promise.all(hostedMatches.map(m => serializeMatch(m, user.id)));
+    const participated = serialized.filter(m => m.status !== "completed");
+    const history = serialized.filter(m => m.status === "completed");
+    res.json({ participated, history });
+    return;
+  }
+
   const participations = await db.select().from(matchParticipantsTable)
     .where(eq(matchParticipantsTable.userId, user.id));
 
