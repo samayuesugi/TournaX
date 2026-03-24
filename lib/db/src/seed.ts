@@ -9,7 +9,7 @@ async function hashPassword(password: string): Promise<string> {
 
 const DEFAULT_ACCOUNTS = [
   {
-    email: "admin@tournax.com",
+    email: "Samayuesugi@gmail.com",
     password: process.env.DEFAULT_ADMIN_PASSWORD || "admin@123",
     name: "Admin",
     handle: "admin",
