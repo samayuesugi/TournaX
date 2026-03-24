@@ -195,7 +195,6 @@ function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
     { label: "Discord", value: discord, href: (v: string) => `https://discord.com/users/${v}`, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
     { label: "X", value: x, href: (v: string) => `https://x.com/${v}`, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
     { label: "YouTube", value: youtube, href: (v: string) => `https://youtube.com/@${v}`, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
-    { label: "Twitch", value: twitch, href: (v: string) => `https://twitch.tv/${v}`, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
   ].filter(l => l.value);
 
   if (!links.length) return null;
@@ -457,14 +456,6 @@ function OwnProfile() {
                                 placeholder="channel name"
                                 value={profileForm.youtube}
                                 onChange={(e) => setProfileForm(f => ({ ...f, youtube: e.target.value }))}
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm w-20 shrink-0 text-muted-foreground">Twitch</span>
-                              <Input
-                                placeholder="username"
-                                value={profileForm.twitch}
-                                onChange={(e) => setProfileForm(f => ({ ...f, twitch: e.target.value }))}
                               />
                             </div>
                           </>
