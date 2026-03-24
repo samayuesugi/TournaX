@@ -347,10 +347,11 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
 
 export default function HostDashboardPage() {
   const { user } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "live" | "completed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "live">("all");
   const { data: allMatches, isLoading, refetch } = useListMatches({ status: statusFilter });
 
   const myMatches = allMatches?.filter((m: any) => m.hostId === user?.id) ?? [];
+  const displayMatches = myMatches.filter((m: any) => m.status !== "completed");
 
   const totalEarnings = myMatches
     .filter((m: any) => m.status === "completed")
@@ -358,7 +359,7 @@ export default function HostDashboardPage() {
 
   const liveCount = myMatches.filter((m: any) => m.status === "live").length;
 
-  const STATUS_OPTS = ["all", "upcoming", "live", "completed"] as const;
+  const STATUS_OPTS = ["all", "upcoming", "live"] as const;
 
   return (
     <AppLayout title="Host Panel">
@@ -408,9 +409,9 @@ export default function HostDashboardPage() {
           <div className="space-y-5">
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
           </div>
-        ) : myMatches.length > 0 ? (
+        ) : displayMatches.length > 0 ? (
           <div className="space-y-5">
-            {myMatches.map((m: any) => (
+            {displayMatches.map((m: any) => (
               <MatchCard key={m.id} match={m} onAction={refetch} />
             ))}
           </div>
