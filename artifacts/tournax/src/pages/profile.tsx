@@ -183,6 +183,40 @@ export function AvatarDisplay({
   );
 }
 
+function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
+  instagram?: string | null;
+  discord?: string | null;
+  x?: string | null;
+  youtube?: string | null;
+  twitch?: string | null;
+}) {
+  const links = [
+    { label: "Instagram", value: instagram, href: (v: string) => `https://instagram.com/${v}`, color: "text-pink-400", bg: "bg-pink-500/10 border-pink-500/20" },
+    { label: "Discord", value: discord, href: (v: string) => `https://discord.com/users/${v}`, color: "text-indigo-400", bg: "bg-indigo-500/10 border-indigo-500/20" },
+    { label: "X", value: x, href: (v: string) => `https://x.com/${v}`, color: "text-sky-400", bg: "bg-sky-500/10 border-sky-500/20" },
+    { label: "YouTube", value: youtube, href: (v: string) => `https://youtube.com/@${v}`, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
+    { label: "Twitch", value: twitch, href: (v: string) => `https://twitch.tv/${v}`, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
+  ].filter(l => l.value);
+
+  if (!links.length) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-3">
+      {links.map(({ label, value, href, color, bg }) => (
+        <a
+          key={label}
+          href={href(value!)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn("inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2.5 py-0.5 transition-opacity hover:opacity-80", bg, color)}
+        >
+          {label}: {value}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function OwnProfile() {
   const { user, logout, refreshUser } = useAuth();
   const [, navigate] = useLocation();
@@ -192,7 +226,16 @@ function OwnProfile() {
   const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateMyProfile();
 
   const [squadForm, setSquadForm] = useState({ name: "", uid: "" });
-  const [profileForm, setProfileForm] = useState({ name: user?.name ?? "", handle: user?.handle ?? "", avatar: user?.avatar ?? "🎮" });
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name ?? "",
+    handle: user?.handle ?? "",
+    avatar: user?.avatar ?? "🎮",
+    instagram: user?.instagram ?? "",
+    discord: user?.discord ?? "",
+    x: user?.x ?? "",
+    youtube: user?.youtube ?? "",
+    twitch: user?.twitch ?? "",
+  });
   const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -201,7 +244,16 @@ function OwnProfile() {
 
   useEffect(() => {
     if (profileOpen) {
-      setProfileForm({ name: user?.name ?? "", handle: user?.handle ?? "", avatar: user?.avatar ?? "🎮" });
+      setProfileForm({
+        name: user?.name ?? "",
+        handle: user?.handle ?? "",
+        avatar: user?.avatar ?? "🎮",
+        instagram: user?.instagram ?? "",
+        discord: user?.discord ?? "",
+        x: user?.x ?? "",
+        youtube: user?.youtube ?? "",
+        twitch: user?.twitch ?? "",
+      });
       setPreviewUrl(null);
     }
   }, [profileOpen]);
@@ -309,9 +361,9 @@ function OwnProfile() {
                     <Settings className="w-3.5 h-3.5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-sm">
-                  <DialogHeader><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
+                <DialogContent className="max-w-sm flex flex-col max-h-[90vh]">
+                  <DialogHeader className="shrink-0"><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
+                  <div className="space-y-4 overflow-y-auto flex-1 pr-1">
                     <div className="space-y-2">
                       <Label>Avatar</Label>
 
@@ -370,6 +422,55 @@ function OwnProfile() {
                       <Label>Handle</Label>
                       <Input value={profileForm.handle} onChange={(e) => setProfileForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
                     </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Social Links</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm w-20 shrink-0 text-muted-foreground">Instagram</span>
+                          <Input
+                            placeholder="username"
+                            value={profileForm.instagram}
+                            onChange={(e) => setProfileForm(f => ({ ...f, instagram: e.target.value }))}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm w-20 shrink-0 text-muted-foreground">Discord</span>
+                          <Input
+                            placeholder="username"
+                            value={profileForm.discord}
+                            onChange={(e) => setProfileForm(f => ({ ...f, discord: e.target.value }))}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm w-20 shrink-0 text-muted-foreground">X</span>
+                          <Input
+                            placeholder="username"
+                            value={profileForm.x}
+                            onChange={(e) => setProfileForm(f => ({ ...f, x: e.target.value }))}
+                          />
+                        </div>
+                        {(user.role === "host" || user.role === "admin") && (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm w-20 shrink-0 text-muted-foreground">YouTube</span>
+                              <Input
+                                placeholder="channel name"
+                                value={profileForm.youtube}
+                                onChange={(e) => setProfileForm(f => ({ ...f, youtube: e.target.value }))}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm w-20 shrink-0 text-muted-foreground">Twitch</span>
+                              <Input
+                                placeholder="username"
+                                value={profileForm.twitch}
+                                onChange={(e) => setProfileForm(f => ({ ...f, twitch: e.target.value }))}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                     <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating || isUploading}>
                       {isUpdating ? "Saving..." : "Save Changes"}
                     </Button>
@@ -407,6 +508,7 @@ function OwnProfile() {
               )}
             </div>
           )}
+          <SocialLinksDisplay instagram={user.instagram} discord={user.discord} x={user.x} youtube={user.youtube} twitch={user.twitch} />
         </div>
 
         {user.role === "player" && (
@@ -588,6 +690,13 @@ function PublicProfile({ handle }: { handle: string }) {
               </span>
             </div>
           )}
+          <SocialLinksDisplay
+            instagram={(profile as any).instagram}
+            discord={(profile as any).discord}
+            x={(profile as any).x}
+            youtube={(profile as any).youtube}
+            twitch={(profile as any).twitch}
+          />
         </div>
 
         {/* Host Group Card */}

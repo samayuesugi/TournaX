@@ -97,17 +97,26 @@ router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res
 
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, handle, avatar } = req.body;
+  const { name, handle, avatar, instagram, discord, x, youtube, twitch } = req.body;
   const updateData: any = {};
   if (name) updateData.name = name;
   if (handle) updateData.handle = handle;
   if (avatar) updateData.avatar = avatar;
+  updateData.instagram = instagram ?? null;
+  updateData.discord = discord ?? null;
+  updateData.x = x ?? null;
+  if (user.role === "host" || user.role === "admin") {
+    updateData.youtube = youtube ?? null;
+    updateData.twitch = twitch ?? null;
+  }
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
   res.json({
     id: updated.id, email: updated.email, name: updated.name, handle: updated.handle,
     avatar: updated.avatar, game: updated.game, gameUid: updated.gameUid, role: updated.role,
     balance: parseFloat(updated.balance as string), status: updated.status, profileSetup: updated.profileSetup,
     followersCount: updated.followersCount, followingCount: updated.followingCount,
+    instagram: updated.instagram, discord: updated.discord, x: updated.x,
+    youtube: updated.youtube, twitch: updated.twitch,
   });
 });
 
@@ -258,6 +267,11 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     rating: null,
     matchesCount: hostedMatches.length,
     isFollowing: !!follow,
+    instagram: user.instagram,
+    discord: user.discord,
+    x: user.x,
+    youtube: user.youtube,
+    twitch: user.twitch,
     upcomingMatches: upcomingMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),

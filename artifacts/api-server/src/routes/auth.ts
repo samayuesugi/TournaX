@@ -64,6 +64,11 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     profileSetup: user.profileSetup,
     followersCount: user.followersCount,
     followingCount: user.followingCount,
+    instagram: user.instagram,
+    discord: user.discord,
+    x: user.x,
+    youtube: user.youtube,
+    twitch: user.twitch,
   };
 }
 

@@ -21,6 +21,11 @@ export const usersTable = pgTable("users", {
   recommended: boolean("recommended").notNull().default(false),
   followersCount: integer("followers_count").notNull().default(0),
   followingCount: integer("following_count").notNull().default(0),
+  instagram: text("instagram"),
+  discord: text("discord"),
+  x: text("x"),
+  youtube: text("youtube"),
+  twitch: text("twitch"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
