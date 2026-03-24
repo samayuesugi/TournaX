@@ -30,6 +30,7 @@ import ConversationPage from "@/pages/chat/conversation";
 import GroupChatPage from "@/pages/chat/group";
 import LeaderboardPage from "@/pages/leaderboard";
 import NotFound from "@/pages/not-found";
+import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 
 setAuthTokenGetter(getToken);
 
@@ -236,6 +237,7 @@ function App() {
           </WouterRouter>
         </AuthProvider>
         <Toaster />
+        <PwaInstallBanner />
       </TooltipProvider>
     </QueryClientProvider>
   );
