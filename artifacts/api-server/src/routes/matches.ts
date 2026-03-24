@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable } from "@workspace/db/schema";
-import { eq, and, ilike, or, sql, inArray } from "drizzle-orm";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable } from "@workspace/db/schema";
+import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
@@ -19,6 +19,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
   const [host] = await db.select().from(usersTable).where(eq(usersTable.id, match.hostId));
   let isFollowingHost = false;
   let isJoined = false;
+  let hasReviewed = false;
   if (userId) {
     const [follow] = await db.select().from(followsTable).where(
       and(eq(followsTable.followerId, userId), eq(followsTable.followingId, match.hostId))
@@ -28,6 +29,12 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
       and(eq(matchParticipantsTable.matchId, match.id), eq(matchParticipantsTable.userId, userId))
     );
     isJoined = !!participation;
+    if (match.status === "completed" && isJoined) {
+      const [existingReview] = await db.select().from(hostReviewsTable).where(
+        and(eq(hostReviewsTable.matchId, match.id), eq(hostReviewsTable.reviewerId, userId))
+      );
+      hasReviewed = !!existingReview;
+    }
   }
 
   const entryFee = parseFloat(match.entryFee as string);
@@ -70,6 +77,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     isJoined,
     roomReleased: match.roomReleased,
     description: match.description ?? null,
+    hasReviewed,
   };
   if (isJoined && match.roomReleased) {
     result.roomId = match.roomId;
@@ -430,6 +438,40 @@ router.get("/my-matches", requireAuth, async (req: Request, res: Response) => {
   const participated = validMatches.filter(m => m!.status !== "completed");
   const history = validMatches.filter(m => m!.status === "completed");
   res.json({ participated, history });
+});
+
+router.post("/matches/:id/review", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (user.role !== "player") {
+    res.status(403).json({ error: "Only players can review hosts" }); return;
+  }
+  const matchId = parseInt(req.params.id);
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (match.status !== "completed") {
+    res.status(400).json({ error: "Can only review completed matches" }); return;
+  }
+  const [participation] = await db.select().from(matchParticipantsTable).where(
+    and(eq(matchParticipantsTable.matchId, matchId), eq(matchParticipantsTable.userId, user.id))
+  );
+  if (!participation) { res.status(403).json({ error: "You did not participate in this match" }); return; }
+  const [existing] = await db.select().from(hostReviewsTable).where(
+    and(eq(hostReviewsTable.matchId, matchId), eq(hostReviewsTable.reviewerId, user.id))
+  );
+  if (existing) { res.status(400).json({ error: "You have already reviewed this match" }); return; }
+  const { rating, comment } = req.body;
+  const parsedRating = parseInt(rating);
+  if (!parsedRating || parsedRating < 1 || parsedRating > 5) {
+    res.status(400).json({ error: "Rating must be between 1 and 5" }); return;
+  }
+  await db.insert(hostReviewsTable).values({
+    matchId,
+    reviewerId: user.id,
+    hostId: match.hostId,
+    rating: parsedRating,
+    comment: comment?.trim() || null,
+  });
+  res.json({ success: true });
 });
 
 router.get("/admin/matches", requireAuth, async (req: Request, res: Response) => {

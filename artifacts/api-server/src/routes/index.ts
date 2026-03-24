@@ -8,6 +8,7 @@ import adminRouter from "./admin";
 import gamesRouter from "./games";
 import groupsRouter from "./groups";
 import storageRouter from "./storage";
+import leaderboardRouter from "./leaderboard";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(adminRouter);
 router.use(gamesRouter);
 router.use(groupsRouter);
 router.use(storageRouter);
+router.use(leaderboardRouter);
 
 export default router;

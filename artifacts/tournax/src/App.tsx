@@ -28,6 +28,7 @@ import AdminWalletPage from "@/pages/admin/wallet";
 import ChatListPage from "@/pages/chat/index";
 import ConversationPage from "@/pages/chat/conversation";
 import GroupChatPage from "@/pages/chat/group";
+import LeaderboardPage from "@/pages/leaderboard";
 import NotFound from "@/pages/not-found";
 
 setAuthTokenGetter(getToken);
@@ -211,6 +212,12 @@ function Router() {
       <Route path="/chat/:userId">
         <ProtectedRoute>
           <ConversationPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/leaderboard">
+        <ProtectedRoute roles={["player", "host"]}>
+          <LeaderboardPage />
         </ProtectedRoute>
       </Route>
 

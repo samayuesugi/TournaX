@@ -1,8 +1,16 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable } from "@workspace/db/schema";
-import { eq, and, ilike, or, sql } from "drizzle-orm";
+import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable } from "@workspace/db/schema";
+import { eq, and, ilike, or, sql, avg } from "drizzle-orm";
 import { requireAuth } from "./auth";
+
+async function getHostRating(hostId: number): Promise<number | null> {
+  const result = await db.select({ avg: avg(hostReviewsTable.rating) })
+    .from(hostReviewsTable)
+    .where(eq(hostReviewsTable.hostId, hostId));
+  const val = result[0]?.avg;
+  return val ? parseFloat(val as string) : null;
+}
 
 const router: IRouter = Router();
 
@@ -38,6 +46,7 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
 
   const serializeProfile = async (u: typeof usersTable.$inferSelect, matchCount?: number) => {
     const matchesCount = matchCount ?? (await db.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, u.id))).length;
+    const rating = (u.role === "host" || u.role === "admin") ? await getHostRating(u.id) : null;
     return {
       id: u.id,
       name: u.name,
@@ -46,7 +55,7 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
       role: u.role,
       followersCount: u.followersCount,
       followingCount: u.followingCount,
-      rating: null,
+      rating,
       matchesCount,
       isFollowing: followedUserIds.has(u.id),
       upcomingMatches: [],
@@ -264,7 +273,7 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     game: user.game,
     followersCount: user.followersCount,
     followingCount: user.followingCount,
-    rating: null,
+    rating: await getHostRating(user.id),
     matchesCount: hostedMatches.length,
     isFollowing: !!follow,
     instagram: user.instagram,
