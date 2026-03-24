@@ -206,6 +206,16 @@ const SocialIcons = {
   ),
 };
 
+function extractHandle(value: string): string {
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.replace(/^\//, "").replace(/\/$/, "").split("/");
+    return parts[parts.length - 1] || value;
+  } catch {
+    return value.replace(/^@/, "").trim();
+  }
+}
+
 function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
   instagram?: string | null;
   discord?: string | null;
@@ -214,10 +224,10 @@ function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
   twitch?: string | null;
 }) {
   const links = [
-    { key: "Instagram" as const, value: instagram, href: (v: string) => `https://instagram.com/${v}`, color: "text-pink-400 hover:text-pink-300", bg: "bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/20" },
-    { key: "Discord" as const, value: discord, href: (v: string) => `https://discord.com/users/${v}`, color: "text-indigo-400 hover:text-indigo-300", bg: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20" },
-    { key: "X" as const, value: x, href: (v: string) => `https://x.com/${v}`, color: "text-sky-400 hover:text-sky-300", bg: "bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20" },
-    { key: "YouTube" as const, value: youtube, href: (v: string) => `https://youtube.com/@${v}`, color: "text-red-400 hover:text-red-300", bg: "bg-red-500/10 hover:bg-red-500/20 border-red-500/20" },
+    { key: "Instagram" as const, value: instagram, href: (v: string) => `https://instagram.com/${extractHandle(v)}`, color: "text-pink-400 hover:text-pink-300", bg: "bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/20" },
+    { key: "Discord" as const, value: discord, href: (v: string) => `https://discord.com/users/${extractHandle(v)}`, color: "text-indigo-400 hover:text-indigo-300", bg: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20" },
+    { key: "X" as const, value: x, href: (v: string) => `https://x.com/${extractHandle(v)}`, color: "text-sky-400 hover:text-sky-300", bg: "bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20" },
+    { key: "YouTube" as const, value: youtube, href: (v: string) => `https://youtube.com/@${extractHandle(v)}`, color: "text-red-400 hover:text-red-300", bg: "bg-red-500/10 hover:bg-red-500/20 border-red-500/20" },
   ].filter(l => l.value);
 
   if (!links.length) return null;

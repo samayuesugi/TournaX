@@ -312,7 +312,7 @@ export default function MatchDetailPage() {
             <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([]); setSoloSquadId(null); setSoloManual({ ign: "", uid: "" }); } }}>
               <DialogTrigger asChild>
                 <Button className="w-full" size="lg">
-                  Join Match · ₹{match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee}
+                  Join Match · ₹{match.teamSize > 1 ? (Number(match.entryFee) || 0) * match.teamSize : match.entryFee}
                   {match.teamSize > 1 && <span className="opacity-70 text-xs ml-1">(₹{match.entryFee}×{match.teamSize})</span>}
                 </Button>
               </DialogTrigger>

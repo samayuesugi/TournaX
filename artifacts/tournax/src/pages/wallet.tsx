@@ -77,6 +77,11 @@ export default function WalletPage() {
       toast({ title: "Receipt required", description: "Please attach your payment receipt.", variant: "destructive" });
       return;
     }
+    const parsedAmount = parseFloat(addForm.amount);
+    if (isNaN(parsedAmount) || parsedAmount < 10) {
+      toast({ title: "Invalid amount", description: "Please enter a valid amount of at least ₹10.", variant: "destructive" });
+      return;
+    }
     try {
       const receiptUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -84,7 +89,7 @@ export default function WalletPage() {
         reader.onerror = reject;
         reader.readAsDataURL(receiptFile);
       });
-      await addBalance({ data: { amount: parseFloat(addForm.amount), utrNumber: addForm.utrNumber, receiptUrl } });
+      await addBalance({ data: { amount: parsedAmount, utrNumber: addForm.utrNumber, receiptUrl } });
       toast({ title: "Request submitted!", description: "Await admin approval. Usually within 30 mins." });
       setAddForm({ amount: "", utrNumber: "" });
       handleRemoveReceipt();
@@ -96,8 +101,13 @@ export default function WalletPage() {
   };
 
   const handleWithdraw = async () => {
+    const parsedWithdrawAmount = parseFloat(withdrawForm.amount);
+    if (isNaN(parsedWithdrawAmount) || parsedWithdrawAmount <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid withdrawal amount.", variant: "destructive" });
+      return;
+    }
     try {
-      await withdraw({ data: { amount: parseFloat(withdrawForm.amount), upiId: withdrawForm.upiId } });
+      await withdraw({ data: { amount: parsedWithdrawAmount, upiId: withdrawForm.upiId } });
       toast({ title: "Withdrawal request submitted!" });
       setWithdrawForm({ amount: "", upiId: "" });
       setWithdrawOpen(false);

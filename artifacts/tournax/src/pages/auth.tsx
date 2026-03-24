@@ -23,7 +23,7 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       const user = await login(loginForm.email, loginForm.password);
-      if (!user.profileSetup) {
+      if (user.profileSetup === false) {
         navigate("/setup-profile");
       } else if (user.role === "admin") {
         navigate("/admin");
