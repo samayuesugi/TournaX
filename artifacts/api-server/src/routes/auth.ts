@@ -2,18 +2,22 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
-import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const router: IRouter = Router();
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
-  throw new Error("JWT_SECRET environment variable must be set in production");
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable must be set");
 }
-const JWT_SECRET = process.env.JWT_SECRET || "tournax-secret-key-2024";
+const JWT_SECRET = process.env.JWT_SECRET;
 
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "tournax_salt").digest("hex");
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 function generateToken(userId: number): string {
@@ -85,7 +89,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   }
   const [user] = await db.insert(usersTable).values({
     email,
-    password: hashPassword(password),
+    password: await hashPassword(password),
     role: "player",
     status: "active",
     profileSetup: false,
@@ -102,7 +106,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
-  if (!user || user.password !== hashPassword(password)) {
+  if (!user || !(await verifyPassword(password, user.password))) {
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }

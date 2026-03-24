@@ -43,3 +43,6 @@ externalPort = 3000
 [userenv]
 
 [userenv.shared]
+JWT_SECRET = "t4Kd4xGcqU3vfK4zS6lxUc198p1GVZbQZYoT/zfFEUpjNJA4DmdxA04Uu6zsCcSQ"
+DEFAULT_ADMIN_PASSWORD = "admin@123"
+DEFAULT_HOST_PASSWORD = "host@123"

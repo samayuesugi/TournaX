@@ -7,12 +7,12 @@ import {
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
-import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
 
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "tournax_salt").digest("hex");
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
 }
 
 async function requireAdmin(req: Request, res: Response, next: Function) {
@@ -189,7 +189,7 @@ router.post("/admin/create-host", requireAdmin, async (req: Request, res: Respon
   }
 
   await db.insert(usersTable).values({
-    email, password: hashPassword(password), name, handle, game: game || null, role: "host", status: "active", profileSetup: true, balance: "0",
+    email, password: await hashPassword(password), name, handle, game: game || null, role: "host", status: "active", profileSetup: true, balance: "0",
   });
   res.json({ success: true });
 });
@@ -207,7 +207,7 @@ router.post("/admin/create-admin", requireAdmin, async (req: Request, res: Respo
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) { res.status(400).json({ error: "Email already exists" }); return; }
   await db.insert(usersTable).values({
-    email, password: hashPassword(password), name, role: "admin", status: "active", profileSetup: true, balance: "0",
+    email, password: await hashPassword(password), name, role: "admin", status: "active", profileSetup: true, balance: "0",
   });
   res.json({ success: true });
 });

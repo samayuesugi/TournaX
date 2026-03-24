@@ -1,16 +1,16 @@
-import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { db } from "./index";
 import { usersTable, gamesTable, gameModesTable } from "./schema";
 import { eq } from "drizzle-orm";
 
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "tournax_salt").digest("hex");
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
 }
 
 const DEFAULT_ACCOUNTS = [
   {
     email: "admin@tournax.com",
-    password: "admin@123",
+    password: process.env.DEFAULT_ADMIN_PASSWORD || "admin@123",
     name: "Admin",
     handle: "admin",
     avatar: "/admin-avatar.jpeg",
@@ -18,7 +18,7 @@ const DEFAULT_ACCOUNTS = [
   },
   {
     email: "host@tournax.com",
-    password: "host@123",
+    password: process.env.DEFAULT_HOST_PASSWORD || "host@123",
     name: "Sample Host",
     handle: "samplehost",
     avatar: "🎮",
@@ -49,14 +49,14 @@ export async function seedDefaults() {
 
   for (const account of DEFAULT_ACCOUNTS) {
     const [existing] = await db
-      .select({ id: usersTable.id })
+      .select({ id: usersTable.id, password: usersTable.password })
       .from(usersTable)
       .where(eq(usersTable.email, account.email));
 
     if (!existing) {
       await db.insert(usersTable).values({
         email: account.email,
-        password: hashPassword(account.password),
+        password: await hashPassword(account.password),
         name: account.name,
         handle: account.handle,
         avatar: account.avatar,
@@ -68,9 +68,17 @@ export async function seedDefaults() {
         followingCount: 0,
         recommended: (account as any).recommended ?? false,
       });
-      console.log(`[seed] Created default ${account.role}: ${account.email}`);
-    } else if ((account as any).recommended) {
-      await db.update(usersTable).set({ recommended: true }).where(eq(usersTable.id, existing.id));
+      console.log(`[seed] Created default ${account.role} account`);
+    } else {
+      const updates: Record<string, any> = {};
+      if ((account as any).recommended) updates.recommended = true;
+      if (existing.password && !existing.password.startsWith("$2b$")) {
+        updates.password = await hashPassword(account.password);
+        console.log(`[seed] Re-hashed password for default ${account.role} account`);
+      }
+      if (Object.keys(updates).length > 0) {
+        await db.update(usersTable).set(updates).where(eq(usersTable.id, existing.id));
+      }
     }
   }
 }
