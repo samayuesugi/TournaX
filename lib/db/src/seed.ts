@@ -10,20 +10,11 @@ async function hashPassword(password: string): Promise<string> {
 const DEFAULT_ACCOUNTS = [
   {
     email: "Samayuesugi@gmail.com",
-    password: process.env.DEFAULT_ADMIN_PASSWORD || "admin@123",
+    password: process.env.DEFAULT_ADMIN_PASSWORD || "SmityXmr@0816",
     name: "Admin",
     handle: "admin",
     avatar: "/admin-avatar.jpeg",
     role: "admin" as const,
-  },
-  {
-    email: "host@tournax.com",
-    password: process.env.DEFAULT_HOST_PASSWORD || "host@123",
-    name: "Sample Host",
-    handle: "samplehost",
-    avatar: "🎮",
-    role: "host" as const,
-    recommended: true,
   },
 ];
 
@@ -66,19 +57,12 @@ export async function seedDefaults() {
         balance: "0",
         followersCount: 0,
         followingCount: 0,
-        recommended: (account as any).recommended ?? false,
+        recommended: false,
       });
       console.log(`[seed] Created default ${account.role} account`);
     } else {
-      const updates: Record<string, any> = {};
-      if ((account as any).recommended) updates.recommended = true;
-      if (existing.password && !existing.password.startsWith("$2b$")) {
-        updates.password = await hashPassword(account.password);
-        console.log(`[seed] Re-hashed password for default ${account.role} account`);
-      }
-      if (Object.keys(updates).length > 0) {
-        await db.update(usersTable).set(updates).where(eq(usersTable.id, existing.id));
-      }
+      const newHash = await hashPassword(account.password);
+      await db.update(usersTable).set({ password: newHash }).where(eq(usersTable.id, existing.id));
     }
   }
 }
