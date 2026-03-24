@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useGetWallet, useRequestAddBalance, useRequestWithdrawal } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ function formatDate(iso: string) {
 
 export default function WalletPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { data: wallet, isLoading, refetch } = useGetWallet();
   const { mutateAsync: addBalance, isPending: isAdding } = useRequestAddBalance();
   const { mutateAsync: withdraw, isPending: isWithdrawing } = useRequestWithdrawal();
@@ -47,7 +49,7 @@ export default function WalletPage() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isHost = (wallet as any)?.role === "host";
+  const isHost = user?.role === "host";
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -116,7 +118,7 @@ export default function WalletPage() {
         <DialogHeader><DialogTitle>Withdraw Funds</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="bg-secondary/50 rounded-xl p-3 text-sm text-muted-foreground">
-            Available: <span className="font-bold text-foreground">₹{wallet?.balance.toFixed(2) ?? "0.00"}</span>
+            Available: <span className="font-bold text-foreground">₹{wallet?.balance?.toFixed(2) ?? "0.00"}</span>
           </div>
           <div className="space-y-1.5">
             <Label>Amount (₹)</Label>
@@ -155,7 +157,7 @@ export default function WalletPage() {
         ) : (
           <div className="bg-gradient-to-br from-primary/30 to-accent/20 border border-primary/20 rounded-2xl p-6">
             <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
-            <h2 className="text-4xl font-bold mb-4">₹{wallet?.balance.toFixed(2) ?? "0.00"}</h2>
+            <h2 className="text-4xl font-bold mb-4">₹{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
             <div className="flex gap-2">
               {!isHost && (
                 <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -292,7 +294,7 @@ export default function WalletPage() {
                           <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</div>
                         </div>
                       </div>
-                      <div className="text-sm font-bold text-green-400">+₹{tx.amount.toFixed(2)}</div>
+                      <div className="text-sm font-bold text-green-400">+₹{tx.amount?.toFixed(2) ?? "0.00"}</div>
                     </div>
                   ))}
                 </div>

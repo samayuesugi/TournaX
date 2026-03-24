@@ -97,7 +97,7 @@ function CopyButton({ value }: { value: string }) {
 export default function MatchDetailPage() {
   const [, params] = useRoute("/matches/:id");
   const [, navigate] = useLocation();
-  const matchId = parseInt(params?.id ?? "0");
+  const matchId = parseInt(params?.id ?? "0", 10) || 0;
   const { user } = useAuth();
   const { toast } = useToast();
 
