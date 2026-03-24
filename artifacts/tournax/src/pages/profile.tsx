@@ -210,7 +210,7 @@ function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
           rel="noopener noreferrer"
           className={cn("inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2.5 py-0.5 transition-opacity hover:opacity-80", bg, color)}
         >
-          {label}: {value}
+          {label}
         </a>
       ))}
     </div>
