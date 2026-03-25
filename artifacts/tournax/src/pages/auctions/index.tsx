@@ -32,7 +32,7 @@ export default function AuctionsPage() {
 
   useEffect(() => {
     customFetch<Auction[]>("/api/auctions")
-      .then(setAuctions)
+      .then(data => setAuctions(data.filter(a => a.status !== "cancelled")))
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
