@@ -1,14 +1,13 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, MessageCircle, User, Swords, Gavel } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Gavel } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
-import { useGetConversations } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
 const playerNav = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/auctions", icon: Gavel, label: "Auctions" },
   { href: "/my-matches", icon: Swords, label: "Matches" },
-  { href: "/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
 
@@ -16,7 +15,7 @@ const hostNav = [
   { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/host/create-match", icon: Plus, label: "Create" },
   { href: "/my-matches", icon: Swords, label: "Matches" },
-  { href: "/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
 
@@ -31,9 +30,6 @@ const adminNav = [
 export function BottomNav() {
   const [location] = useLocation();
   const { user } = useAuth();
-  const { data: conversations } = useGetConversations({ query: { refetchInterval: 10000 } });
-
-  const totalUnread = conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
   const nav = user?.role === "admin" ? adminNav : user?.role === "host" ? hostNav : playerNav;
 
   return (
@@ -41,7 +37,6 @@ export function BottomNav() {
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
         {nav.map(({ href, icon: Icon, label }) => {
           const isActive = href === "/" ? location === "/" : location.startsWith(href);
-          const isChat = href === "/chat";
           return (
             <Link key={href} href={href}>
               <button
@@ -52,14 +47,7 @@ export function BottomNav() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <div className="relative">
-                  <Icon className={cn("w-5 h-5", isActive && "stroke-[2.5]")} />
-                  {isChat && totalUnread > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-[9px] text-white flex items-center justify-center font-bold">
-                      {totalUnread > 9 ? "9+" : totalUnread}
-                    </span>
-                  )}
-                </div>
+                <Icon className={cn("w-5 h-5", isActive && "stroke-[2.5]")} />
                 <span className="text-[10px] font-medium">{label}</span>
               </button>
             </Link>
