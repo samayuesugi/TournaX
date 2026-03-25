@@ -39,9 +39,6 @@ export function DailyBonusDialog({ open, onClose, bonus, silverCoins }: DailyBon
 
           <p className="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-1">Daily Login Bonus</p>
           <h2 className="text-2xl font-extrabold text-white mb-1">+{bonus} Silver Coins</h2>
-          <p className="text-sm text-muted-foreground mb-5">
-            App kholo, coins pao! Aaj ka bonus claim ho gaya.
-          </p>
 
           <div className="w-full bg-white/5 rounded-xl px-4 py-3 flex items-center justify-between mb-5">
             <span className="text-xs text-muted-foreground">Total Silver Coins</span>
