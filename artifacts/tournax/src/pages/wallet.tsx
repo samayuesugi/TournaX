@@ -351,6 +351,7 @@ export default function WalletPage() {
               </div>
             </div>
 
+            {!isHost && (
             <div className="bg-gradient-to-br from-slate-500/20 to-slate-400/10 border border-slate-500/20 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
@@ -408,6 +409,7 @@ export default function WalletPage() {
                 <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">Tasks reset daily · 100 Silver = 10 Gold Coins</p>
               </div>
             </div>
+            )}
           </div>
         )}
 

@@ -135,7 +135,7 @@ export function AppLayout({
                     <GoldCoinIcon size="sm" />
                     <span>{wallet.balance.toFixed(0)}</span>
                   </span>
-                  {(wallet as any).silverCoins > 0 && (
+                  {user.role === "player" && (wallet as any).silverCoins > 0 && (
                     <span className="flex items-center gap-0.5 border-l border-border pl-2">
                       <SilverCoinIcon size="sm" />
                       <span className="text-slate-300">{(wallet as any).silverCoins}</span>
