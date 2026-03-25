@@ -131,8 +131,10 @@ router.post("/admin/finance/add-requests/:id/approve", requireAdmin, async (req:
     const [request] = await tx.select().from(addBalanceRequestsTable).where(eq(addBalanceRequestsTable.id, requestId));
     if (!request) { res.status(404).json({ error: "Request not found" }); return; }
     if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
+    const numericAmount = parseFloat(request.amount as string);
+    if (isNaN(numericAmount) || numericAmount <= 0) { res.status(400).json({ error: "Invalid request amount" }); return; }
     await tx.update(addBalanceRequestsTable).set({ status: "approved" }).where(eq(addBalanceRequestsTable.id, request.id));
-    await tx.execute(sql`UPDATE users SET balance = balance + ${request.amount} WHERE id = ${request.userId}`);
+    await tx.execute(sql`UPDATE users SET balance = balance + ${numericAmount} WHERE id = ${request.userId}`);
     res.json({ success: true });
   });
 });
@@ -171,8 +173,10 @@ router.post("/admin/finance/withdrawals/:id/reject", requireAdmin, async (req: R
     const [request] = await tx.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.id, Number(req.params.id)));
     if (!request) { res.status(404).json({ error: "Not found" }); return; }
     if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
+    const numericAmount = parseFloat(request.amount as string);
+    if (isNaN(numericAmount) || numericAmount <= 0) { res.status(400).json({ error: "Invalid request amount" }); return; }
     await tx.update(withdrawalRequestsTable).set({ status: "rejected" }).where(eq(withdrawalRequestsTable.id, request.id));
-    await tx.execute(sql`UPDATE users SET balance = balance + ${request.amount} WHERE id = ${request.userId}`);
+    await tx.execute(sql`UPDATE users SET balance = balance + ${numericAmount} WHERE id = ${request.userId}`);
     res.json({ success: true });
   });
 });

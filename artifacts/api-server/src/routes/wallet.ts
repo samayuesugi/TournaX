@@ -102,11 +102,16 @@ router.post("/wallet/convert-silver", requireAuth, async (req: Request, res: Res
   const silverToSpend = batches * SILVER_TO_GOLD_RATE;
   const goldToEarn = batches * GOLD_PER_CONVERSION;
 
-  await db.transaction(async (tx) => {
-    await tx.execute(
-      sql`UPDATE users SET silver_coins = silver_coins - ${silverToSpend}, balance = balance + ${goldToEarn} WHERE id = ${user.id}`
+  const result = await db.transaction(async (tx) => {
+    return tx.execute(
+      sql`UPDATE users SET silver_coins = silver_coins - ${silverToSpend}, balance = balance + ${goldToEarn} WHERE id = ${user.id} AND silver_coins >= ${silverToSpend} RETURNING id`
     );
   });
+
+  if (!result.rows || result.rows.length === 0) {
+    res.status(400).json({ error: "Insufficient Silver Coins. Please try again." });
+    return;
+  }
 
   res.json({ success: true, message: `Converted ${silverToSpend} Silver Coins into ${goldToEarn} Gold Coins!` });
 });
