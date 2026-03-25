@@ -33,8 +33,11 @@ function RequestCard({
   const { mutateAsync: approveW } = useApproveWithdrawal();
   const { mutateAsync: rejectW } = useRejectWithdrawal();
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [actionPending, setActionPending] = useState(false);
 
   const approve = async () => {
+    if (actionPending) return;
+    setActionPending(true);
     try {
       if (type === "deposit") await approveAdd({ id: req.id });
       else await approveW({ id: req.id });
@@ -42,10 +45,14 @@ function RequestCard({
       onAction();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+    } finally {
+      setActionPending(false);
     }
   };
 
   const reject = async () => {
+    if (actionPending) return;
+    setActionPending(true);
     try {
       if (type === "deposit") await rejectAdd({ id: req.id });
       else await rejectW({ id: req.id });
@@ -53,6 +60,8 @@ function RequestCard({
       onAction();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+    } finally {
+      setActionPending(false);
     }
   };
 
@@ -108,8 +117,8 @@ function RequestCard({
 
       {req.status === "pending" && (
         <div className="flex gap-2">
-          <Button size="sm" className="flex-1 h-8 text-xs" onClick={approve}>Approve</Button>
-          <Button variant="destructive" size="sm" className="flex-1 h-8 text-xs" onClick={reject}>Reject</Button>
+          <Button size="sm" className="flex-1 h-8 text-xs" onClick={approve} disabled={actionPending}>Approve</Button>
+          <Button variant="destructive" size="sm" className="flex-1 h-8 text-xs" onClick={reject} disabled={actionPending}>Reject</Button>
         </div>
       )}
     </div>

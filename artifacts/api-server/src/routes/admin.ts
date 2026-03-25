@@ -40,11 +40,14 @@ router.get("/admin/dashboard", requireAdmin, async (req: Request, res: Response)
   const completedMatches = allMatches.filter(m => m.status === "completed");
   const totalRevenue = completedMatches.reduce((sum, m) => {
     const totalEntryFees = m.filledSlots * parseFloat(m.entryFee as string);
-    return sum + totalEntryFees * 0.1;
+    return sum + totalEntryFees;
   }, 0);
   const platformFees = completedMatches.reduce((sum, m) => {
     const totalEntryFees = m.filledSlots * parseFloat(m.entryFee as string);
-    return sum + totalEntryFees * 0.05;
+    const isLargePool = m.filledSlots >= 8;
+    const platformPercent = 0.05;
+    const hostPercent = isLargePool ? 0.10 : 0.05;
+    return sum + totalEntryFees * (platformPercent + hostPercent);
   }, 0);
 
   res.json({
