@@ -1,15 +1,38 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable } from "@workspace/db/schema";
-import { eq, and, ilike, or, sql, avg } from "drizzle-orm";
+import { eq, and, ilike, or, sql, avg, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
-async function getHostRating(hostId: number): Promise<number | null> {
-  const result = await db.select({ avg: avg(hostReviewsTable.rating) })
+async function getHostRatings(hostIds: number[]): Promise<Map<number, number>> {
+  if (hostIds.length === 0) return new Map();
+  const result = await db
+    .select({ hostId: hostReviewsTable.hostId, avg: avg(hostReviewsTable.rating) })
     .from(hostReviewsTable)
-    .where(eq(hostReviewsTable.hostId, hostId));
-  const val = result[0]?.avg;
-  return val ? parseFloat(val as string) : null;
+    .where(inArray(hostReviewsTable.hostId, hostIds))
+    .groupBy(hostReviewsTable.hostId);
+  const map = new Map<number, number>();
+  for (const row of result) {
+    if (row.avg) map.set(row.hostId, parseFloat(row.avg as string));
+  }
+  return map;
+}
+
+async function getMatchCounts(userIds: number[]): Promise<Map<number, number>> {
+  if (userIds.length === 0) return new Map();
+  const result = await db
+    .select({
+      userId: matchParticipantsTable.userId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(matchParticipantsTable)
+    .where(inArray(matchParticipantsTable.userId, userIds))
+    .groupBy(matchParticipantsTable.userId);
+  const map = new Map<number, number>();
+  for (const row of result) {
+    map.set(row.userId, row.count);
+  }
+  return map;
 }
 
 const router: IRouter = Router();
@@ -18,63 +41,57 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
   const user = (req as any).user;
   const { search } = req.query;
 
-  const admins = await db.select().from(usersTable).where(eq(usersTable.role, "admin"));
-  let hostsQuery = search
-    ? db.select().from(usersTable).where(
-        and(
-          eq(usersTable.role, "host"),
-          or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`))
+  const [admins, hosts, players, myFollows] = await Promise.all([
+    db.select().from(usersTable).where(eq(usersTable.role, "admin")),
+    search
+      ? db.select().from(usersTable).where(
+          and(eq(usersTable.role, "host"), or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`)))
         )
-      )
-    : db.select().from(usersTable).where(eq(usersTable.role, "host"));
-  const hosts = await hostsQuery;
+      : db.select().from(usersTable).where(eq(usersTable.role, "host")),
+    search
+      ? db.select().from(usersTable).where(
+          and(eq(usersTable.role, "player"), or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`)))
+        )
+      : db.select().from(usersTable).where(eq(usersTable.role, "player")),
+    db.select().from(followsTable).where(eq(followsTable.followerId, user.id)),
+  ]);
 
-  let playersQuery = db.select().from(usersTable).where(eq(usersTable.role, "player"));
-  if (search) {
-    playersQuery = db.select().from(usersTable).where(
-      and(
-        eq(usersTable.role, "player"),
-        or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`))
-      )
-    ) as any;
-  }
-  const players = await playersQuery;
+  const followedUserIds = new Set(myFollows.map((f) => f.followingId));
 
-  const followedUserIds = new Set<number>();
-  const myFollows = await db.select().from(followsTable).where(eq(followsTable.followerId, user.id));
-  myFollows.forEach(f => followedUserIds.add(f.followingId));
+  const allUserIds = [...admins, ...hosts.slice(0, 5), ...players].map((u) => u.id);
+  const hostAndAdminIds = [...admins, ...hosts.slice(0, 5)].map((u) => u.id);
 
-  const serializeProfile = async (u: typeof usersTable.$inferSelect, matchCount?: number) => {
-    const matchesCount = matchCount ?? (await db.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, u.id))).length;
-    const rating = (u.role === "host" || u.role === "admin") ? await getHostRating(u.id) : null;
-    return {
-      id: u.id,
-      name: u.name,
-      handle: u.handle,
-      avatar: u.avatar || "🔥",
-      role: u.role,
-      followersCount: u.followersCount,
-      followingCount: u.followingCount,
-      rating,
-      matchesCount,
-      isFollowing: followedUserIds.has(u.id),
-      upcomingMatches: [],
-      activeMatches: [],
-    };
-  };
+  const [matchCountMap, ratingMap] = await Promise.all([
+    getMatchCounts(allUserIds),
+    getHostRatings(hostAndAdminIds),
+  ]);
 
-  // Admins appear first, then hosts
-  const adminProfiles = await Promise.all(admins.map(a => serializeProfile(a)));
-  const hostProfiles = await Promise.all(hosts.slice(0, 5).map(h => serializeProfile(h)));
+  const serialize = (u: typeof usersTable.$inferSelect) => ({
+    id: u.id,
+    name: u.name,
+    handle: u.handle,
+    avatar: u.avatar || "🔥",
+    role: u.role,
+    followersCount: u.followersCount,
+    followingCount: u.followingCount,
+    rating: (u.role === "host" || u.role === "admin") ? (ratingMap.get(u.id) ?? null) : null,
+    matchesCount: matchCountMap.get(u.id) ?? 0,
+    isFollowing: followedUserIds.has(u.id),
+    upcomingMatches: [],
+    activeMatches: [],
+  });
+
+  const adminProfiles = admins.map(serialize);
+  const hostProfiles = hosts.slice(0, 5).map(serialize);
   const recommendedHosts = [...adminProfiles, ...hostProfiles];
-  const mostActivePlayers = (await Promise.all(players.map(async (p) => {
-    const participations = await db.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, p.id));
-    return { user: p, matchesCount: participations.length };
-  }))).sort((a, b) => b.matchesCount - a.matchesCount)
-    .slice(0, 10)
-    .map(({ user: u, matchesCount }) => serializeProfile(u, matchesCount));
 
-  res.json({ recommendedHosts, mostActivePlayers: await Promise.all(mostActivePlayers) });
+  const mostActivePlayers = players
+    .map((p) => ({ user: p, matchesCount: matchCountMap.get(p.id) ?? 0 }))
+    .sort((a, b) => b.matchesCount - a.matchesCount)
+    .slice(0, 10)
+    .map(({ user: u }) => serialize(u));
+
+  res.json({ recommendedHosts, mostActivePlayers });
 });
 
 router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
