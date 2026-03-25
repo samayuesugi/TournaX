@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { usersTable, referralsTable } from "@workspace/db/schema";
+import { eq, sql, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -87,7 +87,7 @@ function getTodayDate(): string {
 }
 
 router.post("/auth/register", async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password, referralCode: usedReferralCode } = req.body;
   if (!email || !password) {
     res.status(400).json({ error: "Email and password required" });
     return;
@@ -97,6 +97,17 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Email already registered" });
     return;
   }
+
+  let referrer: typeof usersTable.$inferSelect | null = null;
+  if (usedReferralCode?.trim()) {
+    const [found] = await db.select().from(usersTable).where(ilike(usersTable.referralCode, usedReferralCode.trim()));
+    if (!found) {
+      res.status(400).json({ error: "Invalid referral code" });
+      return;
+    }
+    referrer = found;
+  }
+
   const [user] = await db.insert(usersTable).values({
     email,
     password: await hashPassword(password),
@@ -105,8 +116,17 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     profileSetup: false,
     balance: "0",
   }).returning();
+
   const referralCode = `TournaX${user.id.toString().padStart(3, "0")}`;
   await db.update(usersTable).set({ referralCode }).where(eq(usersTable.id, user.id));
+
+  if (referrer && referrer.id !== user.id) {
+    await db.insert(referralsTable).values({
+      referrerId: referrer.id,
+      referredId: user.id,
+    });
+  }
+
   const [userWithCode] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
   const token = generateToken(user.id);
   res.json({ user: serializeUser(userWithCode), token });

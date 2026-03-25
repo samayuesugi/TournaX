@@ -13,7 +13,7 @@ export interface AuthContextValue {
   pendingDailyBonus: DailyBonus | null;
   dismissDailyBonus: () => void;
   login: (email: string, password: string) => Promise<{ user: User; token: string; [key: string]: any }>;
-  register: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, referralCode?: string) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: User) => void;

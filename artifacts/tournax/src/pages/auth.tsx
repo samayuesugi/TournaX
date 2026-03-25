@@ -16,7 +16,7 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({ email: "", password: "", confirmPassword: "" });
+  const [registerForm, setRegisterForm] = useState({ email: "", password: "", confirmPassword: "", referralCode: "" });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +49,7 @@ export default function AuthPage() {
     }
     setIsLoading(true);
     try {
-      await register(registerForm.email, registerForm.password);
+      await register(registerForm.email, registerForm.password, registerForm.referralCode || undefined);
       navigate("/setup-profile");
     } catch (err: any) {
       toast({ title: "Registration failed", description: err?.data?.error || "Something went wrong", variant: "destructive" });
@@ -168,6 +168,19 @@ export default function AuthPage() {
                     onChange={(e) => setRegisterForm(f => ({ ...f, confirmPassword: e.target.value }))}
                     required
                     minLength={6}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-referral" className="text-sm font-medium">
+                    Referral Code <span className="text-muted-foreground font-normal">(Optional)</span>
+                  </Label>
+                  <Input
+                    id="reg-referral"
+                    type="text"
+                    placeholder="e.g. TournaX001"
+                    value={registerForm.referralCode}
+                    onChange={(e) => setRegisterForm(f => ({ ...f, referralCode: e.target.value }))}
+                    autoCapitalize="characters"
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>

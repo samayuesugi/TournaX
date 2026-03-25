@@ -26,6 +26,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
+  referralCode?: string;
 }
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
