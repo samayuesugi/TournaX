@@ -273,13 +273,26 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
       }
 
       if (totalFee > 0) {
+        const today = new Date().toISOString().slice(0, 10);
         const newPaidMatchesResult = await tx.execute(
           sql`UPDATE users SET paid_matches_played = paid_matches_played + 1 WHERE id = ${user.id} RETURNING paid_matches_played`
         );
         const newPaidMatches = (newPaidMatchesResult.rows[0] as any)?.paid_matches_played as number;
-        if (newPaidMatches && newPaidMatches % 5 === 0) {
+
+        // Daily task: track paid matches today (reset other daily counter if new day)
+        const dailyResult = await tx.execute(
+          sql`UPDATE users SET
+            daily_paid_matches = CASE WHEN daily_task_date = ${today} THEN daily_paid_matches + 1 ELSE 1 END,
+            daily_wins = CASE WHEN daily_task_date = ${today} THEN daily_wins ELSE 0 END,
+            daily_task_date = ${today}
+          WHERE id = ${user.id} RETURNING daily_paid_matches`
+        );
+        const todayPaidCount = (dailyResult.rows[0] as any)?.daily_paid_matches as number;
+        // Award 5 silver coins when daily 5-match task first completes
+        if (todayPaidCount === 5) {
           await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${user.id}`);
         }
+
         if (newPaidMatches === 5) {
           const [referral] = await tx.select().from(referralsTable)
             .where(and(eq(referralsTable.referredId, user.id), eq(referralsTable.completed, false)));
@@ -362,6 +375,7 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
     res.status(400).json({ error: `Total rewards (₹${totalReward}) exceed the winners pool (₹${maxWinnersPool.toFixed(2)})` }); return;
   }
 
+  const today = new Date().toISOString().slice(0, 10);
   await db.transaction(async (tx) => {
     for (const r of results) {
       await tx.update(matchParticipantsTable).set({
@@ -371,9 +385,13 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
 
       if (r.reward > 0) {
         await tx.execute(
-          sql`UPDATE users SET balance = balance + ${r.reward}, silver_coins = silver_coins + 3 WHERE id = (
-            SELECT user_id FROM match_participants WHERE id = ${r.participantId}
-          )`
+          sql`UPDATE users SET
+            balance = balance + ${r.reward},
+            silver_coins = silver_coins + 3,
+            daily_wins = CASE WHEN daily_task_date = ${today} THEN daily_wins + 1 ELSE 1 END,
+            daily_paid_matches = CASE WHEN daily_task_date = ${today} THEN daily_paid_matches ELSE 0 END,
+            daily_task_date = ${today}
+          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})`
         );
       }
     }

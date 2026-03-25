@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useGetWallet, useRequestAddBalance, useRequestWithdrawal, useConvertSilverCoins } from "@workspace/api-client-react";
+import { useState, useRef, useEffect } from "react";
+import { useGetWallet, useRequestAddBalance, useRequestWithdrawal, useConvertSilverCoins, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -30,12 +30,47 @@ const ADD_BALANCE_RULES = [
   { icon: "📵", text: "Do not submit a request with the same UTR twice." },
 ];
 
-const SILVER_EARN_RULES = [
-  { icon: "📅", text: "2 Silver Coins for daily login (once per day)" },
-  { icon: "🏆", text: "3 Silver Coins when you win a match" },
-  { icon: "🎮", text: "5 Silver Coins for every 5 paid matches played" },
-  { icon: "🔄", text: "100 Silver Coins = 10 Gold Coins" },
-];
+type DailyTasksData = {
+  loginClaimed: boolean;
+  winsToday: number;
+  winsClaimed: boolean;
+  paidMatchesToday: number;
+  paidMatchesClaimed: boolean;
+};
+
+function DailyTask({ icon, title, desc, progress, total, claimed }: {
+  icon: string;
+  title: string;
+  desc: string;
+  progress: number;
+  total: number;
+  claimed: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 bg-card/40 rounded-xl px-3 py-2.5">
+      <span className="text-lg shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-foreground leading-tight">{title}</p>
+        <p className="text-[10px] text-muted-foreground">{desc}</p>
+        {!claimed && total > 1 && (
+          <div className="mt-1 h-1 bg-slate-700/60 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-slate-400 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, (progress / total) * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+      <div className="shrink-0">
+        {claimed ? (
+          <span className="text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5">Claimed</span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground font-medium">{progress}/{total}</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -57,6 +92,13 @@ export default function WalletPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dailyTasks, setDailyTasks] = useState<DailyTasksData | null>(null);
+
+  useEffect(() => {
+    customFetch<DailyTasksData>("/api/auth/daily-tasks")
+      .then(setDailyTasks)
+      .catch(() => {});
+  }, []);
 
   const isHost = user?.role === "host";
   const silverCoins = (wallet as any)?.silverCoins ?? 0;
@@ -334,14 +376,35 @@ export default function WalletPage() {
                 <p className="text-xs text-muted-foreground">{100 - (silverCoins % 100)} more needed to convert (100 Silver = 10 Gold)</p>
               )}
 
-              <div className="mt-3 border-t border-slate-500/20 pt-3 space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">How to earn Silver Coins</p>
-                {SILVER_EARN_RULES.map((rule, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="text-sm shrink-0">{rule.icon}</span>
-                    <p className="text-xs text-muted-foreground">{rule.text}</p>
-                  </div>
-                ))}
+              <div className="mt-3 border-t border-slate-500/20 pt-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Earn with Tasks</p>
+                <div className="space-y-1.5">
+                  <DailyTask
+                    icon="📅"
+                    title="Daily Login"
+                    desc="+2 Silver Coins"
+                    progress={dailyTasks?.loginClaimed ? 1 : 0}
+                    total={1}
+                    claimed={dailyTasks?.loginClaimed ?? false}
+                  />
+                  <DailyTask
+                    icon="🏆"
+                    title="Win 3 Matches"
+                    desc="+3 Silver Coins each win"
+                    progress={dailyTasks?.winsToday ?? 0}
+                    total={3}
+                    claimed={dailyTasks?.winsClaimed ?? false}
+                  />
+                  <DailyTask
+                    icon="🎮"
+                    title="Play 5 Paid Matches"
+                    desc="+5 Silver Coins"
+                    progress={dailyTasks?.paidMatchesToday ?? 0}
+                    total={5}
+                    claimed={dailyTasks?.paidMatchesClaimed ?? false}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">Tasks reset daily · 100 Silver = 10 Gold Coins</p>
               </div>
             </div>
           </div>

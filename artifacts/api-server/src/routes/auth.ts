@@ -163,6 +163,32 @@ router.post("/auth/daily-checkin", requireAuth, async (req: Request, res: Respon
   res.json({ claimed: true, bonus: totalBonus, referralBonus, silverCoins: updated.silverCoins ?? 0 });
 });
 
+router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const today = getTodayDate();
+
+  let dailyWins = user.dailyWins ?? 0;
+  let dailyPaidMatches = user.dailyPaidMatches ?? 0;
+
+  if (user.dailyTaskDate !== today) {
+    await db.update(usersTable).set({
+      dailyTaskDate: today,
+      dailyWins: 0,
+      dailyPaidMatches: 0,
+    }).where(eq(usersTable.id, user.id));
+    dailyWins = 0;
+    dailyPaidMatches = 0;
+  }
+
+  res.json({
+    loginClaimed: user.lastLoginDate === today,
+    winsToday: dailyWins,
+    winsClaimed: dailyWins >= 3,
+    paidMatchesToday: dailyPaidMatches,
+    paidMatchesClaimed: dailyPaidMatches >= 5,
+  });
+});
+
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { avatar, game, ign, gameUid } = req.body;

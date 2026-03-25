@@ -31,6 +31,9 @@ export const usersTable = pgTable("users", {
   twitch: text("twitch"),
   referralCode: text("referral_code").unique(),
   referralBonusUntil: text("referral_bonus_until"),
+  dailyTaskDate: text("daily_task_date"),
+  dailyWins: integer("daily_wins").notNull().default(0),
+  dailyPaidMatches: integer("daily_paid_matches").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
