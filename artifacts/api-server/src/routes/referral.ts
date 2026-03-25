@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable, referralsTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, ilike } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
@@ -25,7 +25,7 @@ router.post("/referral/apply", requireAuth, async (req: Request, res: Response) 
     return;
   }
 
-  const [referrer] = await db.select().from(usersTable).where(eq(usersTable.referralCode, code.trim().toUpperCase()));
+  const [referrer] = await db.select().from(usersTable).where(ilike(usersTable.referralCode, code.trim()));
   if (!referrer) {
     res.status(404).json({ error: "Invalid referral code" });
     return;

@@ -60,9 +60,6 @@ export async function seedDefaults() {
         recommended: false,
       });
       console.log(`[seed] Created default ${account.role} account`);
-    } else {
-      const newHash = await hashPassword(account.password);
-      await db.update(usersTable).set({ password: newHash }).where(eq(usersTable.id, existing.id));
     }
   }
 }
