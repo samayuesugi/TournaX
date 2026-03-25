@@ -493,7 +493,7 @@ export default function MatchDetailPage() {
                         : (selectedSquadIds.size + joinPlayers.filter(p => p.ign && p.uid).length !== match.teamSize)
                     )}
                   >
-                    {isJoining ? "Joining..." : `Confirm · 🪙${match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee}`}
+                    {isJoining ? "Joining..." : <span className="inline-flex items-center gap-1">Confirm · <GoldCoin amount={match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee} /></span>}
                   </Button>
                 </div>
               </DialogContent>

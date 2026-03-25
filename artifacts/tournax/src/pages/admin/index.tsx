@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   useAdminDashboard, useAdminCreateHost, useAdminCreateAdmin, customFetch
 } from "@workspace/api-client-react";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2 } from "lucide-react";
+import { GoldCoin } from "@/components/ui/Coins";
 
 function HostRow({ host }: { host: any }) {
   const { toast } = useToast();
@@ -63,7 +64,7 @@ function HostRow({ host }: { host: any }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
+function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: ReactNode; color: string }) {
   return (
     <div className="bg-card border border-card-border rounded-xl p-4">
       <div className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center mb-2`}>
@@ -133,7 +134,7 @@ export default function AdminDashboardPage() {
               <StatCard icon={Activity} label="Live Now" value={data.liveNow} color="bg-green-500/20 text-green-400" />
               <StatCard icon={Swords} label="Total Matches" value={data.totalMatches} color="bg-accent/20 text-accent" />
               <StatCard icon={AlertTriangle} label="Pending KYC" value={data.pendingKyc} color="bg-yellow-500/20 text-yellow-400" />
-              <StatCard icon={DollarSign} label="Total Revenue" value={`🪙${data.totalRevenue.toFixed(0)}`} color="bg-green-500/20 text-green-400" />
+              <StatCard icon={DollarSign} label="Total Revenue" value={<GoldCoin amount={data.totalRevenue.toFixed(0)} />} color="bg-green-500/20 text-green-400" />
               <StatCard icon={AlertTriangle} label="Complaints" value={data.complaintsCount} color="bg-destructive/20 text-destructive" />
             </div>
 

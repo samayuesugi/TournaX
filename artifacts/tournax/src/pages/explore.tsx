@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Search, Trophy, DollarSign, Swords, Medal } from "lucide-react";
+import { GoldCoin } from "@/components/ui/Coins";
 import { useExploreUsers, customFetch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Input } from "@/components/ui/input";
@@ -63,7 +64,7 @@ function LeaderboardCard({ entry, type }: { entry: LeaderboardEntry; type: strin
         )}
         {type === "earnings" && (
           <>
-            <div className="font-bold text-sm text-green-400">🪙{entry.totalEarnings.toFixed(0)}</div>
+            <div className="font-bold text-sm text-green-400"><GoldCoin amount={entry.totalEarnings.toFixed(0)} /></div>
             <div className="text-[10px] text-muted-foreground">earned</div>
           </>
         )}

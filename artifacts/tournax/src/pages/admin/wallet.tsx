@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Wallet, Trash2, IndianRupee } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { GoldCoin } from "@/components/ui/Coins";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -161,7 +162,7 @@ export default function AdminWalletPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-sm font-semibold text-green-400">
-                      +🪙{parseFloat(entry.amount).toFixed(2)}
+                      +<GoldCoin amount={parseFloat(entry.amount).toFixed(2)} />
                     </span>
                   </div>
                 </div>

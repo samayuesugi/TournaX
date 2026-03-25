@@ -3,6 +3,7 @@ import { useAdminListComplaints } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, ImageIcon, ChevronDown, ChevronUp, Wallet, Swords, User, Mail } from "lucide-react";
+import { GoldCoin } from "@/components/ui/Coins";
 
 function resolveAvatarSrc(avatar: string): string {
   if (avatar.startsWith("/objects/")) return `/api/storage${avatar}`;
@@ -141,7 +142,7 @@ function ComplaintCard({ c }: { c: any }) {
               <div className="flex items-center justify-center gap-1 text-green-400 mb-1">
                 <Wallet className="w-3.5 h-3.5" />
               </div>
-              <p className="font-bold text-sm">🪙{Number(c.userWallet ?? 0).toFixed(0)}</p>
+              <p className="font-bold text-sm"><GoldCoin amount={Number(c.userWallet ?? 0).toFixed(0)} /></p>
               <p className="text-xs text-muted-foreground">Wallet</p>
             </div>
             <div className="bg-card border border-border rounded-xl p-2.5 text-center">

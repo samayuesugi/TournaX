@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { customFetch } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { Trophy, Swords, DollarSign, Medal } from "lucide-react";
+import { GoldCoin } from "@/components/ui/Coins";
 import { cn } from "@/lib/utils";
 
 const GAMES = ["all", "BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC"];
@@ -80,7 +81,7 @@ function LeaderboardList({ data, type, isLoading }: { data: LeaderboardEntry[] |
               )}
               {type === "earnings" && (
                 <>
-                  <div className={cn("font-bold text-sm text-green-400")}> 🪙{entry.totalEarnings.toFixed(0)}</div>
+                  <div className={cn("font-bold text-sm text-green-400")}><GoldCoin amount={entry.totalEarnings.toFixed(0)} /></div>
                   <div className="text-[10px] text-muted-foreground">earned</div>
                 </>
               )}

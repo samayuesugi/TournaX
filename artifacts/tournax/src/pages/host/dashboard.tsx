@@ -380,7 +380,7 @@ export default function HostDashboardPage() {
             <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center mx-auto mb-1.5">
               <Trophy className="w-3.5 h-3.5 text-accent" />
             </div>
-            <div className="text-xl font-bold">🪙{totalEarnings.toFixed(0)}</div>
+            <div className="text-xl font-bold"><GoldCoin amount={totalEarnings.toFixed(0)} /></div>
             <div className="text-[10px] text-muted-foreground">Earned</div>
           </div>
         </div>
