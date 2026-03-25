@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { customFetch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { GoldCoin } from "@/components/ui/Coins";
-import { Plus, Gavel, Zap, Clock, CheckCircle, XCircle, ChevronRight, ImagePlus, X, Loader2 } from "lucide-react";
+import { Plus, Gavel, Zap, Clock, CheckCircle, XCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Auction = {
@@ -39,10 +39,7 @@ export default function HostAuctionsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [games, setGames] = useState<{ id: number; name: string }[]>([]);
-  const [form, setForm] = useState({ game: "", tournamentName: "", startTime: "", endTime: "", bannerUrl: "" });
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState({ game: "", tournamentName: "", startTime: "", endTime: "" });
 
   const load = () => {
     customFetch<Auction[]>("/api/auctions")
@@ -55,33 +52,6 @@ export default function HostAuctionsPage() {
     load();
     customFetch<{ id: number; name: string }[]>("/api/games").then(setGames).catch(() => {});
   }, []);
-
-  const handleBannerSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Please select an image file", variant: "destructive" }); return;
-    }
-    setIsUploading(true);
-    try {
-      const { uploadURL, objectPath } = await customFetch<{ uploadURL: string; objectPath: string }>(
-        "/api/storage/uploads/request-url",
-        {
-          method: "POST",
-          body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      await fetch(uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      setForm(f => ({ ...f, bannerUrl: objectPath }));
-      setBannerPreview(URL.createObjectURL(file));
-      toast({ title: "Banner uploaded!" });
-    } catch {
-      toast({ title: "Upload failed, try again", variant: "destructive" });
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleCreate = async () => {
     if (!form.game || !form.tournamentName.trim()) {
@@ -96,13 +66,11 @@ export default function HostAuctionsPage() {
           tournamentName: form.tournamentName.trim(),
           startTime: form.startTime || null,
           endTime: form.endTime || null,
-          bannerUrl: form.bannerUrl || null,
         }),
         headers: { "Content-Type": "application/json" },
       });
       toast({ title: "Auction created!" });
-      setForm({ game: "", tournamentName: "", startTime: "", endTime: "", bannerUrl: "" });
-      setBannerPreview(null);
+      setForm({ game: "", tournamentName: "", startTime: "", endTime: "" });
       setCreateOpen(false);
       load();
     } catch (err: any) {
@@ -135,39 +103,6 @@ export default function HostAuctionsPage() {
               <DialogHeader><DialogTitle>Create Auction</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Auction Banner</Label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleBannerSelect}
-                  />
-                  {bannerPreview ? (
-                    <div className="relative rounded-xl overflow-hidden h-32">
-                      <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
-                      <button
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center"
-                        onClick={() => { setBannerPreview(null); setForm(f => ({ ...f, bannerUrl: "" })); }}
-                      >
-                        <X className="w-3.5 h-3.5 text-white" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="w-full h-28 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-1.5 text-muted-foreground"
-                    >
-                      {isUploading ? (
-                        <><Loader2 className="w-6 h-6 animate-spin" /><span className="text-xs">Uploading...</span></>
-                      ) : (
-                        <><ImagePlus className="w-6 h-6" /><span className="text-xs">Upload banner image</span></>
-                      )}
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-1.5">
                   <Label>Choose Game</Label>
                   <Select value={form.game} onValueChange={val => setForm(f => ({ ...f, game: val }))}>
                     <SelectTrigger>
@@ -192,7 +127,7 @@ export default function HostAuctionsPage() {
                   <Label>End Time (optional)</Label>
                   <Input type="datetime-local" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} />
                 </div>
-                <Button className="w-full" onClick={handleCreate} disabled={isCreating || isUploading}>
+                <Button className="w-full" onClick={handleCreate} disabled={isCreating}>
                   {isCreating ? "Creating..." : "Create Auction"}
                 </Button>
               </div>
