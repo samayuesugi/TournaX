@@ -14,7 +14,7 @@ const playerNav = [
 const hostNav = [
   { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/host/create-match", icon: Plus, label: "Create" },
-  { href: "/my-matches", icon: Swords, label: "Matches" },
+  { href: "/host/auctions", icon: Gavel, label: "Auctions" },
   { href: "/explore", icon: Compass, label: "Explore" },
   { href: "/profile", icon: User, label: "Profile" },
 ];

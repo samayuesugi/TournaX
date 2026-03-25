@@ -68,7 +68,7 @@ router.get("/auctions/:id", requireAuth, async (req: Request, res: Response) => 
 
 router.post("/auctions", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const { title, tournamentName, startTime, endTime } = req.body;
   if (!title || !tournamentName) {
     res.status(400).json({ error: "title and tournamentName are required" }); return;
@@ -83,7 +83,7 @@ router.post("/auctions", requireAuth, async (req: Request, res: Response) => {
 
 router.put("/auctions/:id", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
@@ -102,7 +102,7 @@ router.put("/auctions/:id", requireAuth, async (req: Request, res: Response) => 
 
 router.post("/auctions/:id/go-live", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
@@ -113,7 +113,7 @@ router.post("/auctions/:id/go-live", requireAuth, async (req: Request, res: Resp
 
 router.post("/auctions/:id/stop", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
@@ -124,7 +124,7 @@ router.post("/auctions/:id/stop", requireAuth, async (req: Request, res: Respons
 
 router.post("/auctions/:id/cancel", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
@@ -143,7 +143,7 @@ router.post("/auctions/:id/cancel", requireAuth, async (req: Request, res: Respo
 
 router.post("/auctions/:id/submit-result", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
@@ -206,7 +206,7 @@ router.post("/auctions/:id/submit-result", requireAuth, async (req: Request, res
 
 router.post("/auctions/:auctionId/teams", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.auctionId);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
@@ -220,7 +220,7 @@ router.post("/auctions/:auctionId/teams", requireAuth, async (req: Request, res:
 
 router.put("/auctions/:auctionId/teams/:teamId", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const teamId = Number(req.params.teamId);
   const { name, logo, displayOrder } = req.body;
   const [team] = await db.update(auctionTeamsTable).set({
@@ -234,7 +234,7 @@ router.put("/auctions/:auctionId/teams/:teamId", requireAuth, async (req: Reques
 
 router.delete("/auctions/:auctionId/teams/:teamId", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const teamId = Number(req.params.teamId);
   await db.delete(auctionPlayersTable).where(eq(auctionPlayersTable.teamId, teamId));
   await db.delete(auctionTeamsTable).where(eq(auctionTeamsTable.id, teamId));
@@ -243,7 +243,7 @@ router.delete("/auctions/:auctionId/teams/:teamId", requireAuth, async (req: Req
 
 router.post("/auctions/:auctionId/teams/:teamId/players", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const auctionId = Number(req.params.auctionId);
   const teamId = Number(req.params.teamId);
   const { name, avatar, position } = req.body;
@@ -256,7 +256,7 @@ router.post("/auctions/:auctionId/teams/:teamId/players", requireAuth, async (re
 
 router.put("/auctions/:auctionId/teams/:teamId/players/:playerId", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const playerId = Number(req.params.playerId);
   const { name, avatar, position } = req.body;
   const [player] = await db.update(auctionPlayersTable).set({
@@ -270,7 +270,7 @@ router.put("/auctions/:auctionId/teams/:teamId/players/:playerId", requireAuth, 
 
 router.delete("/auctions/:auctionId/teams/:teamId/players/:playerId", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+  if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
   const playerId = Number(req.params.playerId);
   await db.delete(auctionPlayersTable).where(eq(auctionPlayersTable.id, playerId));
   res.json({ success: true });
