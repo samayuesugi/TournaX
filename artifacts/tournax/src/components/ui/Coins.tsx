@@ -17,9 +17,9 @@ function iconSize(size: "sm" | "md" | "lg") {
 
 export function GoldCoin({ amount, className, size = "md" }: CoinProps) {
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)}>
-      <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain", iconSize(size))} />
+    <span className={cn("inline-flex items-center gap-1", className)}>
       <span>{amount}</span>
+      <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain", iconSize(size))} />
     </span>
   );
 }
