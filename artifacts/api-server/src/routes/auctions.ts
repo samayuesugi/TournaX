@@ -4,7 +4,7 @@ import {
   auctionsTable, auctionTeamsTable, auctionPlayersTable,
   auctionBidsTable, auctionResultsTable,
 } from "@workspace/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
@@ -16,6 +16,28 @@ router.get("/auctions", requireAuth, async (req: Request, res: Response) => {
     const bids = await db.select().from(auctionBidsTable).where(eq(auctionBidsTable.auctionId, a.id));
     const totalPool = bids.reduce((s, b) => s + parseFloat(b.amount as string), 0);
     return { ...a, teamsCount: teams.length, totalPool };
+  }));
+  res.json(result);
+});
+
+router.get("/auctions/my-history", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const myBids = await db.select({ auctionId: auctionBidsTable.auctionId })
+    .from(auctionBidsTable)
+    .where(eq(auctionBidsTable.userId, user.id));
+  const auctionIds = [...new Set(myBids.map(b => b.auctionId))];
+  if (auctionIds.length === 0) { res.json([]); return; }
+  const auctions = await db.select().from(auctionsTable)
+    .where(and(inArray(auctionsTable.id, auctionIds), eq(auctionsTable.status, "completed")))
+    .orderBy(auctionsTable.createdAt);
+  const result = await Promise.all(auctions.map(async (a) => {
+    const teams = await db.select().from(auctionTeamsTable).where(eq(auctionTeamsTable.auctionId, a.id));
+    const bids = await db.select().from(auctionBidsTable).where(eq(auctionBidsTable.auctionId, a.id));
+    const myBidsForAuction = bids.filter(b => b.userId === user.id);
+    const totalPool = bids.reduce((s, b) => s + parseFloat(b.amount as string), 0);
+    const myTotalBid = myBidsForAuction.reduce((s, b) => s + parseFloat(b.amount as string), 0);
+    const [resultRow] = await db.select().from(auctionResultsTable).where(eq(auctionResultsTable.auctionId, a.id));
+    return { ...a, teamsCount: teams.length, totalPool, myTotalBid, result: resultRow || null };
   }));
   res.json(result);
 });
