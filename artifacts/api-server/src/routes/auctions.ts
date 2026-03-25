@@ -91,12 +91,13 @@ router.get("/auctions/:id", requireAuth, async (req: Request, res: Response) => 
 router.post("/auctions", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (!["admin", "host"].includes(user.role)) { res.status(403).json({ error: "Admin only" }); return; }
-  const { title, tournamentName, startTime, endTime } = req.body;
+  const { title, tournamentName, startTime, endTime, bannerUrl } = req.body;
   if (!title || !tournamentName) {
     res.status(400).json({ error: "title and tournamentName are required" }); return;
   }
   const [auction] = await db.insert(auctionsTable).values({
     title, tournamentName, hostId: user.id,
+    bannerUrl: bannerUrl || null,
     startTime: startTime ? new Date(startTime) : null,
     endTime: endTime ? new Date(endTime) : null,
   }).returning();

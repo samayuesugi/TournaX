@@ -8,6 +8,7 @@ export const auctionsTable = pgTable("auctions", {
   tournamentName: text("tournament_name").notNull(),
   status: auctionStatusEnum("status").notNull().default("upcoming"),
   hostId: integer("host_id").notNull(),
+  bannerUrl: text("banner_url"),
   startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
   createdAt: timestamp("created_at").defaultNow(),
