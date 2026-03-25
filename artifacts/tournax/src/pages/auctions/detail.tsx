@@ -173,55 +173,66 @@ export default function AuctionDetailPage() {
 
         <div>
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Teams</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             {auction.teams.map(team => {
               const placement = getTeamPlacement(team.id);
               return (
                 <button
                   key={team.id}
                   className={cn(
-                    "bg-card border rounded-2xl p-3 text-left transition-all active:scale-[0.97]",
-                    isLive && user?.role === "player" ? "border-primary/40 hover:border-primary cursor-pointer" : "border-card-border",
+                    "w-full bg-card border rounded-2xl p-4 text-left transition-all active:scale-[0.98]",
+                    isLive && user?.role === "player" ? "border-primary/40 hover:border-primary cursor-pointer" : "border-card-border cursor-default",
                     placement === 1 && "border-yellow-500/60 bg-yellow-500/5",
                     placement === 2 && "border-slate-400/60 bg-slate-400/5",
                     placement === 3 && "border-orange-700/60 bg-orange-700/5",
                   )}
                   onClick={() => {
                     if (isLive && user?.role === "player") setSelectedTeam(team);
-                    else if (!isLive) setSelectedTeam(team);
                   }}
                 >
-                  <div className="flex flex-col items-center gap-2 mb-2">
+                  {/* Team header */}
+                  <div className="flex items-center gap-3 mb-3">
                     <AvatarImg src={team.logo} name={team.name} size="lg" />
-                    <div className="text-center">
-                      <p className="font-bold text-sm leading-tight">{team.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-base leading-tight">{team.name}</p>
                       {placement && (
-                        <span className="text-xs font-semibold">{placementLabel[placement]}</span>
+                        <span className="text-sm font-semibold">{placementLabel[placement]}</span>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-0.5">{team.players.length} player{team.players.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Bids</p>
+                      <GoldCoin amount={team.totalBidAmount.toFixed(0)} size="sm" />
+                      {team.myBidAmount > 0 && (
+                        <div className="mt-1">
+                          <p className="text-[10px] text-primary uppercase tracking-wide">My Bid</p>
+                          <GoldCoin amount={team.myBidAmount.toFixed(0)} size="sm" />
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex justify-center gap-0.5 mb-2">
-                    {team.players.slice(0, 4).map(p => (
-                      <AvatarImg key={p.id} src={p.avatar} name={p.name} size="sm" />
-                    ))}
-                    {team.players.length > 4 && (
-                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold">
-                        +{team.players.length - 4}
+
+                  {/* Players list */}
+                  {team.players.length > 0 && (
+                    <div className="border-t border-border/40 pt-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2">Players</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {team.players.map(p => (
+                          <div key={p.id} className="flex items-center gap-2 bg-secondary/40 rounded-lg px-2.5 py-1.5">
+                            <AvatarImg src={p.avatar} name={p.name} size="sm" />
+                            <span className="text-xs font-medium truncate">{p.name}</span>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                  <div className="border-t border-border/50 pt-2 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-muted-foreground">Total Bids</span>
-                      <GoldCoin amount={team.totalBidAmount.toFixed(0)} size="sm" />
                     </div>
-                    {team.myBidAmount > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-primary">My Bid</span>
-                        <GoldCoin amount={team.myBidAmount.toFixed(0)} size="sm" />
-                      </div>
-                    )}
-                  </div>
+                  )}
+
+                  {isLive && user?.role === "player" && (
+                    <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
+                      <span className="text-xs text-primary font-medium">Tap to bid on this team</span>
+                      <ChevronRight className="w-4 h-4 text-primary" />
+                    </div>
+                  )}
                 </button>
               );
             })}
