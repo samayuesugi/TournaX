@@ -25,8 +25,9 @@ const ADD_BALANCE_RULES = [
   { icon: "⚠️", text: "Submitting a false or already used UTR will result in a 2 Gold Coin penalty." },
   { icon: "🧾", text: "Attach a clear and readable receipt — blurry or cropped receipts will be rejected." },
   { icon: "✅", text: "Enter the UTR number exactly as shown in the receipt." },
-  { icon: "⏱️", text: "Request approval can take up to 30 minutes." },
+  { icon: "⏱️", text: "Request approval can take up to 2 hours." },
   { icon: "🔁", text: "Minimum add amount is 10 Gold Coins." },
+  { icon: "💰", text: "1₹ = 1 Gold Coin." },
   { icon: "📵", text: "Do not submit a request with the same UTR twice." },
 ];
 
