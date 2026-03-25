@@ -31,6 +31,7 @@ import GroupChatPage from "@/pages/chat/group";
 import LeaderboardPage from "@/pages/leaderboard";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
+import { DailyBonusDialog } from "@/components/DailyBonusDialog";
 
 setAuthTokenGetter(getToken);
 
@@ -227,14 +228,31 @@ function Router() {
   );
 }
 
+function AppContent() {
+  const { pendingDailyBonus, dismissDailyBonus } = useAuth();
+  return (
+    <>
+      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <Router />
+      </WouterRouter>
+      {pendingDailyBonus && (
+        <DailyBonusDialog
+          open={true}
+          onClose={dismissDailyBonus}
+          bonus={pendingDailyBonus.bonus}
+          silverCoins={pendingDailyBonus.silverCoins}
+        />
+      )}
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <AppContent />
         </AuthProvider>
         <Toaster />
         <PwaInstallBanner />

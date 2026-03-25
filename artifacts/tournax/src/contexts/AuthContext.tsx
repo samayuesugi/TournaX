@@ -1,19 +1,39 @@
 import { useEffect, useState, ReactNode } from "react";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, customFetch } from "@workspace/api-client-react";
 import { getToken, setToken, clearToken } from "@/lib/auth";
 import { getMe, login as apiLogin, register as apiRegister, logout as apiLogout } from "@workspace/api-client-react";
-import { AuthContext } from "./auth-context";
+import { AuthContext, type DailyBonus } from "./auth-context";
+
+async function callDailyCheckin(): Promise<DailyBonus | null> {
+  try {
+    const result = await customFetch<{ claimed: boolean; bonus: number; silverCoins: number }>(
+      "/api/auth/daily-checkin",
+      { method: "POST" }
+    );
+    if (result.claimed && result.bonus > 0) {
+      return { bonus: result.bonus, silverCoins: result.silverCoins };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<import("@workspace/api-client-react").User | null>(null);
   const [token, setTokenState] = useState<string | null>(getToken());
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingDailyBonus, setPendingDailyBonus] = useState<DailyBonus | null>(null);
 
   useEffect(() => {
     setAuthTokenGetter(getToken);
     if (token) {
       getMe()
-        .then((u) => setUser(u))
+        .then(async (u) => {
+          setUser(u);
+          const bonus = await callDailyCheckin();
+          if (bonus) setPendingDailyBonus(bonus);
+        })
         .catch(() => {
           clearToken();
           setTokenState(null);
@@ -30,6 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokenState(res.token);
     setAuthTokenGetter(getToken);
     setUser(res.user);
+    if ((res as any).dailyLoginBonus > 0) {
+      setPendingDailyBonus({
+        bonus: (res as any).dailyLoginBonus,
+        silverCoins: res.user.silverCoins ?? 0,
+      });
+    }
     return res;
   };
 
@@ -47,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     setTokenState(null);
     setUser(null);
+    setPendingDailyBonus(null);
   };
 
   const refreshUser = async () => {
@@ -54,8 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
 
+  const dismissDailyBonus = () => setPendingDailyBonus(null);
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, refreshUser, setUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, pendingDailyBonus, dismissDailyBonus, login, register, logout, refreshUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );

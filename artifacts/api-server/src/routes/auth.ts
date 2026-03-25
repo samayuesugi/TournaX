@@ -139,6 +139,20 @@ router.post("/auth/logout", requireAuth, async (_req: Request, res: Response) =>
   res.json({ success: true, message: "Logged out" });
 });
 
+router.post("/auth/daily-checkin", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const today = getTodayDate();
+  if (user.lastLoginDate === today) {
+    res.json({ claimed: false, bonus: 0, silverCoins: user.silverCoins ?? 0 });
+    return;
+  }
+  const [updated] = await db.update(usersTable)
+    .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 2` })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  res.json({ claimed: true, bonus: 2, silverCoins: updated.silverCoins ?? 0 });
+});
+
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { avatar, game, ign, gameUid } = req.body;
