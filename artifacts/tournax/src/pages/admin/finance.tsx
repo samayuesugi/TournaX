@@ -78,7 +78,7 @@ function RequestCard({
       </div>
 
       <div className="flex items-center justify-between text-sm mb-3">
-        <span className="font-bold text-lg text-primary">₹{req.amount}</span>
+        <span className="font-bold text-lg text-primary">🪙{req.amount}</span>
         <span className="text-xs text-muted-foreground">{new Date(req.createdAt).toLocaleDateString("en-IN")}</span>
       </div>
 

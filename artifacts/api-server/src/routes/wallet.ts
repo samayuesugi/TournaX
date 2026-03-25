@@ -4,6 +4,9 @@ import { addBalanceRequestsTable, withdrawalRequestsTable, hostEarningsTable, us
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
+const SILVER_TO_GOLD_RATE = 100;
+const GOLD_PER_CONVERSION = 10;
+
 const router: IRouter = Router();
 
 router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
@@ -27,6 +30,7 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
 
   res.json({
     balance: parseFloat(user.balance as string),
+    silverCoins: user.silverCoins ?? 0,
     upiId: "9971040244@ptaxis",
     role: user.role,
     addBalanceHistory: addHistory.map(r => ({
@@ -85,6 +89,26 @@ router.post("/wallet/withdraw", requireAuth, async (req: Request, res: Response)
     throw err;
   }
   res.json({ success: true, message: "Withdrawal requested" });
+});
+
+router.post("/wallet/convert-silver", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const currentSilver = user.silverCoins ?? 0;
+  if (currentSilver < SILVER_TO_GOLD_RATE) {
+    res.status(400).json({ error: `You need at least ${SILVER_TO_GOLD_RATE} Silver Coins to convert. You have ${currentSilver}.` });
+    return;
+  }
+  const batches = Math.floor(currentSilver / SILVER_TO_GOLD_RATE);
+  const silverToSpend = batches * SILVER_TO_GOLD_RATE;
+  const goldToEarn = batches * GOLD_PER_CONVERSION;
+
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`UPDATE users SET silver_coins = silver_coins - ${silverToSpend}, balance = balance + ${goldToEarn} WHERE id = ${user.id}`
+    );
+  });
+
+  res.json({ success: true, message: `Converted ${silverToSpend} Silver Coins into ${goldToEarn} Gold Coins!` });
 });
 
 export default router;

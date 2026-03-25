@@ -9,6 +9,7 @@ import type { WalletTransaction } from "./walletTransaction";
 
 export interface WalletInfo {
   balance: number;
+  silverCoins: number;
   upiId?: string;
   addBalanceHistory: WalletTransaction[];
   withdrawalHistory: WalletTransaction[];

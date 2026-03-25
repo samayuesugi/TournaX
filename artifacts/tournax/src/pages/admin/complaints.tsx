@@ -141,7 +141,7 @@ function ComplaintCard({ c }: { c: any }) {
               <div className="flex items-center justify-center gap-1 text-green-400 mb-1">
                 <Wallet className="w-3.5 h-3.5" />
               </div>
-              <p className="font-bold text-sm">₹{Number(c.userWallet ?? 0).toFixed(0)}</p>
+              <p className="font-bold text-sm">🪙{Number(c.userWallet ?? 0).toFixed(0)}</p>
               <p className="text-xs text-muted-foreground">Wallet</p>
             </div>
             <div className="bg-card border border-border rounded-xl p-2.5 text-center">

@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokenState(res.token);
     setAuthTokenGetter(getToken);
     setUser(res.user);
-    return res.user;
+    return res;
   };
 
   const register = async (email: string, password: string) => {

@@ -18,6 +18,7 @@ export interface User {
   gameUid?: string;
   role: UserRole;
   balance: number;
+  silverCoins: number;
   status: UserStatus;
   followersCount?: number;
   followingCount?: number;

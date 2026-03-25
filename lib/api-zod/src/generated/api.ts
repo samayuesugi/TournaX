@@ -30,6 +30,7 @@ export const LoginResponse = zod.object({
     gameUid: zod.string().optional(),
     role: zod.enum(["player", "host", "admin"]),
     balance: zod.number(),
+    silverCoins: zod.number(),
     status: zod.enum(["pending", "active", "banned"]),
     followersCount: zod.number().optional(),
     followingCount: zod.number().optional(),
@@ -54,6 +55,7 @@ export const RegisterResponse = zod.object({
     gameUid: zod.string().optional(),
     role: zod.enum(["player", "host", "admin"]),
     balance: zod.number(),
+    silverCoins: zod.number(),
     status: zod.enum(["pending", "active", "banned"]),
     followersCount: zod.number().optional(),
     followingCount: zod.number().optional(),
@@ -72,6 +74,7 @@ export const GetMeResponse = zod.object({
   gameUid: zod.string().optional(),
   role: zod.enum(["player", "host", "admin"]),
   balance: zod.number(),
+  silverCoins: zod.number(),
   status: zod.enum(["pending", "active", "banned"]),
   followersCount: zod.number().optional(),
   followingCount: zod.number().optional(),
@@ -101,6 +104,7 @@ export const SetupProfileResponse = zod.object({
   gameUid: zod.string().optional(),
   role: zod.enum(["player", "host", "admin"]),
   balance: zod.number(),
+  silverCoins: zod.number(),
   status: zod.enum(["pending", "active", "banned"]),
   followersCount: zod.number().optional(),
   followingCount: zod.number().optional(),
@@ -595,6 +599,7 @@ export const UpdateMyProfileResponse = zod.object({
   gameUid: zod.string().optional(),
   role: zod.enum(["player", "host", "admin"]),
   balance: zod.number(),
+  silverCoins: zod.number(),
   status: zod.enum(["pending", "active", "banned"]),
   followersCount: zod.number().optional(),
   followingCount: zod.number().optional(),
@@ -603,6 +608,7 @@ export const UpdateMyProfileResponse = zod.object({
 
 export const GetWalletResponse = zod.object({
   balance: zod.number(),
+  silverCoins: zod.number(),
   upiId: zod.string().optional(),
   addBalanceHistory: zod.array(
     zod.object({
@@ -641,6 +647,11 @@ export const RequestWithdrawalBody = zod.object({
 });
 
 export const RequestWithdrawalResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
+
+export const ConvertSilverCoinsResponse = zod.object({
   success: zod.boolean(),
   message: zod.string().optional(),
 });

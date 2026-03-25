@@ -141,7 +141,7 @@ export default function CreateMatchPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Entry Fee (₹)</Label>
+              <Label>Entry Fee (🪙)</Label>
               <Input
                 type="number"
                 placeholder="0"
@@ -190,7 +190,7 @@ export default function CreateMatchPage() {
           </h3>
 
           <div className="space-y-1.5">
-            <Label>Showcase Prize Pool (₹)</Label>
+            <Label>Showcase Prize Pool (🪙)</Label>
             <Input
               type="number"
               placeholder="e.g. 5000"
@@ -208,15 +208,15 @@ export default function CreateMatchPage() {
               <p className="text-xs text-muted-foreground font-medium">Live pool preview (at {previewPlayers} players)</p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <div className="text-sm font-bold text-green-400">₹{previewWinners}</div>
+                  <div className="text-sm font-bold text-green-400">🪙{previewWinners}</div>
                   <div className="text-[10px] text-muted-foreground">Winners {previewIsLarge ? 85 : 90}%</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-foreground">₹{previewHost}</div>
+                  <div className="text-sm font-bold text-foreground">🪙{previewHost}</div>
                   <div className="text-[10px] text-muted-foreground">Host {previewIsLarge ? 10 : 5}%</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-foreground">₹{previewPlatform}</div>
+                  <div className="text-sm font-bold text-foreground">🪙{previewPlatform}</div>
                   <div className="text-[10px] text-muted-foreground">Platform 5%</div>
                 </div>
               </div>

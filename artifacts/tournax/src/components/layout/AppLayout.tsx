@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGetWallet, useGetNotifications } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import { GoldCoinIcon, SilverCoinIcon } from "@/components/ui/Coins";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface AppLayoutProps {
@@ -129,9 +130,17 @@ export function AppLayout({
           <div className="ml-auto flex items-center gap-2">
             {user && user.role !== "admin" && wallet && (
               <Link href="/wallet">
-                <button className="flex items-center gap-1.5 bg-secondary px-2.5 py-1 rounded-full text-sm font-semibold hover:bg-secondary/80 transition-colors">
-                  <span className="text-accent">₹</span>
-                  <span>{wallet.balance.toFixed(0)}</span>
+                <button className="flex items-center gap-2 bg-secondary px-2.5 py-1 rounded-full text-sm font-semibold hover:bg-secondary/80 transition-colors">
+                  <span className="flex items-center gap-0.5">
+                    <GoldCoinIcon size="sm" />
+                    <span>{wallet.balance.toFixed(0)}</span>
+                  </span>
+                  {(wallet as any).silverCoins > 0 && (
+                    <span className="flex items-center gap-0.5 border-l border-border pl-2">
+                      <SilverCoinIcon size="sm" />
+                      <span className="text-slate-300">{(wallet as any).silverCoins}</span>
+                    </span>
+                  )}
                 </button>
               </Link>
             )}

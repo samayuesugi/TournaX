@@ -2076,6 +2076,81 @@ export const useRequestWithdrawal = <
   return useMutation(getRequestWithdrawalMutationOptions(options));
 };
 
+export const getConvertSilverCoinsUrl = () => {
+  return `/api/wallet/convert-silver`;
+};
+
+export const convertSilverCoins = async (
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getConvertSilverCoinsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getConvertSilverCoinsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof convertSilverCoins>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof convertSilverCoins>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["convertSilverCoins"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof convertSilverCoins>>,
+    void
+  > = () => {
+    return convertSilverCoins(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConvertSilverCoinsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof convertSilverCoins>>
+>;
+
+export type ConvertSilverCoinsMutationError = ErrorType<unknown>;
+
+export const useConvertSilverCoins = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof convertSilverCoins>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof convertSilverCoins>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getConvertSilverCoinsMutationOptions(options));
+};
+
 export const getGetNotificationsUrl = () => {
   return `/api/notifications`;
 };

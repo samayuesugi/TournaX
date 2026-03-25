@@ -63,7 +63,7 @@ function LeaderboardCard({ entry, type }: { entry: LeaderboardEntry; type: strin
         )}
         {type === "earnings" && (
           <>
-            <div className="font-bold text-sm text-green-400">₹{entry.totalEarnings.toFixed(0)}</div>
+            <div className="font-bold text-sm text-green-400">🪙{entry.totalEarnings.toFixed(0)}</div>
             <div className="text-[10px] text-muted-foreground">earned</div>
           </>
         )}

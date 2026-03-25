@@ -47,7 +47,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
   const handleAddBalance = async () => {
     try {
       await addBalance({ id: player.id, data: { amount: parseFloat(amount) } });
-      toast({ title: `₹${amount} added to ${player.name || player.email}` });
+      toast({ title: `🪙${amount} added to ${player.name || player.email}` });
       setBalanceOpen(false);
       setAmount("");
       onAction();
@@ -76,7 +76,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-        <span>Balance: <span className="text-foreground font-medium">₹{player.balance.toFixed(0)}</span></span>
+        <span>Balance: <span className="text-foreground font-medium">🪙{player.balance.toFixed(0)}</span></span>
         <span>Matches: <span className="text-foreground font-medium">{player.matchesPlayed}</span></span>
         {player.uid && <span>UID: <span className="font-mono text-foreground">{player.uid}</span></span>}
       </div>
@@ -97,7 +97,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Adding balance to: <strong>{player.name || player.email}</strong></p>
               <div className="space-y-1.5">
-                <Label>Amount (₹)</Label>
+                <Label>Amount (🪙)</Label>
                 <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Enter amount" />
               </div>
               <Button className="w-full" onClick={handleAddBalance} disabled={!amount}>Add Balance</Button>

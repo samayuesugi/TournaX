@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
               <StatCard icon={Activity} label="Live Now" value={data.liveNow} color="bg-green-500/20 text-green-400" />
               <StatCard icon={Swords} label="Total Matches" value={data.totalMatches} color="bg-accent/20 text-accent" />
               <StatCard icon={AlertTriangle} label="Pending KYC" value={data.pendingKyc} color="bg-yellow-500/20 text-yellow-400" />
-              <StatCard icon={DollarSign} label="Total Revenue" value={`₹${data.totalRevenue.toFixed(0)}`} color="bg-green-500/20 text-green-400" />
+              <StatCard icon={DollarSign} label="Total Revenue" value={`🪙${data.totalRevenue.toFixed(0)}`} color="bg-green-500/20 text-green-400" />
               <StatCard icon={AlertTriangle} label="Complaints" value={data.complaintsCount} color="bg-destructive/20 text-destructive" />
             </div>
 

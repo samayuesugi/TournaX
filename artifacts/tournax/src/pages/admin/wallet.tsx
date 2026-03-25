@@ -161,7 +161,7 @@ export default function AdminWalletPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-sm font-semibold text-green-400">
-                      +₹{parseFloat(entry.amount).toFixed(2)}
+                      +🪙{parseFloat(entry.amount).toFixed(2)}
                     </span>
                   </div>
                 </div>

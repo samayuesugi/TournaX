@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle } from "lucide-react";
+import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
   useGoLive, useDeleteMatch, useGetMySquad
@@ -53,24 +54,24 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
         )}
       </div>
 
-      <div className="text-3xl font-bold text-foreground mb-0.5">₹{Math.round(livePrizePool)}</div>
+      <div className="text-3xl font-bold text-foreground mb-0.5">🪙{Math.round(livePrizePool)}</div>
       <p className="text-xs text-muted-foreground mb-3">
-        {filledSlots} player{filledSlots !== 1 ? "s" : ""} × ₹{entryFee} entry fee
+        {filledSlots} player{filledSlots !== 1 ? "s" : ""} × 🪙{entryFee} entry fee
       </p>
 
       <div className="grid grid-cols-3 gap-2 text-center bg-secondary/50 rounded-xl p-3">
         <div>
-          <div className="text-sm font-bold text-green-400">₹{Math.round(livePrizePool)}</div>
+          <div className="text-sm font-bold text-green-400">🪙{Math.round(livePrizePool)}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Winners</div>
           <div className="text-[10px] text-muted-foreground">{winnersPercent}%</div>
         </div>
         <div>
-          <div className="text-sm font-bold text-foreground">₹{Math.round(hostCut)}</div>
+          <div className="text-sm font-bold text-foreground">🪙{Math.round(hostCut)}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Host</div>
           <div className="text-[10px] text-muted-foreground">{hostPercent}%</div>
         </div>
         <div>
-          <div className="text-sm font-bold text-foreground">₹{Math.round(platformCut)}</div>
+          <div className="text-sm font-bold text-foreground">🪙{Math.round(platformCut)}</div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Platform</div>
           <div className="text-[10px] text-muted-foreground">{100 - winnersPercent - hostPercent}%</div>
         </div>
@@ -247,11 +248,11 @@ export default function MatchDetailPage() {
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="text-xs text-muted-foreground mb-1">Entry Fee</div>
               <div className="font-bold text-primary">
-                {match.teamSize > 1 ? `₹${match.entryFee}/player` : `₹${match.entryFee}`}
+                {match.teamSize > 1 ? `🪙${match.entryFee}/player` : `🪙${match.entryFee}`}
               </div>
               {match.teamSize > 1 && (
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  ₹{Number(match.entryFee) * match.teamSize} total
+                  🪙{Number(match.entryFee) * match.teamSize} total
                 </div>
               )}
             </div>
@@ -312,8 +313,8 @@ export default function MatchDetailPage() {
             <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([]); setSoloSquadId(null); setSoloManual({ ign: "", uid: "" }); } }}>
               <DialogTrigger asChild>
                 <Button className="w-full" size="lg">
-                  Join Match · ₹{match.teamSize > 1 ? (Number(match.entryFee) || 0) * match.teamSize : match.entryFee}
-                  {match.teamSize > 1 && <span className="opacity-70 text-xs ml-1">(₹{match.entryFee}×{match.teamSize})</span>}
+                  Join Match · 🪙{match.teamSize > 1 ? (Number(match.entryFee) || 0) * match.teamSize : match.entryFee}
+                  {match.teamSize > 1 && <span className="opacity-70 text-xs ml-1">(🪙{match.entryFee}×{match.teamSize})</span>}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-sm">
@@ -492,7 +493,7 @@ export default function MatchDetailPage() {
                         : (selectedSquadIds.size + joinPlayers.filter(p => p.ign && p.uid).length !== match.teamSize)
                     )}
                   >
-                    {isJoining ? "Joining..." : `Confirm · ₹${match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee}`}
+                    {isJoining ? "Joining..." : `Confirm · 🪙${match.teamSize > 1 ? Number(match.entryFee) * match.teamSize : match.entryFee}`}
                   </Button>
                 </div>
               </DialogContent>

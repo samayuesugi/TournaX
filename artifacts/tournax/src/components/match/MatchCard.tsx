@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Clock, Users, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GoldCoinIcon } from "@/components/ui/Coins";
 import type { Match } from "@workspace/api-client-react";
 
 interface MatchCardProps {
@@ -59,14 +60,20 @@ export function MatchCard({ match, className }: MatchCardProps) {
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="bg-secondary/50 rounded-lg p-2 text-center">
               <div className="text-xs text-muted-foreground mb-0.5">Entry</div>
-              <div className="font-bold text-sm text-primary">₹{match.entryFee}</div>
+              <div className="font-bold text-sm text-primary flex items-center justify-center gap-0.5">
+                <GoldCoinIcon size="sm" />
+                {match.entryFee}
+              </div>
             </div>
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-center">
               <div className="flex items-center justify-center gap-1 mb-0.5">
                 <Trophy className="w-3 h-3 text-amber-400" />
                 <span className="text-xs text-amber-400/80">Prize</span>
               </div>
-              <div className="font-bold text-sm text-amber-300">₹{showcase}</div>
+              <div className="font-bold text-sm text-amber-300 flex items-center justify-center gap-0.5">
+                <GoldCoinIcon size="sm" />
+                {showcase}
+              </div>
             </div>
             <div className="bg-secondary/50 rounded-lg p-2 text-center">
               <div className="text-xs text-muted-foreground mb-0.5 flex items-center justify-center gap-1">

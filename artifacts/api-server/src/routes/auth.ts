@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -64,6 +64,7 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     gameUid: user.gameUid,
     role: user.role,
     balance: parseFloat(user.balance as string),
+    silverCoins: user.silverCoins ?? 0,
     status: user.status,
     profileSetup: user.profileSetup,
     followersCount: user.followersCount,
@@ -74,6 +75,10 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     youtube: user.youtube,
     twitch: user.twitch,
   };
+}
+
+function getTodayDate(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 router.post("/auth/register", async (req: Request, res: Response) => {
@@ -110,8 +115,19 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
-  const token = generateToken(user.id);
-  res.json({ user: serializeUser(user), token });
+
+  const today = getTodayDate();
+  let updatedUser = user;
+  if (user.lastLoginDate !== today) {
+    const [u] = await db.update(usersTable)
+      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 2` })
+      .where(eq(usersTable.id, user.id))
+      .returning();
+    updatedUser = u;
+  }
+
+  const token = generateToken(updatedUser.id);
+  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: user.lastLoginDate !== today ? 2 : 0 });
 });
 
 router.get("/auth/me", requireAuth, async (req: Request, res: Response) => {

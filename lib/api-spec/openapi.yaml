@@ -486,6 +486,18 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
 
+  /wallet/convert-silver:
+    post:
+      operationId: convertSilverCoins
+      tags: [wallet]
+      responses:
+        "200":
+          description: Silver coins converted to gold coins
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
   /notifications:
     get:
       operationId: getNotifications
@@ -961,6 +973,8 @@ components:
           enum: [player, host, admin]
         balance:
           type: number
+        silverCoins:
+          type: integer
         status:
           type: string
           enum: [pending, active, banned]
@@ -970,7 +984,7 @@ components:
           type: integer
         profileSetup:
           type: boolean
-      required: [id, email, role, balance, status, profileSetup]
+      required: [id, email, role, balance, silverCoins, status, profileSetup]
 
     UpdateProfileRequest:
       type: object
@@ -1207,6 +1221,8 @@ components:
       properties:
         balance:
           type: number
+        silverCoins:
+          type: integer
         upiId:
           type: string
         addBalanceHistory:
@@ -1217,7 +1233,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WalletTransaction"
-      required: [balance, addBalanceHistory, withdrawalHistory]
+      required: [balance, silverCoins, addBalanceHistory, withdrawalHistory]
 
     WalletTransaction:
       type: object

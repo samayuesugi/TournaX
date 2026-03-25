@@ -271,6 +271,16 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
           position: i + 1,
         });
       }
+
+      if (totalFee > 0) {
+        const newPaidMatchesResult = await tx.execute(
+          sql`UPDATE users SET paid_matches_played = paid_matches_played + 1 WHERE id = ${user.id} RETURNING paid_matches_played`
+        );
+        const newPaidMatches = (newPaidMatchesResult.rows[0] as any)?.paid_matches_played as number;
+        if (newPaidMatches && newPaidMatches % 5 === 0) {
+          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${user.id}`);
+        }
+      }
     });
   } catch (err: any) {
     const msg = err?.message;
@@ -348,7 +358,7 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
 
       if (r.reward > 0) {
         await tx.execute(
-          sql`UPDATE users SET balance = balance + ${r.reward} WHERE id = (
+          sql`UPDATE users SET balance = balance + ${r.reward}, silver_coins = silver_coins + 3 WHERE id = (
             SELECT user_id FROM match_participants WHERE id = ${r.participantId}
           )`
         );

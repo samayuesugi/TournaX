@@ -492,7 +492,7 @@ function OwnProfile() {
               <div className="text-xs text-muted-foreground">Following</div>
             </div>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <div className="font-bold text-lg text-primary">₹{user.balance.toFixed(0)}</div>
+              <div className="font-bold text-lg text-primary">🪙{user.balance.toFixed(0)}</div>
               <div className="text-xs text-muted-foreground">Balance</div>
             </div>
           </div>

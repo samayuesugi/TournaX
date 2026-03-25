@@ -22,7 +22,11 @@ export default function AuthPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const user = await login(loginForm.email, loginForm.password);
+      const res = await login(loginForm.email, loginForm.password);
+      const user = res.user;
+      if ((res as any).dailyLoginBonus > 0) {
+        toast({ title: "🪙 Daily Login Bonus!", description: `+${(res as any).dailyLoginBonus} Silver Coins awarded!` });
+      }
       if (user.profileSetup === false) {
         navigate("/setup-profile");
       } else if (user.role === "admin") {

@@ -54,15 +54,11 @@ export interface User {
   gameUid?: string;
   role: UserRole;
   balance: number;
+  silverCoins: number;
   status: UserStatus;
   followersCount?: number;
   followingCount?: number;
   profileSetup: boolean;
-  instagram?: string;
-  discord?: string;
-  x?: string;
-  youtube?: string;
-  twitch?: string;
 }
 
 export interface AuthResponse {
@@ -82,11 +78,6 @@ export interface UpdateProfileRequest {
   name?: string;
   handle?: string;
   avatar?: string;
-  instagram?: string;
-  discord?: string;
-  x?: string;
-  youtube?: string;
-  twitch?: string;
 }
 
 export type MatchStatus = (typeof MatchStatus)[keyof typeof MatchStatus];
@@ -225,6 +216,7 @@ export interface WalletTransaction {
 
 export interface WalletInfo {
   balance: number;
+  silverCoins: number;
   upiId?: string;
   addBalanceHistory: WalletTransaction[];
   withdrawalHistory: WalletTransaction[];

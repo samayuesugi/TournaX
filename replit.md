@@ -107,7 +107,7 @@ React 19 + Vite frontend for the TournaX gaming tournament platform. Dark-themed
   - `/matches/:id` — Match detail with join, room credentials, host controls
   - `/my-matches` — Active & history tabs (player/host)
   - `/profile` / `/profile/:handle` — Own profile + public profiles with follow
-  - `/wallet` — Balance, add money (UTR), withdrawals (UPI)
+  - `/wallet` — Gold Coins balance, Silver Coins (with earn rules + conversion), add money (UTR), withdrawals (UPI)
   - `/explore` — Browse hosts and players
   - `/notifications` — Notification list
   - `/host/create-match` — Create tournament (host only)

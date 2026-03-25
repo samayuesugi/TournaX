@@ -80,7 +80,7 @@ function LeaderboardList({ data, type, isLoading }: { data: LeaderboardEntry[] |
               )}
               {type === "earnings" && (
                 <>
-                  <div className={cn("font-bold text-sm text-green-400")}> ₹{entry.totalEarnings.toFixed(0)}</div>
+                  <div className={cn("font-bold text-sm text-green-400")}> 🪙{entry.totalEarnings.toFixed(0)}</div>
                   <div className="text-[10px] text-muted-foreground">earned</div>
                 </>
               )}
