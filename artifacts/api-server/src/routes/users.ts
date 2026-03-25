@@ -280,6 +280,7 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
   const hostedMatches = await db.select().from(matchesTable).where(eq(matchesTable.hostId, user.id));
   const upcomingMatches = hostedMatches.filter(m => m.status === "upcoming");
   const activeMatches = hostedMatches.filter(m => m.status === "live");
+  const ratingMap = await getHostRatings([user.id]);
 
   res.json({
     id: user.id,
@@ -290,7 +291,7 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     game: user.game,
     followersCount: user.followersCount,
     followingCount: user.followingCount,
-    rating: await getHostRating(user.id),
+    rating: ratingMap.get(user.id) ?? null,
     matchesCount: hostedMatches.length,
     isFollowing: !!follow,
     instagram: user.instagram,
