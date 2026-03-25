@@ -25,7 +25,7 @@ export default function AuthPage() {
       const res = await login(loginForm.email, loginForm.password);
       const user = res.user;
       if ((res as any).dailyLoginBonus > 0) {
-        toast({ title: "🪙 Daily Login Bonus!", description: `+${(res as any).dailyLoginBonus} Silver Coins awarded!` });
+        toast({ title: "Daily Login Bonus!", description: `+${(res as any).dailyLoginBonus} Silver Coins awarded!` });
       }
       if (user.profileSetup === false) {
         navigate("/setup-profile");

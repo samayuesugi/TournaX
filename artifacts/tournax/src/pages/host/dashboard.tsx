@@ -85,26 +85,22 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
           <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Prize Pool</span>
-              <span className="font-bold text-accent">🪙{prizePool.toFixed(0)}</span>
+              <GoldCoin amount={prizePool.toFixed(0)} className="font-bold text-accent" />
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-muted-foreground">Distributed</span>
-              <span className={cn("font-bold", isOverBudget ? "text-red-400" : "text-green-400")}>
-                🪙{totalRewarded.toFixed(0)}
-              </span>
+              <GoldCoin amount={totalRewarded.toFixed(0)} className={cn("font-bold", isOverBudget ? "text-red-400" : "text-green-400")} />
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-muted-foreground">Remaining</span>
-              <span className={cn("font-bold", remaining < 0 ? "text-red-400" : "text-foreground")}>
-                🪙{remaining.toFixed(0)}
-              </span>
+              <GoldCoin amount={remaining.toFixed(0)} className={cn("font-bold", remaining < 0 ? "text-red-400" : "text-foreground")} />
             </div>
           </div>
 
           {isOverBudget && (
             <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl p-2">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              Total rewards exceed the prize pool of 🪙{prizePool.toFixed(0)}
+              Total rewards exceed the prize pool of <GoldCoin amount={prizePool.toFixed(0)} size="sm" />
             </div>
           )}
 
@@ -150,7 +146,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Reward (🪙)</Label>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Reward (₹)</Label>
                       <Input
                         type="number"
                         min="0"
@@ -244,11 +240,11 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
         <div className="grid grid-cols-3 gap-2 mb-3 text-center">
           <div className="bg-secondary/50 rounded-xl p-2">
             <div className="text-xs text-muted-foreground">Entry</div>
-            <div className="font-bold text-sm">🪙{match.entryFee}</div>
+            <div className="font-bold text-sm"><GoldCoin amount={match.entryFee} size="sm" /></div>
           </div>
           <div className="bg-secondary/50 rounded-xl p-2">
             <div className="text-xs text-muted-foreground">Live Pool</div>
-            <div className="font-bold text-sm text-accent">🪙{Math.round(match.livePrizePool || 0)}</div>
+            <div className="font-bold text-sm text-accent"><GoldCoin amount={Math.round(match.livePrizePool || 0)} size="sm" /></div>
           </div>
           <div className="bg-secondary/50 rounded-xl p-2">
             <div className="text-xs text-muted-foreground">Slots</div>

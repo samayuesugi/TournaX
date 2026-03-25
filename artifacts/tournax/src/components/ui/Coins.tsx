@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const GOLD_COIN_SRC = "/gold-coin.png";
+const GOLD_COIN_SRC = "/gold-coin-rupee.png";
 const SILVER_COIN_SRC = "/silver-coin.png";
 
 interface CoinProps {
