@@ -21,8 +21,8 @@ const hostNav = [
 
 const adminNav = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/players", icon: User, label: "Players" },
   { href: "/admin/auctions", icon: Gavel, label: "Auctions" },
+  { href: "/admin/players", icon: User, label: "Players" },
   { href: "/admin/finance", icon: DollarSign, label: "Finance" },
   { href: "/admin/profile", icon: User, label: "Profile" },
 ];
