@@ -11,6 +11,7 @@ import storageRouter from "./storage";
 import leaderboardRouter from "./leaderboard";
 import referralRouter from "./referral";
 import auctionsRouter from "./auctions";
+import pushRouter from "./push";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(storageRouter);
 router.use(leaderboardRouter);
 router.use(referralRouter);
 router.use(auctionsRouter);
+router.use(pushRouter);
 
 export default router;

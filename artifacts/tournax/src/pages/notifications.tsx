@@ -1,13 +1,19 @@
+import { useEffect } from "react";
 import { useGetNotifications } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Info, Trophy, AlertCircle, CheckCircle } from "lucide-react";
+import { Bell, Info, Trophy, AlertCircle, CheckCircle, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { customFetch } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 
 function getIcon(type: string) {
-  if (type.includes("match") || type.includes("join")) return <Trophy className="w-4 h-4" />;
-  if (type.includes("error") || type.includes("ban")) return <AlertCircle className="w-4 h-4" />;
-  if (type.includes("success") || type.includes("approve")) return <CheckCircle className="w-4 h-4" />;
+  if (type.includes("result") || type.includes("win")) return <Trophy className="w-4 h-4" />;
+  if (type.includes("join")) return <Trophy className="w-4 h-4" />;
+  if (type.includes("ban") || type.includes("reject")) return <AlertCircle className="w-4 h-4" />;
+  if (type.includes("approve") || type.includes("approved")) return <CheckCircle className="w-4 h-4" />;
+  if (type.includes("balance") || type.includes("wallet") || type.includes("withdraw")) return <Wallet className="w-4 h-4" />;
   return <Info className="w-4 h-4" />;
 }
 
@@ -24,10 +30,39 @@ function timeAgo(iso: string) {
 
 export default function NotificationsPage() {
   const { data: notifications, isLoading } = useGetNotifications();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const unread = notifications?.some((n) => !n.read);
+    if (!unread) return;
+    const timer = setTimeout(async () => {
+      try {
+        await customFetch("/api/notifications/read-all", { method: "POST" });
+        queryClient.invalidateQueries({ queryKey: ["getNotifications"] });
+      } catch {}
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [notifications, queryClient]);
+
+  const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
+
+  async function markAllRead() {
+    try {
+      await customFetch("/api/notifications/read-all", { method: "POST" });
+      queryClient.invalidateQueries({ queryKey: ["getNotifications"] });
+    } catch {}
+  }
 
   return (
     <AppLayout showBack backHref="/" title="Notifications">
       <div className="space-y-2 pb-4">
+        {unreadCount > 0 && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" className="text-xs text-primary h-7 px-2" onClick={markAllRead}>
+              Mark all read
+            </Button>
+          </div>
+        )}
         {isLoading ? (
           <>
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}

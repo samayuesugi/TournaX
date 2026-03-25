@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, referralsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
+import { notify } from "../lib/notify";
 
 const router: IRouter = Router();
 
@@ -317,6 +318,7 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   }
 
   res.json({ success: true, message: "Joined successfully! Check the Room tab for credentials." });
+  notify(match.hostId, "match_join", `A player joined your match ${match.code}! 🎮`, `/matches/${match.id}`).catch(() => {});
 });
 
 router.put("/matches/:id/room", requireAuth, async (req: Request, res: Response) => {
@@ -420,6 +422,15 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   });
 
   res.json({ success: true, message: "Result submitted and rewards distributed!" });
+  const participants = await db.select({ userId: matchParticipantsTable.userId, reward: matchParticipantsTable.reward })
+    .from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
+  for (const p of participants) {
+    const reward = p.reward ? parseFloat(p.reward as string) : 0;
+    const msg = reward > 0
+      ? `Match ${match.code} results are in! You won ₹${reward} 🏆`
+      : `Match ${match.code} results are in. Better luck next time! 💪`;
+    notify(p.userId, "match_result", msg, `/matches/${match.id}`).catch(() => {});
+  }
 });
 
 router.get("/matches/:id/players", requireAuth, async (req: Request, res: Response) => {

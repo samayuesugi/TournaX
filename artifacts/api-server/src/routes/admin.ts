@@ -8,6 +8,7 @@ import {
 import { eq, and, ilike, or, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import bcrypt from "bcryptjs";
+import { notify } from "../lib/notify";
 
 const router: IRouter = Router();
 
@@ -136,12 +137,15 @@ router.post("/admin/finance/add-requests/:id/approve", requireAdmin, async (req:
     await tx.update(addBalanceRequestsTable).set({ status: "approved" }).where(eq(addBalanceRequestsTable.id, request.id));
     await tx.execute(sql`UPDATE users SET balance = balance + ${numericAmount} WHERE id = ${request.userId}`);
     res.json({ success: true });
+    notify(request.userId, "balance_approved", `Your deposit of ₹${numericAmount} has been approved! 💰`, "/wallet").catch(() => {});
   });
 });
 
 router.post("/admin/finance/add-requests/:id/reject", requireAdmin, async (req: Request, res: Response) => {
+  const [request] = await db.select().from(addBalanceRequestsTable).where(eq(addBalanceRequestsTable.id, Number(req.params.id)));
   await db.update(addBalanceRequestsTable).set({ status: "rejected" }).where(eq(addBalanceRequestsTable.id, Number(req.params.id)));
   res.json({ success: true });
+  if (request) notify(request.userId, "balance_rejected", `Your deposit request of ₹${parseFloat(request.amount as string)} was rejected. Contact support for help.`, "/wallet").catch(() => {});
 });
 
 router.get("/admin/finance/withdrawals", requireAdmin, async (req: Request, res: Response) => {
@@ -166,6 +170,7 @@ router.post("/admin/finance/withdrawals/:id/approve", requireAdmin, async (req: 
   if (request.status !== "pending") { res.status(400).json({ error: "Request has already been processed" }); return; }
   await db.update(withdrawalRequestsTable).set({ status: "approved" }).where(eq(withdrawalRequestsTable.id, requestId));
   res.json({ success: true });
+  notify(request.userId, "withdrawal_approved", `Your withdrawal of ₹${parseFloat(request.amount as string)} has been approved and sent to your UPI! 🎉`, "/wallet").catch(() => {});
 });
 
 router.post("/admin/finance/withdrawals/:id/reject", requireAdmin, async (req: Request, res: Response) => {
@@ -178,6 +183,7 @@ router.post("/admin/finance/withdrawals/:id/reject", requireAdmin, async (req: R
     await tx.update(withdrawalRequestsTable).set({ status: "rejected" }).where(eq(withdrawalRequestsTable.id, request.id));
     await tx.execute(sql`UPDATE users SET balance = balance + ${numericAmount} WHERE id = ${request.userId}`);
     res.json({ success: true });
+    notify(request.userId, "withdrawal_rejected", `Your withdrawal of ₹${numericAmount} was rejected. The amount has been returned to your wallet.`, "/wallet").catch(() => {});
   });
 });
 

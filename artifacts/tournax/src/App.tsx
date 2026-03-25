@@ -37,6 +37,7 @@ import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 setAuthTokenGetter(getToken);
 
@@ -273,6 +274,7 @@ function Router() {
 
 function AppContent() {
   const { pendingDailyBonus, dismissDailyBonus, user } = useAuth();
+  usePushNotifications(!!user);
   return (
     <>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
