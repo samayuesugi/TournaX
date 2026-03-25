@@ -19,8 +19,8 @@ const RequestUploadUrlBody = z.object({
  */
 router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  if (user.role !== "host") {
-    res.status(403).json({ error: "Only hosts can upload avatar images" });
+  if (user.role !== "host" && user.role !== "admin") {
+    res.status(403).json({ error: "Only hosts and admins can upload images" });
     return;
   }
 

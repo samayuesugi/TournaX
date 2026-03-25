@@ -1,0 +1,194 @@
+Build a "Team Auction System" module for a tournament-based gaming social network app.
+
+🔹 Core Flow
+
+1. Auction Creation (Admin/Host)
+
+- Admin can create a new auction
+- Select "Team Auction" mode
+- Input:
+  - Number of teams (e.g. 12)
+  - Auction title
+  - Tournament name
+  - Auction start time & end time
+  - Manual LIVE toggle (start/stop auction)
+
+---
+
+2. Team Setup
+
+- Admin creates teams (e.g. Team A to Team L)
+
+For each team:
+
+- Team name
+- Team logo (image upload)
+- Add players (e.g. 4 players per team)
+
+For each player:
+
+- Player name
+- Player avatar (IMAGE UPLOAD REQUIRED)
+
+---
+
+3. Image Upload System
+
+Player Avatar Upload:
+
+- Allow admin to upload image file
+- Supported formats: JPG, PNG, WEBP
+- Max size: 2MB
+- Store image URL in database
+
+Team Logo Upload:
+
+- Same rules as player avatar
+
+Storage:
+
+- Use:
+  
+  - Cloudinary OR
+  - Firebase Storage OR
+  - AWS S3
+
+- Backend should:
+  
+  - Upload image
+  - Return secure URL
+  - Save URL in database
+
+---
+
+4. UI Requirements (Important 🔥)
+
+Team Cards Grid:
+
+- Show 12 team cards
+- Each card:
+  - Team logo (top)
+  - Team name
+  - 4 player avatars (small circular images)
+
+On Tap (Team Detail Screen):
+
+- Show:
+  - Large team logo
+  - Team name
+  - Full player list
+  - Player avatars (bigger size)
+  - Total bids on team
+
+---
+
+5. Bidding System
+
+- Users can bid only when auction is LIVE
+
+- Store:
+  
+  - User ID
+  - Team ID
+  - Bid amount
+
+- Each team:
+  
+  - totalBidAmount
+  - bidders list
+
+---
+
+6. Auction Control
+
+- Admin manually:
+  - Start auction
+  - Stop auction
+- No bids allowed after stop
+
+---
+
+7. Result Submission
+
+- Admin selects:
+  - 1st place team
+  - 2nd place team
+  - 3rd place team
+
+---
+
+8. Reward Logic
+
+Total Pool:
+
+- Sum of all bids
+
+Platform Fee:
+
+- 12% deduction
+
+Remaining Pool:
+
+- 88% distributed
+
+Split:
+
+- 1st → 50%
+- 2nd → 30%
+- 3rd → 20%
+
+User Reward:
+
+user_reward = (user_bid / total_team_bid) * team_reward
+
+---
+
+9. Wallet System
+
+- Auto credit rewards after result submission
+
+---
+
+10. Edge Cases
+
+- No bids on winning team
+- Tie handling
+- Auction cancel → refund
+- Prevent spam bids
+
+---
+
+11. Database Schema (Updated)
+
+Players Table:
+
+- id
+- name
+- avatar_url  ✅ (important)
+
+Teams Table:
+
+- id
+- name
+- logo_url  ✅
+
+---
+
+12. Tech Stack
+
+- React Native (Expo)
+- Node.js + Express
+- PostgreSQL
+- Drizzle ORM
+
+---
+
+13. Security
+
+- Validate image type & size
+- Prevent fake uploads
+- Secure URLs (no public abuse)
+
+---
+
+Goal: Create a premium team auction experience with visual player identity, real-time bidding, and automatic reward distribution.

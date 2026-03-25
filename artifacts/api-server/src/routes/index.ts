@@ -10,6 +10,7 @@ import groupsRouter from "./groups";
 import storageRouter from "./storage";
 import leaderboardRouter from "./leaderboard";
 import referralRouter from "./referral";
+import auctionsRouter from "./auctions";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(groupsRouter);
 router.use(storageRouter);
 router.use(leaderboardRouter);
 router.use(referralRouter);
+router.use(auctionsRouter);
 
 export default router;

@@ -4,6 +4,15 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Key Features
+
+- **Tournament Matches**: Players join matches with entry fees, hosts manage room IDs, results distributed automatically
+- **Team Auction System**: Admin creates auctions with teams/players, users bid on teams, rewards distributed proportionally to winners' bidders
+- **Wallet System**: Gold Coins (GC) for match entry/auctions, Silver Coins for daily tasks, deposit/withdrawal via admin approval
+- **Leaderboard**: Player rankings by wins, matches played, or earnings
+- **Social**: Follow hosts, chat (DMs + group), profile pages
+- **Admin Panel**: Manage players, hosts, finance, complaints, auctions
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

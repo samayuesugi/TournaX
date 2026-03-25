@@ -5,3 +5,4 @@ export * from "./messages";
 export * from "./games";
 export * from "./groups";
 export * from "./reviews";
+export * from "./auctions";

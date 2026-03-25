@@ -29,6 +29,10 @@ import ChatListPage from "@/pages/chat/index";
 import ConversationPage from "@/pages/chat/conversation";
 import GroupChatPage from "@/pages/chat/group";
 import LeaderboardPage from "@/pages/leaderboard";
+import AuctionsPage from "@/pages/auctions/index";
+import AuctionDetailPage from "@/pages/auctions/detail";
+import AdminAuctionsPage from "@/pages/admin/auctions";
+import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
@@ -220,6 +224,30 @@ function Router() {
       <Route path="/leaderboard">
         <ProtectedRoute roles={["player", "host"]}>
           <LeaderboardPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/auctions">
+        <ProtectedRoute roles={["player", "host"]}>
+          <AuctionsPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/auctions/:id">
+        <ProtectedRoute roles={["player", "host"]}>
+          <AuctionDetailPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/auctions">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminAuctionsPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/auctions/:id">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminAuctionDetailPage />
         </ProtectedRoute>
       </Route>
 
