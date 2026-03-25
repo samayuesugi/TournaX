@@ -27,6 +27,13 @@ const adminNav = [
   { href: "/admin/profile", icon: User, label: "Profile" },
 ];
 
+const EXACT_MATCH_HREFS = new Set(["/", "/admin", "/host"]);
+
+function isNavActive(href: string, location: string): boolean {
+  if (EXACT_MATCH_HREFS.has(href)) return location === href;
+  return location === href || location.startsWith(href + "/");
+}
+
 export function BottomNav() {
   const [location] = useLocation();
   const { user } = useAuth();
@@ -36,12 +43,12 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
         {nav.map(({ href, icon: Icon, label }) => {
-          const isActive = href === "/" ? location === "/" : location.startsWith(href);
+          const isActive = isNavActive(href, location);
           return (
             <Link key={href} href={href}>
               <button
                 className={cn(
-                  "flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all",
+                  "flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
