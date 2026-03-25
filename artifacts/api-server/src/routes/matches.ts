@@ -301,7 +301,7 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
               .where(eq(referralsTable.id, referral.id));
             await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${referral.referrerId}`);
             const bonusUntil = new Date();
-            bonusUntil.setDate(bonusUntil.getDate() + 3);
+            bonusUntil.setDate(bonusUntil.getDate() + 5);
             const bonusUntilStr = bonusUntil.toISOString().slice(0, 10);
             await tx.execute(sql`UPDATE users SET referral_bonus_until = ${bonusUntilStr} WHERE id = ${user.id}`);
           }
