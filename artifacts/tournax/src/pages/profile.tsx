@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const COMPLAINT_TOPICS = [
@@ -286,6 +286,20 @@ function OwnProfile() {
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
+  const [referralStats, setReferralStats] = useState<{
+    myCode: string | null;
+    totalReferrals: number;
+    completedReferrals: number;
+    pendingReferrals: number;
+    usedCode: boolean;
+    myReferralCompleted: boolean;
+    bonusActive: boolean;
+    bonusUntil: string | null;
+    paidMatchesPlayed: number;
+  } | null>(null);
+  const [referralInput, setReferralInput] = useState("");
+  const [applyingCode, setApplyingCode] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     if (profileOpen) {
@@ -301,6 +315,38 @@ function OwnProfile() {
       });
     }
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (user?.role === "player") {
+      customFetch<typeof referralStats>("/api/referral/stats")
+        .then(setReferralStats)
+        .catch(() => {});
+    }
+  }, [user?.id]);
+
+  const handleCopyCode = () => {
+    if (referralStats?.myCode) {
+      navigator.clipboard.writeText(referralStats.myCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
+  const handleApplyCode = async () => {
+    if (!referralInput.trim()) return;
+    setApplyingCode(true);
+    try {
+      await customFetch("/api/referral/apply", { method: "POST", body: JSON.stringify({ code: referralInput.trim() }) });
+      toast({ title: "Referral code applied!", description: "Play 5 paid matches to unlock your bonus." });
+      setReferralInput("");
+      const stats = await customFetch<typeof referralStats>("/api/referral/stats");
+      setReferralStats(stats);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error ?? "Failed to apply code", variant: "destructive" });
+    } finally {
+      setApplyingCode(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -509,6 +555,90 @@ function OwnProfile() {
           )}
           <SocialLinksDisplay instagram={user.instagram} discord={user.discord} x={user.x} youtube={user.youtube} twitch={user.twitch} />
         </div>
+
+        {user.role === "player" && referralStats && (
+          <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Gift className="w-4 h-4 text-primary" />
+              <h3 className="font-semibold">Referral</h3>
+              {referralStats.bonusActive && (
+                <span className="text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5">
+                  +1 bonus active
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">Your referral code</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-secondary/60 rounded-xl px-3 py-2 font-mono text-sm font-semibold tracking-wider text-primary">
+                  {referralStats.myCode ?? "Loading..."}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={handleCopyCode}
+                  disabled={!referralStats.myCode}
+                >
+                  {codeCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-secondary/50 rounded-xl p-2.5 text-center">
+                <div className="font-bold text-base">{referralStats.totalReferrals}</div>
+                <div className="text-[10px] text-muted-foreground">Total</div>
+              </div>
+              <div className="bg-secondary/50 rounded-xl p-2.5 text-center">
+                <div className="font-bold text-base text-green-400">{referralStats.completedReferrals}</div>
+                <div className="text-[10px] text-muted-foreground">Completed</div>
+              </div>
+              <div className="bg-secondary/50 rounded-xl p-2.5 text-center">
+                <div className="font-bold text-base text-yellow-400">{referralStats.pendingReferrals}</div>
+                <div className="text-[10px] text-muted-foreground">Pending</div>
+              </div>
+            </div>
+
+            {referralStats.bonusActive && referralStats.bonusUntil && (
+              <div className="bg-green-500/10 border border-green-500/25 rounded-xl px-3 py-2 text-xs text-green-400">
+                🎁 +1 silver coin daily bonus active until {referralStats.bonusUntil}
+              </div>
+            )}
+
+            {!referralStats.usedCode && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Have a referral code? Enter it here:</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={referralInput}
+                    onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
+                    placeholder="TournaX001"
+                    className="font-mono text-sm h-9"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-9 shrink-0"
+                    onClick={handleApplyCode}
+                    disabled={applyingCode || !referralInput.trim()}
+                  >
+                    {applyingCode ? "..." : "Apply"}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  After 5 paid matches: you get +1 silver/day for 3 days, your referrer gets +5 silver coins.
+                </p>
+              </div>
+            )}
+
+            {referralStats.usedCode && !referralStats.myReferralCompleted && (
+              <div className="bg-secondary/40 rounded-xl px-3 py-2 text-xs text-muted-foreground">
+                Referral in progress — play {Math.max(0, 5 - referralStats.paidMatchesPlayed)} more paid match{Math.max(0, 5 - referralStats.paidMatchesPlayed) !== 1 ? "es" : ""} to unlock your bonus.
+              </div>
+            )}
+          </div>
+        )}
 
         {user.role === "player" && (
           <div className="bg-card border border-card-border rounded-2xl p-4">

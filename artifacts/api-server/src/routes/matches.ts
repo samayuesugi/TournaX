@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, referralsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -279,6 +279,19 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
         const newPaidMatches = (newPaidMatchesResult.rows[0] as any)?.paid_matches_played as number;
         if (newPaidMatches && newPaidMatches % 5 === 0) {
           await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${user.id}`);
+        }
+        if (newPaidMatches === 5) {
+          const [referral] = await tx.select().from(referralsTable)
+            .where(and(eq(referralsTable.referredId, user.id), eq(referralsTable.completed, false)));
+          if (referral) {
+            await tx.update(referralsTable).set({ completed: true, referrerRewarded: true })
+              .where(eq(referralsTable.id, referral.id));
+            await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${referral.referrerId}`);
+            const bonusUntil = new Date();
+            bonusUntil.setDate(bonusUntil.getDate() + 3);
+            const bonusUntilStr = bonusUntil.toISOString().slice(0, 10);
+            await tx.execute(sql`UPDATE users SET referral_bonus_until = ${bonusUntilStr} WHERE id = ${user.id}`);
+          }
         }
       }
     });

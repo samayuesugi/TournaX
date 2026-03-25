@@ -54,6 +54,7 @@ export async function requireAuth(req: Request, res: Response, next: Function) {
 }
 
 function serializeUser(user: typeof usersTable.$inferSelect) {
+  const today = getTodayDate();
   return {
     id: user.id,
     email: user.email,
@@ -74,6 +75,10 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     x: user.x,
     youtube: user.youtube,
     twitch: user.twitch,
+    referralCode: user.referralCode ?? null,
+    referralBonusActive: user.referralBonusUntil ? user.referralBonusUntil >= today : false,
+    referralBonusUntil: user.referralBonusUntil ?? null,
+    paidMatchesPlayed: user.paidMatchesPlayed ?? 0,
   };
 }
 
@@ -100,8 +105,11 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     profileSetup: false,
     balance: "0",
   }).returning();
+  const referralCode = `TournaX${user.id.toString().padStart(3, "0")}`;
+  await db.update(usersTable).set({ referralCode }).where(eq(usersTable.id, user.id));
+  const [userWithCode] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
   const token = generateToken(user.id);
-  res.json({ user: serializeUser(user), token });
+  res.json({ user: serializeUser(userWithCode), token });
 });
 
 router.post("/auth/login", async (req: Request, res: Response) => {
@@ -146,11 +154,13 @@ router.post("/auth/daily-checkin", requireAuth, async (req: Request, res: Respon
     res.json({ claimed: false, bonus: 0, silverCoins: user.silverCoins ?? 0 });
     return;
   }
+  const referralBonus = user.referralBonusUntil && user.referralBonusUntil >= today ? 1 : 0;
+  const totalBonus = 2 + referralBonus;
   const [updated] = await db.update(usersTable)
-    .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 2` })
+    .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + ${totalBonus}` })
     .where(eq(usersTable.id, user.id))
     .returning();
-  res.json({ claimed: true, bonus: 2, silverCoins: updated.silverCoins ?? 0 });
+  res.json({ claimed: true, bonus: totalBonus, referralBonus, silverCoins: updated.silverCoins ?? 0 });
 });
 
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {

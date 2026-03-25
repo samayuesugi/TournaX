@@ -29,6 +29,17 @@ export const usersTable = pgTable("users", {
   x: text("x"),
   youtube: text("youtube"),
   twitch: text("twitch"),
+  referralCode: text("referral_code").unique(),
+  referralBonusUntil: text("referral_bonus_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const referralsTable = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: integer("referrer_id").notNull(),
+  referredId: integer("referred_id").notNull().unique(),
+  completed: boolean("completed").notNull().default(false),
+  referrerRewarded: boolean("referrer_rewarded").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
