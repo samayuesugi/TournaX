@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { GoldCoin } from "@/components/ui/Coins";
 import { Plus, Gavel, Zap, Clock, CheckCircle, XCircle, ChevronRight } from "lucide-react";
@@ -37,7 +38,8 @@ export default function AdminAuctionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [form, setForm] = useState({ title: "", tournamentName: "", startTime: "", endTime: "" });
+  const [games, setGames] = useState<{ id: number; name: string }[]>([]);
+  const [form, setForm] = useState({ game: "", tournamentName: "", startTime: "", endTime: "" });
 
   const load = () => {
     customFetch<Auction[]>("/api/auctions")
@@ -46,18 +48,21 @@ export default function AdminAuctionsPage() {
       .finally(() => setIsLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    customFetch<{ id: number; name: string }[]>("/api/games").then(setGames).catch(() => {});
+  }, []);
 
   const handleCreate = async () => {
-    if (!form.title.trim() || !form.tournamentName.trim()) {
-      toast({ title: "Title and tournament name are required", variant: "destructive" }); return;
+    if (!form.game || !form.tournamentName.trim()) {
+      toast({ title: "Please select a game and enter a tournament name", variant: "destructive" }); return;
     }
     setIsCreating(true);
     try {
       await customFetch("/api/auctions", {
         method: "POST",
         body: JSON.stringify({
-          title: form.title.trim(),
+          title: form.game,
           tournamentName: form.tournamentName.trim(),
           startTime: form.startTime || null,
           endTime: form.endTime || null,
@@ -65,7 +70,7 @@ export default function AdminAuctionsPage() {
         headers: { "Content-Type": "application/json" },
       });
       toast({ title: "Auction created!" });
-      setForm({ title: "", tournamentName: "", startTime: "", endTime: "" });
+      setForm({ game: "", tournamentName: "", startTime: "", endTime: "" });
       setCreateOpen(false);
       load();
     } catch (err: any) {
@@ -98,8 +103,17 @@ export default function AdminAuctionsPage() {
               <DialogHeader><DialogTitle>Create Auction</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Auction Title</Label>
-                  <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. IPL Mini Auction" />
+                  <Label>Choose Game</Label>
+                  <Select value={form.game} onValueChange={val => setForm(f => ({ ...f, game: val }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a game..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {games.map(g => (
+                        <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Tournament Name</Label>
