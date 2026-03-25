@@ -72,6 +72,8 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
   }
 
   if (roles && !roles.includes(user.role)) {
+    if (user.role === "admin") return <Redirect to="/admin" />;
+    if (user.role === "host") return <Redirect to="/host" />;
     return <Redirect to="/" />;
   }
 
