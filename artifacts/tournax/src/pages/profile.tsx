@@ -298,8 +298,6 @@ function OwnProfile() {
     bonusUntil: string | null;
     paidMatchesPlayed: number;
   } | null>(null);
-  const [referralInput, setReferralInput] = useState("");
-  const [applyingCode, setApplyingCode] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
@@ -330,22 +328,6 @@ function OwnProfile() {
       navigator.clipboard.writeText(referralStats.myCode);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
-    }
-  };
-
-  const handleApplyCode = async () => {
-    if (!referralInput.trim()) return;
-    setApplyingCode(true);
-    try {
-      await customFetch("/api/referral/apply", { method: "POST", body: JSON.stringify({ code: referralInput.trim() }) });
-      toast({ title: "Referral code applied!", description: "Play 5 paid matches to unlock your bonus." });
-      setReferralInput("");
-      const stats = await customFetch<typeof referralStats>("/api/referral/stats");
-      setReferralStats(stats);
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error ?? "Failed to apply code", variant: "destructive" });
-    } finally {
-      setApplyingCode(false);
     }
   };
 
@@ -670,30 +652,6 @@ function OwnProfile() {
               </div>
             )}
 
-            {!referralStats.usedCode && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Have a referral code? Enter it here:</p>
-                <div className="flex gap-2">
-                  <Input
-                    value={referralInput}
-                    onChange={(e) => setReferralInput(e.target.value.toUpperCase())}
-                    placeholder="TournaX001"
-                    className="font-mono text-sm h-9"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-9 shrink-0"
-                    onClick={handleApplyCode}
-                    disabled={applyingCode || !referralInput.trim()}
-                  >
-                    {applyingCode ? "..." : "Apply"}
-                  </Button>
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  After 5 paid matches: you get +1 silver/day for 3 days, your referrer gets +5 silver coins.
-                </p>
-              </div>
-            )}
 
             {referralStats.usedCode && !referralStats.myReferralCompleted && (
               <div className="bg-secondary/40 rounded-xl px-3 py-2 text-xs text-muted-foreground">
