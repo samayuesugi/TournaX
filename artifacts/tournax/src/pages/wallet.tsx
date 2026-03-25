@@ -27,7 +27,7 @@ const ADD_BALANCE_RULES = [
   { icon: "✅", text: "Enter the UTR number exactly as shown in the receipt." },
   { icon: "⏱️", text: "Request approval can take up to 2 hours." },
   { icon: "🔁", text: "Minimum add amount is 10 Gold Coins." },
-  { icon: "💰", text: "1₹ = 1 Gold Coin." },
+  { icon: "💰", text: <span className="inline-flex items-center gap-0.5">1 <GoldCoinIcon size="sm" /> = 1 Rupee</span> },
   { icon: "📵", text: "Do not submit a request with the same UTR twice." },
 ];
 
@@ -236,7 +236,7 @@ export default function WalletPage() {
                 <p className="text-sm text-muted-foreground">Gold Coins</p>
               </div>
               <h2 className="text-4xl font-bold mb-1">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
-              <p className="text-xs text-muted-foreground mb-4">1 Gold Coin = ₹1</p>
+              <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1">1 <GoldCoinIcon size="sm" /> = 1 Rupee</p>
               <div className="flex gap-2">
                 {!isHost && (
                   <Dialog open={addOpen} onOpenChange={setAddOpen}>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useCreateMatch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { GoldCoin } from "@/components/ui/Coins";
+import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,7 +142,7 @@ export default function CreateMatchPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Entry Fee (₹)</Label>
+              <Label className="flex items-center gap-1">Entry Fee (<GoldCoinIcon size="sm" />)</Label>
               <Input
                 type="number"
                 placeholder="0"
@@ -191,7 +191,7 @@ export default function CreateMatchPage() {
           </h3>
 
           <div className="space-y-1.5">
-            <Label>Showcase Prize Pool (₹)</Label>
+            <Label className="flex items-center gap-1">Showcase Prize Pool (<GoldCoinIcon size="sm" />)</Label>
             <Input
               type="number"
               placeholder="e.g. 5000"

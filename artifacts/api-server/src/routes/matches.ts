@@ -372,7 +372,7 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   const hostCut = parseFloat((totalPool * hostPercent).toFixed(2));
   const totalReward = results.reduce((sum, r) => sum + r.reward, 0);
   if (totalReward > maxWinnersPool + 0.01) {
-    res.status(400).json({ error: `Total rewards (₹${totalReward}) exceed the winners pool (₹${maxWinnersPool.toFixed(2)})` }); return;
+    res.status(400).json({ error: `Total rewards (${totalReward} GC) exceed the winners pool (${maxWinnersPool.toFixed(2)} GC)` }); return;
   }
 
   const today = new Date().toISOString().slice(0, 10);

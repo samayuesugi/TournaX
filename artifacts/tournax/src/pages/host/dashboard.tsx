@@ -146,7 +146,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">Reward (₹)</Label>
+                      <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">Reward (<GoldCoinIcon size="sm" />)</Label>
                       <Input
                         type="number"
                         min="0"
