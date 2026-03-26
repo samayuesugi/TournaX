@@ -189,10 +189,12 @@ export default function WalletPage() {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Withdraw Gold Coins</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Withdraw</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="bg-secondary/50 rounded-xl p-3 text-sm text-muted-foreground">
             Available: <span className="font-bold text-foreground"><GoldCoin amount={wallet?.balance?.toFixed(2) ?? "0.00"} /></span>
+            <span className="mx-1 text-muted-foreground">=</span>
+            <span className="font-bold text-green-400">₹{wallet?.balance?.toFixed(2) ?? "0.00"}</span>
           </div>
           <div className="space-y-1.5">
             <Label>Amount (₹)</Label>
