@@ -88,8 +88,10 @@ export default function ConversationPage() {
 
   const partnerHeaderContent = partner ? (
     <div className="flex items-center gap-2.5 min-w-0">
-      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0">
-        {partner.avatar || "🔥"}
+      <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0 overflow-hidden">
+        {partner.avatar && (partner.avatar.startsWith("/") || partner.avatar.startsWith("http") || partner.avatar.startsWith("data:"))
+          ? <img src={partner.avatar} alt={partner.name || "avatar"} className="w-full h-full object-cover" />
+          : partner.avatar || "🔥"}
       </div>
       <div className="min-w-0">
         <p className="font-semibold text-sm truncate leading-tight">{partner.name || partner.handle || `User ${partnerId}`}</p>

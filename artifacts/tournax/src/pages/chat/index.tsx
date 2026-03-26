@@ -163,8 +163,10 @@ export default function ChatListPage() {
                   conv.unreadCount > 0 ? "border-primary/30" : "border-card-border"
                 )}
               >
-                <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
-                  {conv.avatar}
+                <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
+                  {conv.avatar && (conv.avatar.startsWith("/") || conv.avatar.startsWith("http") || conv.avatar.startsWith("data:"))
+                    ? <img src={conv.avatar} alt={conv.name || "avatar"} className="w-full h-full object-cover" />
+                    : conv.avatar || "🔥"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
