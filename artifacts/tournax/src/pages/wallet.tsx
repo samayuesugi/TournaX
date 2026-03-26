@@ -27,7 +27,7 @@ const ADD_BALANCE_RULES = [
   { icon: "✅", text: "Enter the UTR number exactly as shown in the receipt." },
   { icon: "⏱️", text: "Request approval can take up to 2 hours." },
   { icon: "🔁", text: "Minimum add amount is 10 Gold Coins." },
-  { icon: "💰", text: <span className="inline-flex items-center gap-0.5">1 <GoldCoinIcon size="sm" /> = 1 Rupee</span> },
+  { icon: "💰", text: "1₹ = 1 Gold Coin" },
   { icon: "📵", text: "Do not submit a request with the same UTR twice." },
 ];
 
@@ -195,7 +195,7 @@ export default function WalletPage() {
             Available: <span className="font-bold text-foreground"><GoldCoin amount={wallet?.balance?.toFixed(2) ?? "0.00"} /></span>
           </div>
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1"><GoldCoinIcon size="sm" /> Amount (Gold Coins)</Label>
+            <Label>Amount (₹)</Label>
             <Input
               type="number"
               placeholder="Enter amount"
@@ -236,18 +236,18 @@ export default function WalletPage() {
                 <p className="text-sm text-muted-foreground">Gold Coins</p>
               </div>
               <h2 className="text-4xl font-bold mb-1">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
-              <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1">1 <GoldCoinIcon size="sm" /> = 1 Rupee</p>
+              <p className="text-xs text-muted-foreground mb-4">1₹ = 1 Gold Coin</p>
               <div className="flex gap-2">
                 {!isHost && (
                   <Dialog open={addOpen} onOpenChange={setAddOpen}>
                     <DialogTrigger asChild>
                       <Button size="sm" className="gap-1.5 flex-1">
-                        <Plus className="w-3.5 h-3.5" /> Add Gold Coins
+                        <Plus className="w-3.5 h-3.5" /> Add Coins
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
                       <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-                        <DialogTitle>Add Gold Coins</DialogTitle>
+                        <DialogTitle>Add Coins</DialogTitle>
                       </DialogHeader>
 
                       <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
@@ -288,10 +288,10 @@ export default function WalletPage() {
                         </div>
 
                         <div className="space-y-1.5">
-                          <Label className="flex items-center gap-1"><GoldCoinIcon size="sm" /> Amount (Gold Coins, min 10)</Label>
+                          <Label>Amount (₹)</Label>
                           <Input
                             type="number"
-                            placeholder="Enter amount (min 10)"
+                            placeholder="Enter amount (min ₹10)"
                             value={addForm.amount}
                             onChange={(e) => setAddForm(f => ({ ...f, amount: e.target.value }))}
                           />
