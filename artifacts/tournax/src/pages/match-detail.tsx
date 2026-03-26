@@ -552,29 +552,80 @@ export default function MatchDetailPage() {
           </div>
         )}
 
-        {players && players.length > 0 && (
-          <div className="bg-card border border-card-border rounded-2xl p-4">
-            <h3 className="font-semibold mb-3">Participants ({players.length})</h3>
-            <div className="space-y-2">
-              {players.map((team) => (
-                <div key={team.id} className="bg-secondary/40 rounded-xl p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">{team.teamName || `Team ${team.teamNumber}`}</span>
-                    <span className="text-xs text-muted-foreground">#{team.teamNumber}</span>
-                  </div>
-                  <div className="space-y-1">
-                    {team.players.map((p) => (
-                      <div key={p.position} className="flex items-center justify-between text-xs">
-                        <span className="text-foreground">{p.ign}</span>
-                        <span className="text-muted-foreground font-mono">{p.uid}</span>
+        {players && players.length > 0 && (() => {
+          const isCompleted = match?.status === "completed";
+          const sorted = isCompleted
+            ? [...players].sort((a, b) => {
+                if (a.rank == null && b.rank == null) return (a.teamNumber ?? 0) - (b.teamNumber ?? 0);
+                if (a.rank == null) return 1;
+                if (b.rank == null) return -1;
+                return a.rank - b.rank;
+              })
+            : players;
+
+          const rankLabel = (rank: number | null) => {
+            if (!rank) return null;
+            if (rank === 1) return { icon: "🥇", label: "1st", color: "text-yellow-400" };
+            if (rank === 2) return { icon: "🥈", label: "2nd", color: "text-slate-300" };
+            if (rank === 3) return { icon: "🥉", label: "3rd", color: "text-amber-600" };
+            return { icon: `#${rank}`, label: `#${rank}`, color: "text-muted-foreground" };
+          };
+
+          return (
+            <div className="bg-card border border-card-border rounded-2xl p-4">
+              <h3 className="font-semibold mb-3">
+                {isCompleted ? "Results & Rewards" : `Participants (${players.length})`}
+              </h3>
+              <div className="space-y-2">
+                {sorted.map((team) => {
+                  const rl = rankLabel(team.rank);
+                  const hasReward = isCompleted && team.reward != null && team.reward > 0;
+                  return (
+                    <div
+                      key={team.id}
+                      className={`rounded-xl p-3 border ${
+                        rl?.label === "1st" ? "bg-yellow-500/10 border-yellow-500/30" :
+                        rl?.label === "2nd" ? "bg-slate-400/10 border-slate-400/20" :
+                        rl?.label === "3rd" ? "bg-amber-700/10 border-amber-700/20" :
+                        "bg-secondary/40 border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          {rl && (
+                            <span className={`text-sm font-bold ${rl.color}`}>{rl.icon}</span>
+                          )}
+                          <span className="text-sm font-medium">{team.teamName || `Team ${team.teamNumber}`}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasReward && (
+                            <span className="text-xs font-bold text-green-400 flex items-center gap-0.5">
+                              +<GoldCoin amount={team.reward!} size="sm" />
+                            </span>
+                          )}
+                          {isCompleted && team.reward === 0 && (
+                            <span className="text-xs text-muted-foreground">No reward</span>
+                          )}
+                          {!isCompleted && (
+                            <span className="text-xs text-muted-foreground">#{team.teamNumber}</span>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                      <div className="space-y-0.5">
+                        {team.players.map((p) => (
+                          <div key={p.position} className="flex items-center justify-between text-xs">
+                            <span className="text-foreground">{p.ign}</span>
+                            <span className="text-muted-foreground font-mono">{p.uid}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </AppLayout>
   );
