@@ -28,17 +28,25 @@ type AuctionDetail = {
   startTime: string | null; endTime: string | null;
 };
 
-async function uploadImage(file: File): Promise<string> {
-  const urlRes = await customFetch<{ uploadURL: string; objectPath: string }>(
-    "/api/storage/uploads/request-url",
-    {
-      method: "POST",
-      body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
-      headers: { "Content-Type": "application/json" },
-    }
-  );
-  await fetch(urlRes.uploadURL, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-  return urlRes.objectPath;
+async function convertToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 256;
+      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("canvas not supported")); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL("image/webp", 0.8));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Failed to load image")); };
+    img.src = objectUrl;
+  });
 }
 
 function AvatarImg({ src, name, size = "md" }: { src: string | null; name: string; size?: "sm" | "md" | "lg" }) {
@@ -69,8 +77,8 @@ function ImageUploadButton({
     }
     setIsUploading(true);
     try {
-      const path = await uploadImage(file);
-      onUploaded(path);
+      const dataUrl = await convertToBase64(file);
+      onUploaded(dataUrl);
     } catch {
       toast({ title: "Upload failed", description: "Try again", variant: "destructive" });
     } finally {
