@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
@@ -14,9 +14,19 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState({ email: "", password: "", confirmPassword: "", referralCode: "" });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setRegisterForm(f => ({ ...f, referralCode: ref }));
+      setActiveTab("register");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +84,7 @@ export default function AuthPage() {
         </div>
 
         <div className="bg-card border border-card-border rounded-2xl p-6 shadow-lg">
-          <Tabs defaultValue="login">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full mb-6">
               <TabsTrigger value="login" className="flex-1">Sign In</TabsTrigger>
               <TabsTrigger value="register" className="flex-1">Sign Up</TabsTrigger>

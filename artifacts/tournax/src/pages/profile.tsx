@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const COMPLAINT_TOPICS = [
@@ -300,6 +300,7 @@ function OwnProfile() {
     paidMatchesPlayed: number;
   } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (profileOpen) {
@@ -329,6 +330,15 @@ function OwnProfile() {
       navigator.clipboard.writeText(referralStats.myCode);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
+  const handleShareLink = () => {
+    if (referralStats?.myCode) {
+      const link = `${window.location.origin}/auth?ref=${referralStats.myCode}`;
+      navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
     }
   };
 
@@ -680,6 +690,16 @@ function OwnProfile() {
                   {codeCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </Button>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 mt-1"
+                onClick={handleShareLink}
+                disabled={!referralStats.myCode}
+              >
+                {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Link className="w-3.5 h-3.5" />}
+                {linkCopied ? "Link Copied!" : "Copy Referral Link"}
+              </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
