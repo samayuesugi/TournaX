@@ -56,7 +56,7 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
 
       <div className="text-3xl font-bold text-foreground mb-0.5"><GoldCoin amount={Math.round(livePrizePool)} size="lg" /></div>
       <p className="text-xs text-muted-foreground mb-3">
-        {filledSlots} player{filledSlots !== 1 ? "s" : ""} × <GoldCoin amount={entryFee} size="sm" /> entry fee
+        <GoldCoin amount={entryFee} size="sm" /> × {filledSlots} player{filledSlots !== 1 ? "s" : ""} = <GoldCoin amount={filledSlots * entryFee} size="sm" />
       </p>
 
       <div className="grid grid-cols-3 gap-2 text-center bg-secondary/50 rounded-xl p-3">
@@ -314,7 +314,7 @@ export default function MatchDetailPage() {
               <DialogTrigger asChild>
                 <Button className="w-full" size="lg">
                   Join Match · <GoldCoin amount={match.teamSize > 1 ? (Number(match.entryFee) || 0) * match.teamSize : match.entryFee} size="sm" />
-                  {match.teamSize > 1 && <span className="opacity-70 text-xs ml-1">(<GoldCoinIcon size="sm" />{match.entryFee}×{match.teamSize})</span>}
+                  {match.teamSize > 1 && <span className="opacity-70 text-xs ml-1">({match.entryFee} × {match.teamSize})</span>}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-sm">
