@@ -44,7 +44,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
             <img
               src={thumbnail}
               alt="Match thumbnail"
-              className="w-full h-full object-cover object-bottom"
+              className="w-full h-full object-cover object-top"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
             <span className={cn("absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full border backdrop-blur-sm", statusColors[match.status])}>
