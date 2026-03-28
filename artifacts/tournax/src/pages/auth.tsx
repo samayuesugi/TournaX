@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff, ArrowLeft, Mail, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
