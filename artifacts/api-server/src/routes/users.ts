@@ -303,13 +303,13 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),
       startTime: m.startTime?.toISOString(), status: m.status, slots: m.slots, filledSlots: m.filledSlots,
-      hostId: m.hostId,
+      hostId: m.hostId, thumbnailImage: m.thumbnailImage,
     })),
     activeMatches: activeMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),
       startTime: m.startTime?.toISOString(), status: m.status, slots: m.slots, filledSlots: m.filledSlots,
-      hostId: m.hostId,
+      hostId: m.hostId, thumbnailImage: m.thumbnailImage,
     })),
   });
 });
