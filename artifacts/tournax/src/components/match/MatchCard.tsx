@@ -29,6 +29,7 @@ function formatTime(iso: string) {
 export function MatchCard({ match, className }: MatchCardProps) {
   const slotsLeft = match.slots - match.filledSlots;
   const showcase = (match as any).showcasePrizePool ?? 0;
+  const thumbnail = (match as any).thumbnailImage;
 
   return (
     <Link href={`/matches/${match.id}`}>
@@ -38,6 +39,19 @@ export function MatchCard({ match, className }: MatchCardProps) {
           className
         )}
       >
+        {thumbnail && (
+          <div className="relative w-full h-32 overflow-hidden">
+            <img
+              src={thumbnail}
+              alt="Match thumbnail"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
+            <span className={cn("absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full border backdrop-blur-sm", statusColors[match.status])}>
+              {statusLabels[match.status]}
+            </span>
+          </div>
+        )}
         <div className="p-4">
           <div className="flex items-start justify-between gap-2 mb-3">
             <div className="flex-1 min-w-0">
@@ -52,9 +66,11 @@ export function MatchCard({ match, className }: MatchCardProps) {
                 <span>{match.teamSize}v{match.teamSize}</span>
               </div>
             </div>
-            <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
-              {statusLabels[match.status]}
-            </span>
+            {!thumbnail && (
+              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
+                {statusLabels[match.status]}
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-3">
@@ -95,7 +111,6 @@ export function MatchCard({ match, className }: MatchCardProps) {
             )}
           </div>
 
-          {/* Progress line */}
           <div>
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="flex items-center gap-1 text-muted-foreground">

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, RefreshCw } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, RefreshCw, ChevronRight, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon, SilverCoin, SilverCoinIcon } from "@/components/ui/Coins";
 
@@ -29,6 +29,13 @@ const ADD_BALANCE_RULES = [
   { icon: "🔁", text: "Minimum add amount is 10 ₹ (Gold Coins)." },
   { icon: "💰", text: "1₹ = 1 Gold Coin" },
   { icon: "📵", text: "Do not submit a request with the same UTR twice." },
+];
+
+const COIN_PACKS = [
+  { id: "starter", label: "Starter Pack", coins: 10, price: 10, color: "from-slate-500/20 to-slate-600/10 border-slate-500/30", badge: "" },
+  { id: "pro", label: "Pro Pack", coins: 50, price: 50, color: "from-blue-500/20 to-blue-600/10 border-blue-500/30", badge: "Popular" },
+  { id: "elite", label: "Elite Pack", coins: 100, price: 100, color: "from-amber-500/20 to-yellow-400/10 border-amber-500/30", badge: "Best Value" },
+  { id: "custom", label: "Custom Pack", coins: 0, price: 0, color: "from-primary/10 to-primary/5 border-primary/30", badge: "" },
 ];
 
 type DailyTasksData = {
@@ -77,33 +84,51 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function WalletPage() {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { data: wallet, isLoading, refetch } = useGetWallet();
-  const { mutateAsync: addBalance, isPending: isAdding } = useRequestAddBalance();
-  const { mutateAsync: withdraw, isPending: isWithdrawing } = useRequestWithdrawal();
-  const { mutateAsync: convertSilver, isPending: isConverting } = useConvertSilverCoins();
+type BuyStep = "select" | "qr" | "receipt";
 
-  const [addForm, setAddForm] = useState({ amount: "", utrNumber: "" });
-  const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
-  const [addOpen, setAddOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
+function CoinsPackDialog() {
+  const { toast } = useToast();
+  const { mutateAsync: addBalance, isPending: isAdding } = useRequestAddBalance();
+  const { refetch } = useGetWallet();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<BuyStep>("select");
+  const [selectedPack, setSelectedPack] = useState<typeof COIN_PACKS[0] | null>(null);
+  const [customAmount, setCustomAmount] = useState("");
   const [copied, setCopied] = useState(false);
+  const [utrNumber, setUtrNumber] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dailyTasks, setDailyTasks] = useState<DailyTasksData | null>(null);
 
-  useEffect(() => {
-    customFetch<DailyTasksData>("/api/auth/daily-tasks")
-      .then(setDailyTasks)
-      .catch(() => {});
-  }, []);
+  const reset = () => {
+    setStep("select");
+    setSelectedPack(null);
+    setCustomAmount("");
+    setCopied(false);
+    setUtrNumber("");
+    setReceiptFile(null);
+    if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+    setReceiptPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
-  const isHost = user?.role === "host";
-  const silverCoins = (wallet as any)?.silverCoins ?? 0;
-  const canConvert = silverCoins >= 100;
+  const finalCoins = selectedPack?.id === "custom" ? parseInt(customAmount) || 0 : selectedPack?.coins ?? 0;
+  const finalPrice = selectedPack?.id === "custom" ? parseInt(customAmount) || 0 : selectedPack?.price ?? 0;
+
+  const handlePackSelect = (pack: typeof COIN_PACKS[0]) => {
+    setSelectedPack(pack);
+    if (pack.id !== "custom") setStep("qr");
+  };
+
+  const handleCustomNext = () => {
+    const amount = parseInt(customAmount);
+    if (!amount || amount < 10) {
+      toast({ title: "Minimum 10 coins", variant: "destructive" });
+      return;
+    }
+    setStep("qr");
+  };
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -126,14 +151,17 @@ export default function WalletPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleAddBalance = async () => {
+  const handleSubmit = async () => {
     if (!receiptFile) {
       toast({ title: "Receipt required", description: "Please attach your payment receipt.", variant: "destructive" });
       return;
     }
-    const parsedAmount = parseFloat(addForm.amount);
-    if (isNaN(parsedAmount) || parsedAmount < 10) {
-      toast({ title: "Invalid amount", description: "Please enter a valid amount of at least 10 Gold Coins.", variant: "destructive" });
+    if (!utrNumber.trim()) {
+      toast({ title: "UTR required", description: "Please enter the UTR number from your receipt.", variant: "destructive" });
+      return;
+    }
+    if (finalCoins < 10) {
+      toast({ title: "Invalid amount", variant: "destructive" });
       return;
     }
     try {
@@ -143,16 +171,236 @@ export default function WalletPage() {
         reader.onerror = reject;
         reader.readAsDataURL(receiptFile);
       });
-      await addBalance({ data: { amount: parsedAmount, utrNumber: addForm.utrNumber, receiptUrl } });
+      await addBalance({ data: { amount: finalCoins, utrNumber: utrNumber.trim(), receiptUrl } });
       toast({ title: "Request submitted!", description: "Await admin approval. Usually within 30 mins." });
-      setAddForm({ amount: "", utrNumber: "" });
-      handleRemoveReceipt();
-      setAddOpen(false);
+      reset();
+      setOpen(false);
       refetch();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
     }
   };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-1.5 flex-1">
+          <Plus className="w-3.5 h-3.5" /> Add Coins
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-amber-400" />
+            {step === "select" ? "Choose a Pack" : step === "qr" ? "Scan & Pay" : "Submit Proof"}
+          </DialogTitle>
+          {step !== "select" && (
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className={cn("w-2 h-2 rounded-full", step === "qr" || step === "receipt" ? "bg-primary" : "bg-muted")} />
+              <div className={cn("w-2 h-2 rounded-full", step === "receipt" ? "bg-primary" : "bg-muted")} />
+            </div>
+          )}
+        </DialogHeader>
+
+        <div className="overflow-y-auto flex-1 px-4 pb-4">
+          {step === "select" && (
+            <div className="space-y-3 pt-1">
+              <p className="text-xs text-muted-foreground">Select a coins pack to buy. 1₹ = 1 Gold Coin.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {COIN_PACKS.map((pack) => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    onClick={() => handlePackSelect(pack)}
+                    className={cn(
+                      "relative flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border bg-gradient-to-br text-center transition-all hover:scale-[1.02] active:scale-[0.98]",
+                      pack.color
+                    )}
+                  >
+                    {pack.badge && (
+                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full whitespace-nowrap">
+                        {pack.badge}
+                      </span>
+                    )}
+                    <GoldCoinIcon size="md" />
+                    <div className="font-bold text-lg">{pack.id === "custom" ? "Custom" : pack.coins}</div>
+                    <div className="text-xs text-muted-foreground font-medium">
+                      {pack.id === "custom" ? "Any amount" : `₹${pack.price}`}
+                    </div>
+                    <div className="text-xs text-foreground font-semibold">{pack.label}</div>
+                    {pack.id !== "custom" && (
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
+                    )}
+                  </button>
+                ))}
+              </div>
+              {selectedPack?.id === "custom" && (
+                <div className="space-y-3 pt-1">
+                  <div className="space-y-1.5">
+                    <Label>Amount (₹ / Gold Coins)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Enter amount (min ₹10)"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      min={10}
+                      autoFocus
+                    />
+                  </div>
+                  <Button className="w-full" onClick={handleCustomNext}>
+                    Continue
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === "qr" && (
+            <div className="space-y-4 pt-1">
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">You are buying</p>
+                  <div className="flex items-center gap-1 font-bold text-base">
+                    <GoldCoinIcon size="sm" /> {finalCoins} Gold Coins
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Pay</p>
+                  <p className="font-bold text-lg text-green-400">₹{finalPrice}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <img
+                  src={`${import.meta.env.BASE_URL}upi-qr.jpg`}
+                  alt="UPI QR Code"
+                  className="w-52 h-52 object-contain rounded-xl border border-primary/20"
+                />
+              </div>
+
+              <button
+                onClick={handleCopyUpi}
+                className="w-full flex items-center justify-between bg-muted/50 border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
+              >
+                <div className="text-left">
+                  <p className="text-xs text-muted-foreground mb-0.5">UPI ID</p>
+                  <p className="font-mono font-semibold text-sm text-primary">{UPI_ID}</p>
+                </div>
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-400 shrink-0" />
+                ) : (
+                  <Copy className="w-4 h-4 text-muted-foreground shrink-0" />
+                )}
+              </button>
+
+              <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl p-3 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                  <span className="text-xs font-semibold text-yellow-400 uppercase tracking-wide">Important</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Pay exactly ₹{finalPrice} and save your receipt with UTR number before proceeding.</p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setStep("select")}>Back</Button>
+                <Button className="flex-1" onClick={() => setStep("receipt")}>I Paid → Submit Proof</Button>
+              </div>
+            </div>
+          )}
+
+          {step === "receipt" && (
+            <div className="space-y-4 pt-1">
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
+                <div className="flex items-center gap-1 font-bold">
+                  <GoldCoinIcon size="sm" /> {finalCoins} Gold Coins
+                </div>
+                <span className="text-green-400 font-bold">₹{finalPrice}</span>
+              </div>
+
+              {ADD_BALANCE_RULES.map((rule, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-sm leading-tight shrink-0">{rule.icon}</span>
+                  <p className="text-xs text-muted-foreground leading-snug">{rule.text}</p>
+                </div>
+              ))}
+
+              <div className="space-y-1.5">
+                <Label>UTR Number <span className="text-destructive">*</span></Label>
+                <Input
+                  placeholder="12-digit UTR from receipt"
+                  value={utrNumber}
+                  onChange={(e) => setUtrNumber(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Payment Receipt <span className="text-destructive">*</span></Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleReceiptSelect}
+                />
+                {receiptPreview ? (
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-black" />
+                    <button
+                      onClick={handleRemoveReceipt}
+                      className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black transition-colors"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-6 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                  >
+                    <ImagePlus className="w-7 h-7 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Select receipt from gallery</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setStep("qr")}>Back</Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSubmit}
+                  disabled={isAdding || !utrNumber.trim() || !receiptFile}
+                >
+                  {isAdding ? "Submitting..." : "Submit Request"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function WalletPage() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: wallet, isLoading, refetch } = useGetWallet();
+  const { mutateAsync: withdraw, isPending: isWithdrawing } = useRequestWithdrawal();
+  const { mutateAsync: convertSilver, isPending: isConverting } = useConvertSilverCoins();
+
+  const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [dailyTasks, setDailyTasks] = useState<DailyTasksData | null>(null);
+
+  useEffect(() => {
+    customFetch<DailyTasksData>("/api/auth/daily-tasks")
+      .then(setDailyTasks)
+      .catch(() => {});
+  }, []);
+
+  const isHost = user?.role === "host";
+  const silverCoins = (wallet as any)?.silverCoins ?? 0;
+  const canConvert = silverCoins >= 100;
 
   const handleWithdraw = async () => {
     const parsedWithdrawAmount = parseFloat(withdrawForm.amount);
@@ -240,115 +488,7 @@ export default function WalletPage() {
               <h2 className="text-4xl font-bold mb-1">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
               <p className="text-xs text-muted-foreground mb-4">1₹ = 1 Gold Coin</p>
               <div className="flex gap-2">
-                {!isHost && (
-                  <Dialog open={addOpen} onOpenChange={setAddOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-1.5 flex-1">
-                        <Plus className="w-3.5 h-3.5" /> Add Coins
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
-                      <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-                        <DialogTitle>Add Coins</DialogTitle>
-                      </DialogHeader>
-
-                      <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
-                        <div className="flex flex-col items-center">
-                          <img
-                            src={`${import.meta.env.BASE_URL}upi-qr.jpg`}
-                            alt="UPI QR Code"
-                            className="w-56 h-56 object-contain rounded-xl border border-primary/20"
-                          />
-                        </div>
-
-                        <button
-                          onClick={handleCopyUpi}
-                          className="w-full flex items-center justify-between bg-muted/50 border border-border rounded-xl px-4 py-3 hover:bg-muted transition-colors"
-                        >
-                          <div className="text-left">
-                            <p className="text-xs text-muted-foreground mb-0.5">UPI ID</p>
-                            <p className="font-mono font-semibold text-sm text-primary">{UPI_ID}</p>
-                          </div>
-                          {copied ? (
-                            <Check className="w-4 h-4 text-green-400 shrink-0" />
-                          ) : (
-                            <Copy className="w-4 h-4 text-muted-foreground shrink-0" />
-                          )}
-                        </button>
-
-                        <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl p-3 space-y-2">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
-                            <span className="text-xs font-semibold text-yellow-400 uppercase tracking-wide">Important Rules</span>
-                          </div>
-                          {ADD_BALANCE_RULES.map((rule, i) => (
-                            <div key={i} className="flex items-start gap-2">
-                              <span className="text-sm leading-tight shrink-0">{rule.icon}</span>
-                              <p className="text-xs text-muted-foreground leading-snug">{rule.text}</p>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label>Amount (₹)</Label>
-                          <Input
-                            type="number"
-                            placeholder="Enter amount (min ₹10)"
-                            value={addForm.amount}
-                            onChange={(e) => setAddForm(f => ({ ...f, amount: e.target.value }))}
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label>UTR Number</Label>
-                          <Input
-                            placeholder="12-digit UTR from receipt"
-                            value={addForm.utrNumber}
-                            onChange={(e) => setAddForm(f => ({ ...f, utrNumber: e.target.value }))}
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label>Payment Receipt</Label>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleReceiptSelect}
-                          />
-                          {receiptPreview ? (
-                            <div className="relative rounded-xl overflow-hidden border border-border">
-                              <img src={receiptPreview} alt="Receipt" className="w-full max-h-48 object-contain bg-black" />
-                              <button
-                                onClick={handleRemoveReceipt}
-                                className="absolute top-2 right-2 bg-black/70 rounded-full p-1 hover:bg-black transition-colors"
-                              >
-                                <X className="w-4 h-4 text-white" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => fileInputRef.current?.click()}
-                              className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-6 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                            >
-                              <ImagePlus className="w-7 h-7 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">Select receipt from gallery</span>
-                            </button>
-                          )}
-                        </div>
-
-                        <Button
-                          className="w-full"
-                          onClick={handleAddBalance}
-                          disabled={isAdding || !addForm.amount || !addForm.utrNumber || !receiptFile}
-                        >
-                          {isAdding ? "Submitting..." : "Submit Request"}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                )}
+                {!isHost && <CoinsPackDialog />}
                 {withdrawDialog}
               </div>
             </div>
@@ -381,20 +521,20 @@ export default function WalletPage() {
               )}
 
               <div className="mt-3 border-t border-slate-500/20 pt-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Earn with Tasks</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Daily Tasks</p>
                 <div className="space-y-1.5">
                   <DailyTask
                     icon="📅"
                     title="Daily Login"
-                    desc="+2 Silver Coins"
+                    desc="+5 Silver Coins"
                     progress={dailyTasks?.loginClaimed ? 1 : 0}
                     total={1}
                     claimed={dailyTasks?.loginClaimed ?? false}
                   />
                   <DailyTask
                     icon="🏆"
-                    title="Win 3 Matches"
-                    desc="+3 Silver Coins each win"
+                    title="Win 3 Paid Matches"
+                    desc="+1 Gold Coin"
                     progress={dailyTasks?.winsToday ?? 0}
                     total={3}
                     claimed={dailyTasks?.winsClaimed ?? false}
@@ -402,7 +542,7 @@ export default function WalletPage() {
                   <DailyTask
                     icon="🎮"
                     title="Play 5 Paid Matches"
-                    desc="+5 Silver Coins"
+                    desc="+1 Gold Coin"
                     progress={dailyTasks?.paidMatchesToday ?? 0}
                     total={5}
                     claimed={dailyTasks?.paidMatchesClaimed ?? false}

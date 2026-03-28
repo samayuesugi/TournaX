@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const COMPLAINT_TOPICS = [
@@ -262,6 +262,99 @@ function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
           {SocialIcons[key]}
         </a>
       ))}
+    </div>
+  );
+}
+
+const MONETIZATION_PHASES = [
+  {
+    phase: 1,
+    followers: 10,
+    icon: <ImageIcon className="w-4 h-4" />,
+    title: "Image Upload Access",
+    desc: "Share gaming moments in the Explore feed",
+    color: "from-blue-500/20 to-blue-600/10 border-blue-500/30",
+    textColor: "text-blue-400",
+  },
+  {
+    phase: 2,
+    followers: 50,
+    icon: <Zap className="w-4 h-4" />,
+    title: "Host Mini Tournaments",
+    desc: "Create small matches (up to 8 players) like a host",
+    color: "from-violet-500/20 to-violet-600/10 border-violet-500/30",
+    textColor: "text-violet-400",
+  },
+  {
+    phase: 3,
+    followers: 100,
+    icon: <Crown className="w-4 h-4" />,
+    title: "Become a Host",
+    desc: "Get full host privileges and create unlimited tournaments",
+    color: "from-amber-500/20 to-yellow-400/10 border-amber-500/30",
+    textColor: "text-amber-400",
+  },
+];
+
+function MonetizationSection({ followers }: { followers: number }) {
+  return (
+    <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-primary" />
+        <h3 className="font-semibold">Monetization</h3>
+        <span className="text-xs text-muted-foreground ml-auto">{followers} followers</span>
+      </div>
+
+      <p className="text-xs text-muted-foreground">Grow your followers to unlock more features and earn more!</p>
+
+      <div className="space-y-2.5">
+        {MONETIZATION_PHASES.map((phase) => {
+          const unlocked = followers >= phase.followers;
+          const progress = Math.min(100, (followers / phase.followers) * 100);
+          return (
+            <div
+              key={phase.phase}
+              className={cn(
+                "rounded-xl border p-3 bg-gradient-to-br transition-all",
+                unlocked ? phase.color : "from-secondary/30 to-secondary/10 border-border opacity-70"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", unlocked ? `bg-card/60 ${phase.textColor}` : "bg-secondary/50 text-muted-foreground")}>
+                  {phase.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={cn("text-xs font-bold uppercase tracking-wide", unlocked ? phase.textColor : "text-muted-foreground")}>
+                      Phase {phase.phase}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{phase.followers} followers</span>
+                    {unlocked && (
+                      <span className="text-[10px] font-bold text-green-400 ml-auto">✓ Unlocked</span>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-foreground leading-tight">{phase.title}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{phase.desc}</p>
+                  {!unlocked && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                        <span>{followers}/{phase.followers} followers</span>
+                        <span>{phase.followers - followers} more to go</span>
+                      </div>
+                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -697,7 +790,7 @@ function OwnProfile() {
                 onClick={handleShareLink}
                 disabled={!referralStats.myCode}
               >
-                {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Link className="w-3.5 h-3.5" />}
+                {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <LinkIcon className="w-3.5 h-3.5" />}
                 {linkCopied ? "Link Copied!" : "Copy Referral Link"}
               </Button>
             </div>
@@ -719,10 +812,15 @@ function OwnProfile() {
 
             {referralStats.bonusActive && referralStats.bonusUntil && (
               <div className="bg-green-500/10 border border-green-500/25 rounded-xl px-3 py-2 text-xs text-green-400">
-                🎁 +1 silver coin daily bonus active until {referralStats.bonusUntil}
+                🎁 +1 Gold Coin bonus on Win 3 Matches task active until {referralStats.bonusUntil}
               </div>
             )}
 
+            <div className="bg-secondary/40 rounded-xl px-3 py-2 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
+              <p className="text-xs text-muted-foreground">Share your code → Friend registers → Friend plays 5 paid matches → You get <span className="text-amber-400 font-semibold">3 Gold Coins</span></p>
+              <p className="text-xs text-muted-foreground">After referral completes, your friend gets <span className="text-green-400 font-semibold">+1 Gold Coin bonus</span> on the "Win 3 Matches" daily task for 5 days</p>
+            </div>
 
             {referralStats.usedCode && !referralStats.myReferralCompleted && (
               <div className="bg-secondary/40 rounded-xl px-3 py-2 text-xs text-muted-foreground">
@@ -730,6 +828,10 @@ function OwnProfile() {
               </div>
             )}
           </div>
+        )}
+
+        {user.role === "player" && (
+          <MonetizationSection followers={user.followersCount ?? 0} />
         )}
       </div>
     </AppLayout>

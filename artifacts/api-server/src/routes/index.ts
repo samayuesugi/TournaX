@@ -12,6 +12,7 @@ import leaderboardRouter from "./leaderboard";
 import referralRouter from "./referral";
 import auctionsRouter from "./auctions";
 import pushRouter from "./push";
+import postsRouter from "./posts";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(leaderboardRouter);
 router.use(referralRouter);
 router.use(auctionsRouter);
 router.use(pushRouter);
+router.use(postsRouter);
 
 export default router;

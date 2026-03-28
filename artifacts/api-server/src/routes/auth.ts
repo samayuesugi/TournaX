@@ -148,14 +148,14 @@ router.post("/auth/login", async (req: Request, res: Response) => {
   let updatedUser = user;
   if (user.lastLoginDate !== today) {
     const [u] = await db.update(usersTable)
-      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 2` })
+      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 5` })
       .where(eq(usersTable.id, user.id))
       .returning();
     updatedUser = u;
   }
 
   const token = generateToken(updatedUser.id);
-  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: user.lastLoginDate !== today ? 2 : 0 });
+  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: user.lastLoginDate !== today ? 5 : 0 });
 });
 
 router.get("/auth/me", requireAuth, async (req: Request, res: Response) => {
@@ -175,7 +175,7 @@ router.post("/auth/daily-checkin", requireAuth, async (req: Request, res: Respon
     return;
   }
   const referralBonus = user.referralBonusUntil && user.referralBonusUntil >= today ? 1 : 0;
-  const totalBonus = 2 + referralBonus;
+  const totalBonus = 5 + referralBonus;
   const [updated] = await db.update(usersTable)
     .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + ${totalBonus}` })
     .where(eq(usersTable.id, user.id))

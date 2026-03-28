@@ -21,6 +21,7 @@ export const matchesTable = pgTable("matches", {
   roomPassword: text("room_password"),
   roomReleased: boolean("room_released").notNull().default(false),
   description: text("description"),
+  thumbnailImage: text("thumbnail_image"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

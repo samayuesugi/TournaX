@@ -9,8 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift } from "lucide-react";
+import { Gift, ImageIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+
+import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
+import thumb2 from "@assets/81e162153377959.632e6c70effcb_1774695040183.jpg";
+import thumb3 from "@assets/a8f058153377959.632e6c70f10b6_1774695040228.jpg";
+import thumb4 from "@assets/6fa5cd183933069.6549000c19789_1774695040280.png";
+
+const THUMBNAIL_OPTIONS = [
+  { id: "thumb1", src: thumb1, label: "Warrior" },
+  { id: "thumb2", src: thumb2, label: "Rivals" },
+  { id: "thumb3", src: thumb3, label: "Squad" },
+  { id: "thumb4", src: thumb4, label: "Battle" },
+];
 
 const GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile", "Other"];
 
@@ -27,6 +39,7 @@ export default function CreateMatchPage() {
 
   const [selectedGame, setSelectedGame] = useState<string>("");
   const [teamSize, setTeamSize] = useState<number>(1);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<string>("");
   const [form, setForm] = useState({
     mode: "",
     entryFee: "",
@@ -57,6 +70,7 @@ export default function CreateMatchPage() {
           startTime: new Date(form.startTime).toISOString(),
           showcasePrizePool: parseFloat(form.showcasePrizePool),
           description: form.description.trim() || undefined,
+          thumbnailImage: selectedThumbnail || undefined,
         } as any,
       });
       toast({ title: "Match created!" });
@@ -183,6 +197,46 @@ export default function CreateMatchPage() {
               className="resize-none"
             />
           </div>
+        </div>
+
+        <div className="bg-card border border-card-border rounded-2xl p-4 space-y-3">
+          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5" /> Match Thumbnail <span className="font-normal normal-case">(optional)</span>
+          </h3>
+          <p className="text-xs text-muted-foreground">Select a banner image to show on your match card</p>
+          <div className="grid grid-cols-2 gap-2">
+            {THUMBNAIL_OPTIONS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelectedThumbnail(selectedThumbnail === t.src ? "" : t.src)}
+                className={cn(
+                  "relative rounded-xl overflow-hidden border-2 transition-all aspect-video",
+                  selectedThumbnail === t.src
+                    ? "border-primary scale-[1.02]"
+                    : "border-transparent opacity-70 hover:opacity-100"
+                )}
+              >
+                <img src={t.src} alt={t.label} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <span className="absolute bottom-1.5 left-2 text-xs font-semibold text-white">{t.label}</span>
+                {selectedThumbnail === t.src && (
+                  <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-[10px] text-white font-bold">✓</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          {selectedThumbnail && (
+            <button
+              type="button"
+              onClick={() => setSelectedThumbnail("")}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Remove thumbnail
+            </button>
+          )}
         </div>
 
         <div className="bg-card border border-card-border rounded-2xl p-4 space-y-3">

@@ -78,6 +78,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     isJoined,
     roomReleased: match.roomReleased,
     description: match.description ?? null,
+    thumbnailImage: match.thumbnailImage ?? null,
     hasReviewed,
   };
   if (isJoined && match.roomReleased) {
@@ -130,7 +131,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage } = req.body;
   if (!game || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
   }
@@ -168,6 +169,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     showcasePrizePool: showcasePrizePool != null ? String(Number(showcasePrizePool)) : "0",
     roomReleased: false,
     description: description ? String(description).trim() : null,
+    thumbnailImage: thumbnailImage ? String(thumbnailImage).trim() : null,
   }).returning();
 
   res.json(await serializeMatch(match, user.id));
@@ -289,9 +291,9 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
           WHERE id = ${user.id} RETURNING daily_paid_matches`
         );
         const todayPaidCount = (dailyResult.rows[0] as any)?.daily_paid_matches as number;
-        // Award 5 silver coins when daily 5-match task first completes
+        // Award 1 Gold Coin when daily 5-match task first completes
         if (todayPaidCount === 5) {
-          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${user.id}`);
+          await tx.execute(sql`UPDATE users SET balance = balance + 1 WHERE id = ${user.id}`);
         }
 
         if (newPaidMatches === 5) {
@@ -300,7 +302,9 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
           if (referral) {
             await tx.update(referralsTable).set({ completed: true, referrerRewarded: true })
               .where(eq(referralsTable.id, referral.id));
-            await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 5 WHERE id = ${referral.referrerId}`);
+            // Referrer gets 3 Gold Coins
+            await tx.execute(sql`UPDATE users SET balance = balance + 3 WHERE id = ${referral.referrerId}`);
+            // Referred user gets +1 Gold Coin bonus on win task for 5 days
             const bonusUntil = new Date();
             bonusUntil.setDate(bonusUntil.getDate() + 5);
             const bonusUntilStr = bonusUntil.toISOString().slice(0, 10);
@@ -386,15 +390,21 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
       }).where(eq(matchParticipantsTable.id, r.participantId));
 
       if (r.reward > 0) {
-        await tx.execute(
+        const winResult = await tx.execute(
           sql`UPDATE users SET
             balance = balance + ${r.reward},
-            silver_coins = silver_coins + 3,
             daily_wins = CASE WHEN daily_task_date = ${today} THEN daily_wins + 1 ELSE 1 END,
             daily_paid_matches = CASE WHEN daily_task_date = ${today} THEN daily_paid_matches ELSE 0 END,
             daily_task_date = ${today}
-          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})`
+          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})
+          RETURNING id, daily_wins, referral_bonus_until`
         );
+        const winRow = winResult.rows[0] as any;
+        if (winRow && winRow.daily_wins === 3) {
+          const referralBonus = winRow.referral_bonus_until && winRow.referral_bonus_until >= today ? 1 : 0;
+          const goldReward = 1 + referralBonus;
+          await tx.execute(sql`UPDATE users SET balance = balance + ${goldReward} WHERE id = ${winRow.id}`);
+        }
       }
     }
 
