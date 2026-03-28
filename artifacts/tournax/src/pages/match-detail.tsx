@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
@@ -41,7 +41,7 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
   const { filledSlots, entryFee, livePrizePool, hostCut, platformCut, winnersPercent, hostPercent, status } = match;
 
   return (
-    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-4">
+    <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <Gift className="w-4 h-4 text-amber-400" />
@@ -224,57 +224,124 @@ export default function MatchDetailPage() {
     completed: "bg-muted text-muted-foreground border-border",
   };
 
+  const thumbnail = (match as any).thumbnailImage;
+  const slotsLeft = match.slots - match.filledSlots;
+
   return (
     <AppLayout showBack backHref={backHref} title="Match Details">
-      <div className="space-y-4 pb-4">
-        <div className="bg-card border border-card-border rounded-2xl p-5">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-bold">{match.game}</h2>
-              <p className="text-muted-foreground text-sm">{match.mode} · {match.teamSize}v{match.teamSize}</p>
-            </div>
-            <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full border", statusColors[match.status])}>
-              {match.status === "live" ? "🔴 Live" : match.status}
-            </span>
-          </div>
+      <div className="space-y-3 pb-4">
 
-          <div className="font-mono text-accent text-sm font-medium mb-4">Match Code: #{match.code}</div>
-
-          {(match as any).description && (
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed whitespace-pre-wrap">{(match as any).description}</p>
-          )}
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <div className="text-xs text-muted-foreground mb-1">Entry Fee</div>
-              <div className="font-bold text-primary">
-                {match.teamSize > 1 ? <><GoldCoinIcon size="sm" />{match.entryFee}/player</> : <><GoldCoinIcon size="sm" />{match.entryFee}</>}
-              </div>
-              {match.teamSize > 1 && (
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  <GoldCoin amount={Number(match.entryFee) * match.teamSize} size="sm" /> total
+        {/* ── HERO SECTION ── */}
+        <div className="relative rounded-2xl overflow-hidden border border-card-border bg-card">
+          {thumbnail ? (
+            <div className="relative h-44 w-full">
+              <img src={thumbnail} alt="Match" className="w-full h-full object-cover [object-position:center_20%]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white drop-shadow">{match.game}</h2>
+                    <p className="text-white/70 text-sm">{match.mode} · {match.teamSize}v{match.teamSize}</p>
+                  </div>
+                  <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm", statusColors[match.status])}>
+                    {match.status === "live" ? "🔴 Live" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1"><Users className="w-3 h-3" />Slots</div>
-              <div className="font-bold">{match.filledSlots}/{match.slots}</div>
-            </div>
-          </div>
-
-          <LivePrizePool match={match as any} />
-
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="w-4 h-4 shrink-0" />
-            <span>{formatTime(match.startTime)}</span>
-          </div>
-
-          {match.hostHandle && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-              <Shield className="w-4 h-4 shrink-0" />
-              <span>Hosted by <span className="text-foreground font-medium">@{match.hostHandle}</span></span>
+          ) : (
+            <div className="p-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">{match.game}</h2>
+                  <p className="text-muted-foreground text-sm mt-0.5">{match.mode} · {match.teamSize}v{match.teamSize}</p>
+                </div>
+                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border", statusColors[match.status])}>
+                  {match.status === "live" ? "🔴 Live" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                </span>
+              </div>
             </div>
           )}
+
+          {/* Match code + description strip */}
+          <div className={cn("px-4 py-3 border-t border-card-border", thumbnail ? "" : "")}>
+            <div className="flex items-center gap-2">
+              <Hash className="w-3.5 h-3.5 text-accent shrink-0" />
+              <span className="font-mono text-accent text-sm font-semibold">{match.code}</span>
+              <span className="text-muted-foreground text-xs ml-1">Match Code</span>
+            </div>
+            {(match as any).description && (
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed whitespace-pre-wrap">{(match as any).description}</p>
+            )}
+          </div>
+        </div>
+
+        {/* ── STATS ROW ── */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <div className="bg-card border border-card-border rounded-2xl p-3 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Entry</div>
+            <div className="font-bold text-primary text-sm flex items-center justify-center gap-0.5">
+              <GoldCoinIcon size="sm" />{match.entryFee}
+            </div>
+            {match.teamSize > 1 && (
+              <div className="text-[10px] text-muted-foreground mt-0.5">per player</div>
+            )}
+          </div>
+          <div className="bg-card border border-card-border rounded-2xl p-3 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Slots</div>
+            <div className={cn("font-bold text-sm", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
+              {match.filledSlots}/{match.slots}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{slotsLeft === 0 ? "Full" : `${slotsLeft} left`}</div>
+          </div>
+          <div className="bg-card border border-card-border rounded-2xl p-3 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Team</div>
+            <div className="font-bold text-sm flex items-center justify-center gap-1">
+              <Swords className="w-3 h-3 text-muted-foreground" />{match.teamSize}v{match.teamSize}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{match.mode}</div>
+          </div>
+        </div>
+
+        {/* ── PRIZE POOL ── */}
+        <LivePrizePool match={match as any} />
+
+        {/* ── SCHEDULE & HOST ── */}
+        <div className="bg-card border border-card-border rounded-2xl p-4 space-y-3">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-semibold">Schedule & Host</p>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Calendar className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Start Time</p>
+              <p className="text-sm font-medium">{formatTime(match.startTime)}</p>
+            </div>
+          </div>
+          {match.hostHandle && (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Hosted by</p>
+                <p className="text-sm font-medium">@{match.hostHandle}</p>
+              </div>
+            </div>
+          )}
+          {/* Slot fill bar */}
+          <div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <span>{match.filledSlots} joined</span>
+              <span>{match.slots} total slots</span>
+            </div>
+            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all duration-500", slotsLeft === 0 ? "bg-destructive" : "bg-primary")}
+                style={{ width: `${Math.min((match.filledSlots / match.slots) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
         </div>
 
         {user?.role === "player" && (
