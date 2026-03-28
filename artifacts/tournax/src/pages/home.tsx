@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { Search, Users, Camera, X, Plus, Heart, Send } from "lucide-react";
+import { Search, Users, Camera, X, Heart, MessageCircle, Send } from "lucide-react";
 import { useListMatches, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -28,6 +28,20 @@ interface Post {
   userName: string | null;
   userHandle: string | null;
   userAvatar: string | null;
+  likesCount: number;
+  commentsCount: number;
+  isLiked: boolean;
+}
+
+interface Comment {
+  id: number;
+  postId: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  userName: string | null;
+  userHandle: string | null;
+  userAvatar: string | null;
 }
 
 function formatRelative(iso: string) {
@@ -40,36 +54,196 @@ function formatRelative(iso: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function avatarSrc(avatar: string | null) {
+  if (!avatar) return null;
+  if (avatar.startsWith("/objects/")) return `/api/storage${avatar}`;
+  return avatar;
+}
+
+function UserAvatar({ avatar, name, size = 8 }: { avatar: string | null; name: string | null; size?: number }) {
+  const src = avatarSrc(avatar);
+  const isImg = src && (src.startsWith("/") || src.startsWith("http"));
+  const cls = `w-${size} h-${size} rounded-xl overflow-hidden shrink-0`;
+  return (
+    <div className={cls}>
+      {isImg ? (
+        <img src={src} alt="avatar" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-primary/20 flex items-center justify-center text-sm">{avatar || "🎮"}</div>
+      )}
+    </div>
+  );
+}
+
 function PostCard({ post }: { post: Post }) {
-  const avatar = post.userAvatar;
-  const isImageAvatar = avatar && (avatar.startsWith("/") || avatar.startsWith("http"));
-  const src = avatar?.startsWith("/objects/") ? `/api/storage${avatar}` : avatar;
+  const [liked, setLiked] = useState(post.isLiked);
+  const [likeCount, setLikeCount] = useState(post.likesCount);
+  const [commentCount, setCommentCount] = useState(post.commentsCount);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentInput, setCommentInput] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const imageSrc = post.imageUrl.startsWith("data:")
+    ? post.imageUrl
+    : post.imageUrl.startsWith("/objects/")
+      ? `/api/storage${post.imageUrl}`
+      : post.imageUrl;
+
+  const toggleLike = async () => {
+    const prev = liked;
+    setLiked(!prev);
+    setLikeCount((c) => (prev ? c - 1 : c + 1));
+    try {
+      await customFetch(`/api/posts/${post.id}/like`, { method: "POST" });
+    } catch {
+      setLiked(prev);
+      setLikeCount((c) => (prev ? c + 1 : c - 1));
+    }
+  };
+
+  const fetchComments = async () => {
+    setCommentsLoading(true);
+    try {
+      const data = await customFetch<Comment[]>(`/api/posts/${post.id}/comments`);
+      setComments(data);
+      setCommentsLoaded(true);
+    } catch {
+      /* ignore */
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleToggleComments = () => {
+    const next = !commentsOpen;
+    setCommentsOpen(next);
+    if (next && !commentsLoaded) fetchComments();
+    if (next) setTimeout(() => inputRef.current?.focus(), 150);
+  };
+
+  const submitComment = async () => {
+    if (!commentInput.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const newComment = await customFetch<Comment>(`/api/posts/${post.id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content: commentInput.trim() }),
+      });
+      setComments((prev) => [...prev, newComment]);
+      setCommentCount((c) => c + 1);
+      setCommentInput("");
+    } catch {
+      /* ignore */
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 py-3">
-        <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0">
-          {isImageAvatar ? (
-            <img src={src!} alt="avatar" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-primary/20 flex items-center justify-center text-sm">{avatar || "🎮"}</div>
-          )}
-        </div>
+        <UserAvatar avatar={post.userAvatar} name={post.userName} size={8} />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{post.userName || `@${post.userHandle}`}</p>
           <p className="text-[10px] text-muted-foreground">@{post.userHandle} · {formatRelative(post.createdAt)}</p>
         </div>
       </div>
+
       <div className="w-full aspect-video overflow-hidden">
-        <img
-          src={post.imageUrl.startsWith("data:") ? post.imageUrl : (post.imageUrl.startsWith("/objects/") ? `/api/storage${post.imageUrl}` : post.imageUrl)}
-          alt="Post"
-          className="w-full h-full object-cover"
-        />
+        <img src={imageSrc} alt="Post" className="w-full h-full object-cover" />
       </div>
+
       {post.caption && (
-        <div className="px-4 py-2.5">
+        <div className="px-4 pt-2.5">
           <p className="text-sm text-foreground">{post.caption}</p>
+        </div>
+      )}
+
+      <div className="flex items-center gap-4 px-4 py-2.5">
+        <button
+          onClick={toggleLike}
+          className="flex items-center gap-1.5 group"
+        >
+          <Heart
+            className={cn(
+              "w-5 h-5 transition-all",
+              liked
+                ? "fill-red-500 text-red-500 scale-110"
+                : "text-muted-foreground group-hover:text-red-400"
+            )}
+          />
+          <span className={cn("text-sm tabular-nums", liked ? "text-red-500" : "text-muted-foreground")}>
+            {likeCount}
+          </span>
+        </button>
+
+        <button
+          onClick={handleToggleComments}
+          className="flex items-center gap-1.5 group"
+        >
+          <MessageCircle
+            className={cn(
+              "w-5 h-5 transition-colors",
+              commentsOpen ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+            )}
+          />
+          <span className={cn("text-sm tabular-nums", commentsOpen ? "text-primary" : "text-muted-foreground")}>
+            {commentCount}
+          </span>
+        </button>
+      </div>
+
+      {commentsOpen && (
+        <div className="border-t border-border px-4 py-3 space-y-3">
+          {commentsLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <Skeleton className="w-6 h-6 rounded-lg shrink-0" />
+                  <Skeleton className="flex-1 h-8 rounded-lg" />
+                </div>
+              ))}
+            </div>
+          ) : comments.length > 0 ? (
+            <div className="space-y-2.5 max-h-48 overflow-y-auto">
+              {comments.map((c) => (
+                <div key={c.id} className="flex items-start gap-2">
+                  <UserAvatar avatar={c.userAvatar} name={c.userName} size={6} />
+                  <div className="flex-1 min-w-0 bg-secondary/40 rounded-xl px-3 py-1.5">
+                    <span className="text-xs font-semibold text-foreground">
+                      {c.userName || `@${c.userHandle}`}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-1.5">{formatRelative(c.createdAt)}</span>
+                    <p className="text-sm text-foreground mt-0.5 break-words">{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-1">No comments yet. Be the first!</p>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Input
+              ref={inputRef}
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              placeholder="Add a comment..."
+              className="flex-1 h-8 text-sm"
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
+            />
+            <button
+              onClick={submitComment}
+              disabled={!commentInput.trim() || submitting}
+              className="text-primary disabled:opacity-40 transition-opacity"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>
