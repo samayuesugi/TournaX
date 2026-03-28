@@ -4,6 +4,7 @@ import { usersTable, referralsTable } from "@workspace/db/schema";
 import { eq, sql, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendOtpEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -86,31 +87,144 @@ function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-router.post("/auth/register", async (req: Request, res: Response) => {
-  const { email, password, referralCode: usedReferralCode } = req.body;
+function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+interface PendingOtp {
+  otp: string;
+  expiry: number;
+  attempts: number;
+  type: "register" | "reset";
+  pendingData?: {
+    email: string;
+    passwordHash: string;
+    referralCode?: string;
+  };
+}
+
+const otpStore = new Map<string, PendingOtp>();
+
+function otpKey(email: string, type: "register" | "reset"): string {
+  return `${type}:${email.toLowerCase()}`;
+}
+
+function cleanExpiredOtps() {
+  const now = Date.now();
+  for (const [key, entry] of otpStore.entries()) {
+    if (entry.expiry < now) otpStore.delete(key);
+  }
+}
+
+router.post("/auth/send-register-otp", async (req: Request, res: Response) => {
+  cleanExpiredOtps();
+  const { email, password, referralCode } = req.body;
   if (!email || !password) {
     res.status(400).json({ error: "Email and password required" });
     return;
   }
-  const existing = await db.select().from(usersTable).where(eq(usersTable.email, email));
+  if (password.length < 6) {
+    res.status(400).json({ error: "Password must be at least 6 characters" });
+    return;
+  }
+
+  const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
   if (existing.length > 0) {
     res.status(400).json({ error: "Email already registered" });
     return;
   }
 
-  let referrer: typeof usersTable.$inferSelect | null = null;
-  if (usedReferralCode?.trim()) {
-    const [found] = await db.select().from(usersTable).where(ilike(usersTable.referralCode, usedReferralCode.trim()));
+  if (referralCode?.trim()) {
+    const [found] = await db.select({ id: usersTable.id }).from(usersTable).where(ilike(usersTable.referralCode, referralCode.trim()));
     if (!found) {
       res.status(400).json({ error: "Invalid referral code" });
       return;
     }
-    referrer = found;
+  }
+
+  const otp = generateOtp();
+  const passwordHash = await hashPassword(password);
+  const key = otpKey(email, "register");
+
+  otpStore.set(key, {
+    otp,
+    expiry: Date.now() + 10 * 60 * 1000,
+    attempts: 0,
+    type: "register",
+    pendingData: { email: email.toLowerCase(), passwordHash, referralCode: referralCode?.trim() || undefined },
+  });
+
+  try {
+    await sendOtpEmail(email, otp, "register");
+  } catch (err) {
+    otpStore.delete(key);
+    res.status(500).json({ error: "Failed to send OTP email. Please check your email address and try again." });
+    return;
+  }
+
+  res.json({ success: true, message: "OTP sent to your email" });
+});
+
+router.post("/auth/verify-register", async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    res.status(400).json({ error: "Email and OTP required" });
+    return;
+  }
+
+  const key = otpKey(email, "register");
+  const entry = otpStore.get(key);
+
+  if (!entry) {
+    res.status(400).json({ error: "OTP not found or expired. Please request a new one." });
+    return;
+  }
+  if (Date.now() > entry.expiry) {
+    otpStore.delete(key);
+    res.status(400).json({ error: "OTP expired. Please request a new one." });
+    return;
+  }
+  if (entry.attempts >= 3) {
+    otpStore.delete(key);
+    res.status(400).json({ error: "Too many incorrect attempts. Please request a new OTP." });
+    return;
+  }
+  if (entry.otp !== otp.trim()) {
+    entry.attempts += 1;
+    const remaining = 3 - entry.attempts;
+    if (remaining === 0) {
+      otpStore.delete(key);
+      res.status(400).json({ error: "Incorrect OTP. OTP has been invalidated after 3 failed attempts." });
+    } else {
+      res.status(400).json({ error: `Incorrect OTP. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.` });
+    }
+    return;
+  }
+
+  const { pendingData } = entry;
+  if (!pendingData) {
+    otpStore.delete(key);
+    res.status(400).json({ error: "Invalid session. Please try again." });
+    return;
+  }
+
+  otpStore.delete(key);
+
+  const existingUser = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, pendingData.email));
+  if (existingUser.length > 0) {
+    res.status(400).json({ error: "Email already registered" });
+    return;
+  }
+
+  let referrer: { id: number } | null = null;
+  if (pendingData.referralCode) {
+    const [found] = await db.select({ id: usersTable.id }).from(usersTable).where(ilike(usersTable.referralCode, pendingData.referralCode));
+    if (found) referrer = found;
   }
 
   const [user] = await db.insert(usersTable).values({
-    email,
-    password: await hashPassword(password),
+    email: pendingData.email,
+    password: pendingData.passwordHash,
     role: "player",
     status: "active",
     profileSetup: false,
@@ -121,15 +235,126 @@ router.post("/auth/register", async (req: Request, res: Response) => {
   await db.update(usersTable).set({ referralCode }).where(eq(usersTable.id, user.id));
 
   if (referrer && referrer.id !== user.id) {
-    await db.insert(referralsTable).values({
-      referrerId: referrer.id,
-      referredId: user.id,
-    });
+    await db.insert(referralsTable).values({ referrerId: referrer.id, referredId: user.id });
   }
 
   const [userWithCode] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
   const token = generateToken(user.id);
   res.json({ user: serializeUser(userWithCode), token });
+});
+
+router.post("/auth/forgot-password", async (req: Request, res: Response) => {
+  cleanExpiredOtps();
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ error: "Email required" });
+    return;
+  }
+
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
+  if (!user) {
+    res.json({ success: true, message: "If that email exists, an OTP has been sent" });
+    return;
+  }
+
+  const otp = generateOtp();
+  const key = otpKey(email, "reset");
+
+  otpStore.set(key, {
+    otp,
+    expiry: Date.now() + 10 * 60 * 1000,
+    attempts: 0,
+    type: "reset",
+  });
+
+  try {
+    await sendOtpEmail(email, otp, "reset");
+  } catch {
+    otpStore.delete(key);
+    res.status(500).json({ error: "Failed to send OTP email. Please try again." });
+    return;
+  }
+
+  res.json({ success: true, message: "OTP sent to your email" });
+});
+
+router.post("/auth/verify-reset-otp", async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    res.status(400).json({ error: "Email and OTP required" });
+    return;
+  }
+
+  const key = otpKey(email, "reset");
+  const entry = otpStore.get(key);
+
+  if (!entry) {
+    res.status(400).json({ error: "OTP not found or expired. Please request a new one." });
+    return;
+  }
+  if (Date.now() > entry.expiry) {
+    otpStore.delete(key);
+    res.status(400).json({ error: "OTP expired. Please request a new one." });
+    return;
+  }
+  if (entry.attempts >= 3) {
+    otpStore.delete(key);
+    res.status(400).json({ error: "Too many incorrect attempts. Please request a new OTP." });
+    return;
+  }
+  if (entry.otp !== otp.trim()) {
+    entry.attempts += 1;
+    const remaining = 3 - entry.attempts;
+    if (remaining === 0) {
+      otpStore.delete(key);
+      res.status(400).json({ error: "Incorrect OTP. OTP has been invalidated after 3 failed attempts." });
+    } else {
+      res.status(400).json({ error: `Incorrect OTP. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.` });
+    }
+    return;
+  }
+
+  const resetToken = jwt.sign({ email: email.toLowerCase(), purpose: "reset" }, JWT_SECRET, { expiresIn: "15m" });
+  otpStore.delete(key);
+
+  res.json({ success: true, resetToken });
+});
+
+router.post("/auth/reset-password", async (req: Request, res: Response) => {
+  const { resetToken, newPassword } = req.body;
+  if (!resetToken || !newPassword) {
+    res.status(400).json({ error: "Reset token and new password required" });
+    return;
+  }
+  if (newPassword.length < 6) {
+    res.status(400).json({ error: "Password must be at least 6 characters" });
+    return;
+  }
+
+  let payload: { email: string; purpose: string };
+  try {
+    payload = jwt.verify(resetToken, JWT_SECRET) as { email: string; purpose: string };
+  } catch {
+    res.status(400).json({ error: "Invalid or expired reset token. Please start over." });
+    return;
+  }
+
+  if (payload.purpose !== "reset") {
+    res.status(400).json({ error: "Invalid reset token." });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, payload.email));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  const [updated] = await db.update(usersTable).set({ password: passwordHash }).where(eq(usersTable.id, user.id)).returning();
+
+  const token = generateToken(updated.id);
+  res.json({ user: serializeUser(updated), token });
 });
 
 router.post("/auth/login", async (req: Request, res: Response) => {
