@@ -344,7 +344,7 @@ export default function MatchDetailPage() {
           </div>
         </div>
 
-        {user?.role === "player" && (
+        {user?.role === "player" && match.isJoined && (
           <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/40 rounded-2xl px-4 py-3">
             <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
             <p className="text-xs text-red-400 leading-relaxed">
