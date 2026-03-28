@@ -177,6 +177,9 @@ router.post("/auctions/:id/submit-result", requireAuth, async (req: Request, res
   if (!firstTeamId || !secondTeamId || !thirdTeamId) {
     res.status(400).json({ error: "firstTeamId, secondTeamId, thirdTeamId required" }); return;
   }
+  if (firstTeamId === secondTeamId || firstTeamId === thirdTeamId || secondTeamId === thirdTeamId) {
+    res.status(400).json({ error: "Each placement must be a different team" }); return;
+  }
 
   const bids = await db.select().from(auctionBidsTable).where(eq(auctionBidsTable.auctionId, auctionId));
   const totalPool = bids.reduce((s, b) => s + parseFloat(b.amount as string), 0);

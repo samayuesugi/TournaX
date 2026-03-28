@@ -196,6 +196,9 @@ router.delete("/matches/:id", requireAuth, async (req: Request, res: Response) =
   if (match.hostId !== user.id && user.role !== "admin") {
     res.status(403).json({ error: "Unauthorized" }); return;
   }
+  if (match.status === "completed") {
+    res.status(400).json({ error: "Cannot delete a completed match. Rewards have already been distributed." }); return;
+  }
   // Refund all participants atomically
   await db.transaction(async (tx) => {
     const participants = await tx.select().from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
