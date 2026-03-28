@@ -19,6 +19,55 @@ type Screen =
   | "forgot-otp"
   | "forgot-newpass";
 
+interface OtpInputsProps {
+  otpDigits: string[];
+  otpInputRef: React.RefObject<HTMLInputElement | null>;
+  onInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onPaste: (e: React.ClipboardEvent) => void;
+}
+
+function OtpInputs({ otpDigits, otpInputRef, onInput, onPaste }: OtpInputsProps) {
+  const filledCount = otpDigits.filter(Boolean).length;
+  return (
+    <div
+      className="relative flex gap-2 justify-center cursor-text"
+      onClick={() => otpInputRef.current?.focus()}
+      onPaste={onPaste}
+    >
+      <input
+        ref={otpInputRef}
+        type="tel"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={otpDigits.join("")}
+        onChange={onInput}
+        onPaste={onPaste}
+        autoComplete="one-time-code"
+        maxLength={6}
+        className="absolute opacity-0 pointer-events-none w-px h-px"
+        aria-label="OTP input"
+      />
+      {otpDigits.map((digit, i) => (
+        <div
+          key={i}
+          className={cn(
+            "w-11 h-12 border-2 rounded-xl flex items-center justify-center text-xl font-bold select-none transition-all",
+            digit
+              ? "border-primary/70 bg-primary/5 text-foreground"
+              : i === filledCount
+                ? "border-primary bg-primary/5"
+                : "border-border bg-muted/30 text-transparent"
+          )}
+        >
+          {digit || (i === filledCount
+            ? <span className="w-0.5 h-5 bg-primary animate-pulse rounded-full" />
+            : "")}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const { login, setUser } = useAuth();
   const [, navigate] = useLocation();
@@ -288,45 +337,6 @@ export default function AuthPage() {
     </div>
   );
 
-  const filledCount = otpDigits.filter(Boolean).length;
-
-  const OtpInputs = () => (
-    <div
-      className="relative flex gap-2 justify-center cursor-text"
-      onClick={() => otpInputRef.current?.focus()}
-      onPaste={handleOtpPaste}
-    >
-      <input
-        ref={otpInputRef}
-        type="tel"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        value={otpDigits.join("")}
-        onChange={handleSingleOtpInput}
-        onPaste={handleOtpPaste}
-        autoComplete="one-time-code"
-        maxLength={6}
-        className="absolute opacity-0 pointer-events-none w-px h-px"
-        aria-label="OTP input"
-      />
-      {otpDigits.map((digit, i) => (
-        <div
-          key={i}
-          className={cn(
-            "w-11 h-12 border-2 rounded-xl flex items-center justify-center text-xl font-bold select-none transition-all",
-            digit
-              ? "border-primary/70 bg-primary/5 text-foreground"
-              : i === filledCount
-                ? "border-primary bg-primary/5"
-                : "border-border bg-muted/30 text-transparent"
-          )}
-        >
-          {digit || (i === filledCount ? <span className="w-0.5 h-5 bg-primary animate-pulse rounded-full" /> : "")}
-        </div>
-      ))}
-    </div>
-  );
-
   if (screen === "register-otp") {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
@@ -350,7 +360,12 @@ export default function AuthPage() {
               </p>
             </div>
             <form onSubmit={handleVerifyRegister} className="space-y-5">
-              <OtpInputs />
+              <OtpInputs
+                otpDigits={otpDigits}
+                otpInputRef={otpInputRef}
+                onInput={handleSingleOtpInput}
+                onPaste={handleOtpPaste}
+              />
               <Button type="submit" className="w-full" disabled={isLoading || currentOtp.length < 6}>
                 {isLoading ? "Verifying..." : "Verify & Create Account"}
               </Button>
@@ -434,7 +449,12 @@ export default function AuthPage() {
               </p>
             </div>
             <form onSubmit={handleVerifyForgotOtp} className="space-y-5">
-              <OtpInputs />
+              <OtpInputs
+                otpDigits={otpDigits}
+                otpInputRef={otpInputRef}
+                onInput={handleSingleOtpInput}
+                onPaste={handleOtpPaste}
+              />
               <Button type="submit" className="w-full" disabled={isLoading || currentOtp.length < 6}>
                 {isLoading ? "Verifying..." : "Verify OTP"}
               </Button>
