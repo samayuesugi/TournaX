@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -429,6 +428,7 @@ export default function WalletPage() {
 
   const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [showSilverInfo, setShowSilverInfo] = useState(false);
   const [dailyTasks, setDailyTasks] = useState<DailyTasksData | null>(null);
 
   useEffect(() => {
@@ -528,42 +528,41 @@ export default function WalletPage() {
                   <SilverCoinIcon size="md" />
                   <p className="text-sm text-muted-foreground">Silver Coins</p>
                 </div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="text-muted-foreground hover:text-foreground transition-colors">
-                      <Info className="w-4 h-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-4" align="end">
-                    <p className="font-semibold text-sm mb-3">Silver Coins kahan use hote hain?</p>
-                    <div className="space-y-2.5">
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-base shrink-0">📸</span>
-                        <div>
-                          <p className="text-xs font-medium">Community Posts</p>
-                          <p className="text-[11px] text-muted-foreground">Home feed pe image post karne ke liye 5 Silver Coins lagte hain</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-base shrink-0">🎁</span>
-                        <div>
-                          <p className="text-xs font-medium">Future Rewards</p>
-                          <p className="text-[11px] text-muted-foreground">Upcoming features mein Silver Coins aur jagah use honge — jama karte raho!</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-base shrink-0">📅</span>
-                        <div>
-                          <p className="text-xs font-medium">Daily Login se milte hain</p>
-                          <p className="text-[11px] text-muted-foreground">Roz app open karo — +5 Silver Coins automatic milenge</p>
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <button
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowSilverInfo(v => !v)}
+                >
+                  <Info className="w-4 h-4" />
+                </button>
               </div>
               <h3 className="text-3xl font-bold mb-1">{silverCoins}</h3>
               <p className="text-xs text-muted-foreground">Earn by daily login & completing tasks</p>
+              {showSilverInfo && (
+                <div className="mt-3 pt-3 border-t border-slate-500/20 space-y-2.5">
+                  <p className="text-xs font-semibold mb-2">Silver Coins kahan use hote hain?</p>
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm shrink-0">📸</span>
+                    <div>
+                      <p className="text-[11px] font-medium">Community Posts</p>
+                      <p className="text-[10px] text-muted-foreground">Home feed pe image post karne ke liye 5 Silver Coins lagte hain</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm shrink-0">🎁</span>
+                    <div>
+                      <p className="text-[11px] font-medium">Future Rewards</p>
+                      <p className="text-[10px] text-muted-foreground">Upcoming features mein Silver Coins aur jagah use honge — jama karte raho!</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm shrink-0">📅</span>
+                    <div>
+                      <p className="text-[11px] font-medium">Daily Login se milte hain</p>
+                      <p className="text-[10px] text-muted-foreground">Roz app open karo — +5 Silver Coins automatic milenge</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             )}
 
