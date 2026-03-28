@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { SilverCoinIcon } from "@/components/ui/Coins";
 
-const FILTERS = ["all", "upcoming", "live"] as const;
+const FILTERS = ["upcoming", "live"] as const;
 type Filter = typeof FILTERS[number];
 
 interface Post {
@@ -255,11 +255,11 @@ function PostsFeed() {
 
 export default function HomePage() {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("upcoming");
   const { user } = useAuth();
 
   const { data: rawMatches, isLoading } = useListMatches(
-    { status: filter === "all" ? undefined : filter, search: search || undefined },
+    { status: filter, search: search || undefined },
     { query: { staleTime: 10000 } }
   );
   const matches = (rawMatches ?? []).filter((m: any) => m.status !== "completed");
@@ -392,7 +392,7 @@ export default function HomePage() {
                         : "bg-secondary text-muted-foreground border-border hover:text-foreground"
                     )}
                   >
-                    {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
                   </button>
                 ))}
               </div>
