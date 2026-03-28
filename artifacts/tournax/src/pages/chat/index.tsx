@@ -65,7 +65,11 @@ export default function ChatListPage() {
     setGroupsLoading(false);
   };
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    fetchGroups();
+    const interval = setInterval(fetchGroups, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) return;

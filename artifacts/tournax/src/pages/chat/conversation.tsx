@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "wouter";
 import { useGetConversation, useMarkConversationRead, useSendMessage, useGetConversations } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
@@ -25,18 +25,32 @@ function dateSeparator(iso: string) {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+interface OptimisticMessage {
+  id: number;
+  fromUserId: number;
+  toUserId: number;
+  content: string;
+  createdAt: string;
+  read: boolean;
+  optimistic?: boolean;
+}
+
 export default function ConversationPage() {
   const { userId } = useParams<{ userId: string }>();
   const partnerId = Number(userId);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [text, setText] = useState("");
+  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const prevLengthRef = useRef(0);
+  const isFirstLoad = useRef(true);
 
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
 
-  const { data: messages, isLoading } = useGetConversation(partnerId, {
+  const { data: serverMessages, isLoading } = useGetConversation(partnerId, {
     query: {
       refetchInterval: 3000,
     },
@@ -45,8 +59,15 @@ export default function ConversationPage() {
   const { mutate: markRead } = useMarkConversationRead();
   const { mutate: sendMsg, isPending } = useSendMessage();
 
+  const messages: OptimisticMessage[] = [
+    ...(serverMessages ?? []).map((m) => ({ ...m, optimistic: false })),
+    ...optimisticMessages.filter(
+      (o) => !(serverMessages ?? []).some((s) => s.content === o.content && s.fromUserId === o.fromUserId)
+    ),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
   useEffect(() => {
-    if (messages && messages.length > 0) {
+    if (serverMessages && serverMessages.length > 0) {
       markRead(
         { userId: partnerId },
         {
@@ -56,26 +77,49 @@ export default function ConversationPage() {
         }
       );
     }
-  }, [messages?.length]);
+  }, [serverMessages?.length]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const currentLength = messages.length;
+    if (currentLength > prevLengthRef.current || isFirstLoad.current) {
+      bottomRef.current?.scrollIntoView({ behavior: isFirstLoad.current ? "instant" : "smooth" });
+      isFirstLoad.current = false;
+    }
+    prevLengthRef.current = currentLength;
+  }, [messages.length]);
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if (!trimmed || isPending) return;
     setText("");
+
+    const optimistic: OptimisticMessage = {
+      id: Date.now(),
+      fromUserId: user!.id,
+      toUserId: partnerId,
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+      read: false,
+      optimistic: true,
+    };
+    setOptimisticMessages((prev) => [...prev, optimistic]);
+
+    setTimeout(() => inputRef.current?.focus(), 0);
+
     sendMsg(
       { data: { toUserId: partnerId, content: trimmed } },
       {
         onSuccess: () => {
+          setOptimisticMessages([]);
           queryClient.invalidateQueries({ queryKey: [`/api/conversations/${partnerId}`] });
           queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
         },
+        onError: () => {
+          setOptimisticMessages((prev) => prev.filter((m) => m.content !== trimmed));
+        },
       }
     );
-  };
+  }, [text, isPending, partnerId, user, sendMsg, queryClient]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -114,7 +158,7 @@ export default function ConversationPage() {
                 <Skeleton key={i} className={cn("h-10 w-2/3 rounded-2xl", i % 2 === 0 && "ml-auto")} />
               ))}
             </div>
-          ) : messages && messages.length > 0 ? (
+          ) : messages.length > 0 ? (
             messages.map((msg) => {
               const isMine = msg.fromUserId === user?.id;
               const dateLabel = dateSeparator(msg.createdAt);
@@ -132,10 +176,11 @@ export default function ConversationPage() {
                   <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
                     <div
                       className={cn(
-                        "max-w-[75%] px-3 py-2 rounded-2xl text-sm",
+                        "max-w-[75%] px-3 py-2 rounded-2xl text-sm transition-opacity duration-150",
                         isMine
                           ? "bg-primary text-primary-foreground rounded-br-sm"
-                          : "bg-card border border-card-border rounded-bl-sm"
+                          : "bg-card border border-card-border rounded-bl-sm",
+                        msg.optimistic && "opacity-70"
                       )}
                     >
                       <p className="break-words">{msg.content}</p>
@@ -143,7 +188,7 @@ export default function ConversationPage() {
                         "text-[10px] mt-0.5",
                         isMine ? "text-primary-foreground/70 text-right" : "text-muted-foreground"
                       )}>
-                        {timeLabel(msg.createdAt)}
+                        {msg.optimistic ? "Sending…" : timeLabel(msg.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -160,16 +205,18 @@ export default function ConversationPage() {
 
         <div className="flex items-center gap-2 pt-2 pb-safe border-t border-border">
           <Input
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             className="flex-1 bg-card border-card-border"
+            autoFocus
           />
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!text.trim() || isPending}
+            disabled={!text.trim()}
             className="shrink-0"
           >
             <Send className="w-4 h-4" />

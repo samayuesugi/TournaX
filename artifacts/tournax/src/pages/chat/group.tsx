@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -80,6 +80,7 @@ export default function GroupChatPage() {
 
   const [group, setGroup] = useState<GroupInfo | null>(null);
   const [messages, setMessages] = useState<GroupMessage[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<GroupMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [text, setText] = useState("");
@@ -94,6 +95,9 @@ export default function GroupChatPage() {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const prevLengthRef = useRef(0);
+  const isFirstLoad = useRef(true);
 
   const isCreator = group?.createdBy === user?.id;
   const isHostGroup = group?.type === "host";
@@ -146,9 +150,21 @@ export default function GroupChatPage() {
     return () => clearInterval(interval);
   }, [groupId, isMember]);
 
+  const allMessages = [
+    ...messages,
+    ...optimisticMessages.filter(
+      (o) => !messages.some((s) => s.content === o.content && s.fromUserId === o.fromUserId)
+    ),
+  ];
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const currentLength = allMessages.length;
+    if (currentLength > prevLengthRef.current || isFirstLoad.current) {
+      bottomRef.current?.scrollIntoView({ behavior: isFirstLoad.current ? "instant" : "smooth" });
+      isFirstLoad.current = false;
+    }
+    prevLengthRef.current = currentLength;
+  }, [allMessages.length]);
 
   useEffect(() => {
     if (showRequests && isCreator) fetchJoinRequests();
@@ -174,23 +190,38 @@ export default function GroupChatPage() {
     }
   };
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
     setText("");
+    setTimeout(() => inputRef.current?.focus(), 0);
+
+    const optimistic: GroupMessage = {
+      id: Date.now(),
+      groupId,
+      fromUserId: user!.id,
+      senderName: user!.name || user!.handle || "",
+      senderHandle: user!.handle || "",
+      senderAvatar: user!.avatar || "🔥",
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+    setOptimisticMessages((prev) => [...prev, optimistic]);
     setIsSending(true);
     try {
       await customFetch(`/api/groups/${groupId}/messages`, {
         method: "POST",
         body: JSON.stringify({ content: trimmed }),
       });
+      setOptimisticMessages([]);
       await fetchMessages();
     } catch (err: any) {
+      setOptimisticMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       toast({ title: "Error", description: err?.data?.error || "Failed to send", variant: "destructive" });
     } finally {
       setIsSending(false);
     }
-  };
+  }, [text, isSending, groupId, user]);
 
   const handleAddMember = async () => {
     if (!addHandle.trim()) return;
@@ -373,13 +404,14 @@ export default function GroupChatPage() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-1 pb-2">
-          {messages.length === 0 ? (
+          {allMessages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground text-sm">No messages yet.</p>
             </div>
           ) : (
-            messages.map((msg) => {
+            allMessages.map((msg) => {
               const isMine = msg.fromUserId === user?.id;
+              const isOptimistic = optimisticMessages.some((o) => o.id === msg.id);
               const dateLabel = dateSeparator(msg.createdAt);
               const showDate = dateLabel !== lastDate;
               lastDate = dateLabel;
@@ -402,12 +434,13 @@ export default function GroupChatPage() {
                         </div>
                       )}
                       <div className={cn(
-                        "px-3 py-2 rounded-2xl text-sm",
-                        isMine ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-card-border rounded-bl-sm"
+                        "px-3 py-2 rounded-2xl text-sm transition-opacity duration-150",
+                        isMine ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-card-border rounded-bl-sm",
+                        isOptimistic && "opacity-70"
                       )}>
                         <p className="break-words">{msg.content}</p>
                         <p className={cn("text-[10px] mt-0.5", isMine ? "text-primary-foreground/70 text-right" : "text-muted-foreground")}>
-                          {timeLabel(msg.createdAt)}
+                          {isOptimistic ? "Sending…" : timeLabel(msg.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -423,11 +456,13 @@ export default function GroupChatPage() {
         {canSend ? (
           <div className="flex items-center gap-2 pt-2 pb-safe border-t border-border">
             <Input
+              ref={inputRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isHostGroup ? "Broadcast a message..." : "Type a message..."}
               className="flex-1 bg-card border-card-border"
+              autoFocus
             />
             <Button size="icon" onClick={handleSend} disabled={!text.trim() || isSending} className="shrink-0">
               <Send className="w-4 h-4" />
