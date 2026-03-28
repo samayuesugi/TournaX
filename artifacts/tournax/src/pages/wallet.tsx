@@ -46,35 +46,74 @@ type DailyTasksData = {
   paidMatchesClaimed: boolean;
 };
 
-function DailyTask({ icon, title, desc, progress, total, claimed }: {
+function DailyTask({ icon, title, desc, reward, progress, total, claimed, color = "primary" }: {
   icon: string;
   title: string;
   desc: string;
+  reward: string;
   progress: number;
   total: number;
   claimed: boolean;
+  color?: "primary" | "gold" | "silver";
 }) {
+  const pct = Math.min(100, (progress / total) * 100);
+  const barColor = claimed
+    ? "bg-green-500"
+    : color === "gold"
+    ? "bg-amber-400"
+    : color === "silver"
+    ? "bg-slate-400"
+    : "bg-primary";
+
   return (
-    <div className="flex items-center gap-3 bg-card/40 rounded-xl px-3 py-2.5">
-      <span className="text-lg shrink-0">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-foreground leading-tight">{title}</p>
-        <p className="text-[10px] text-muted-foreground">{desc}</p>
-        {!claimed && total > 1 && (
-          <div className="mt-1 h-1 bg-slate-700/60 rounded-full overflow-hidden">
+    <div className={cn(
+      "rounded-2xl p-4 border transition-all",
+      claimed
+        ? "bg-green-500/5 border-green-500/20"
+        : pct > 0
+        ? "bg-primary/5 border-primary/20"
+        : "bg-card border-card-border"
+    )}>
+      <div className="flex items-start gap-3">
+        <div className={cn(
+          "w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0",
+          claimed ? "bg-green-500/15" : pct > 0 ? "bg-primary/15" : "bg-secondary"
+        )}>
+          {claimed ? "✅" : icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <p className={cn(
+              "text-sm font-semibold leading-tight",
+              claimed ? "text-green-400" : "text-foreground"
+            )}>{title}</p>
+            <span className={cn(
+              "text-xs font-bold shrink-0 px-2 py-0.5 rounded-full",
+              claimed
+                ? "bg-green-500/20 text-green-400"
+                : color === "gold"
+                ? "bg-amber-400/20 text-amber-400"
+                : "bg-slate-400/20 text-slate-300"
+            )}>
+              {claimed ? "Done!" : reward}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-2">{desc}</p>
+          <div className="h-2 bg-secondary rounded-full overflow-hidden">
             <div
-              className="h-full bg-slate-400 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, (progress / total) * 100)}%` }}
+              className={cn("h-full rounded-full transition-all duration-700", barColor)}
+              style={{ width: `${claimed ? 100 : pct}%` }}
             />
           </div>
-        )}
-      </div>
-      <div className="shrink-0">
-        {claimed ? (
-          <span className="text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5">Claimed</span>
-        ) : (
-          <span className="text-[10px] text-muted-foreground font-medium">{progress}/{total}</span>
-        )}
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[10px] text-muted-foreground">
+              {claimed ? "Completed" : `${progress} / ${total}`}
+            </p>
+            {!claimed && total > 1 && (
+              <p className="text-[10px] text-muted-foreground">{Math.round(pct)}%</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -489,37 +528,57 @@ export default function WalletPage() {
               </div>
               <h3 className="text-3xl font-bold mb-1">{silverCoins}</h3>
               <p className="text-xs text-muted-foreground">Earn by daily login & completing tasks</p>
+            </div>
+            )}
 
-              <div className="mt-3 border-t border-slate-500/20 pt-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Daily Tasks</p>
-                <div className="space-y-1.5">
-                  <DailyTask
-                    icon="📅"
-                    title="Daily Login"
-                    desc="+5 Silver Coins"
-                    progress={dailyTasks?.loginClaimed ? 1 : 0}
-                    total={1}
-                    claimed={dailyTasks?.loginClaimed ?? false}
-                  />
-                  <DailyTask
-                    icon="🏆"
-                    title="Win 3 Paid Matches"
-                    desc="+1 Gold Coin"
-                    progress={dailyTasks?.winsToday ?? 0}
-                    total={3}
-                    claimed={dailyTasks?.winsClaimed ?? false}
-                  />
-                  <DailyTask
-                    icon="🎮"
-                    title="Play 5 Paid Matches"
-                    desc="+1 Gold Coin"
-                    progress={dailyTasks?.paidMatchesToday ?? 0}
-                    total={5}
-                    claimed={dailyTasks?.paidMatchesClaimed ?? false}
-                  />
+            {!isHost && (
+            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-base">Daily Tasks</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Complete tasks to earn rewards</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">Tasks reset daily</p>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs font-semibold text-primary">
+                    {[dailyTasks?.loginClaimed, dailyTasks?.winsClaimed, dailyTasks?.paidMatchesClaimed].filter(Boolean).length} / 3
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">completed</span>
+                </div>
               </div>
+
+              <div className="space-y-3">
+                <DailyTask
+                  icon="📅"
+                  title="Daily Login"
+                  desc="Just open the app every day"
+                  reward="+5 Silver"
+                  progress={dailyTasks?.loginClaimed ? 1 : 0}
+                  total={1}
+                  claimed={dailyTasks?.loginClaimed ?? false}
+                  color="silver"
+                />
+                <DailyTask
+                  icon="🏆"
+                  title="Win 3 Paid Matches"
+                  desc="Enter & win paid tournaments"
+                  reward="+1 Gold"
+                  progress={dailyTasks?.winsToday ?? 0}
+                  total={3}
+                  claimed={dailyTasks?.winsClaimed ?? false}
+                  color="gold"
+                />
+                <DailyTask
+                  icon="🎮"
+                  title="Play 5 Paid Matches"
+                  desc="Join any paid tournament"
+                  reward="+1 Gold"
+                  progress={dailyTasks?.paidMatchesToday ?? 0}
+                  total={5}
+                  claimed={dailyTasks?.paidMatchesClaimed ?? false}
+                  color="gold"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Resets every midnight</p>
             </div>
             )}
           </div>
