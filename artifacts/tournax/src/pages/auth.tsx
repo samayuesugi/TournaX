@@ -37,7 +37,7 @@ export default function AuthPage() {
   });
 
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otpInputRef = useRef<HTMLInputElement | null>(null);
 
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
@@ -71,30 +71,18 @@ export default function AuthPage() {
 
   function resetOtpDigits() {
     setOtpDigits(["", "", "", "", "", ""]);
-    setTimeout(() => otpRefs.current[0]?.focus(), 50);
+    setTimeout(() => otpInputRef.current?.focus(), 50);
   }
 
-  function handleOtpKey(e: React.KeyboardEvent<HTMLInputElement>, index: number) {
-    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  }
-
-  function handleOtpChange(value: string, index: number) {
-    const cleaned = value.replace(/\D/g, "").slice(-1);
-    const next = [...otpDigits];
-    next[index] = cleaned;
-    setOtpDigits(next);
-    if (cleaned && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
+  function handleSingleOtpInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setOtpDigits(Array(6).fill("").map((_, i) => val[i] ?? ""));
   }
 
   function handleOtpPaste(e: React.ClipboardEvent) {
     const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (paste.length === 6) {
-      setOtpDigits(paste.split(""));
-      otpRefs.current[5]?.focus();
+    if (paste.length > 0) {
+      setOtpDigits(Array(6).fill("").map((_, i) => paste[i] ?? ""));
     }
     e.preventDefault();
   }
@@ -299,21 +287,41 @@ export default function AuthPage() {
     </div>
   );
 
-  const OtpInputs = ({ onPaste }: { onPaste?: React.ClipboardEventHandler }) => (
-    <div className="flex gap-2 justify-center" onPaste={onPaste ?? handleOtpPaste}>
+  const filledCount = otpDigits.filter(Boolean).length;
+
+  const OtpInputs = () => (
+    <div
+      className="relative flex gap-2 justify-center cursor-text"
+      onClick={() => otpInputRef.current?.focus()}
+      onPaste={handleOtpPaste}
+    >
+      <input
+        ref={otpInputRef}
+        type="tel"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={otpDigits.join("")}
+        onChange={handleSingleOtpInput}
+        onPaste={handleOtpPaste}
+        autoComplete="one-time-code"
+        maxLength={6}
+        className="absolute opacity-0 pointer-events-none w-px h-px"
+        aria-label="OTP input"
+      />
       {otpDigits.map((digit, i) => (
-        <Input
+        <div
           key={i}
-          ref={(el) => { otpRefs.current[i] = el; }}
-          type="text"
-          inputMode="numeric"
-          maxLength={1}
-          value={digit}
-          onChange={(e) => handleOtpChange(e.target.value, i)}
-          onKeyDown={(e) => handleOtpKey(e, i)}
-          className="w-11 h-12 text-center text-xl font-bold p-0 tracking-widest"
-          autoComplete="one-time-code"
-        />
+          className={cn(
+            "w-11 h-12 border-2 rounded-xl flex items-center justify-center text-xl font-bold select-none transition-all",
+            digit
+              ? "border-primary/70 bg-primary/5 text-foreground"
+              : i === filledCount
+                ? "border-primary bg-primary/5"
+                : "border-border bg-muted/30 text-transparent"
+          )}
+        >
+          {digit || (i === filledCount ? <span className="w-0.5 h-5 bg-primary animate-pulse rounded-full" /> : "")}
+        </div>
       ))}
     </div>
   );
