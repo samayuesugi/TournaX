@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useGetWallet, useRequestAddBalance, useRequestWithdrawal, useConvertSilverCoins, customFetch } from "@workspace/api-client-react";
+import { useGetWallet, useRequestAddBalance, useRequestWithdrawal, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, RefreshCw, ChevronRight, Package } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon, SilverCoin, SilverCoinIcon } from "@/components/ui/Coins";
 
@@ -386,7 +386,6 @@ export default function WalletPage() {
   const { user } = useAuth();
   const { data: wallet, isLoading, refetch } = useGetWallet();
   const { mutateAsync: withdraw, isPending: isWithdrawing } = useRequestWithdrawal();
-  const { mutateAsync: convertSilver, isPending: isConverting } = useConvertSilverCoins();
 
   const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -400,7 +399,6 @@ export default function WalletPage() {
 
   const isHost = user?.role === "host";
   const silverCoins = (wallet as any)?.silverCoins ?? 0;
-  const canConvert = silverCoins >= 100;
 
   const handleWithdraw = async () => {
     const parsedWithdrawAmount = parseFloat(withdrawForm.amount);
@@ -413,16 +411,6 @@ export default function WalletPage() {
       toast({ title: "Withdrawal request submitted!" });
       setWithdrawForm({ amount: "", upiId: "" });
       setWithdrawOpen(false);
-      refetch();
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
-    }
-  };
-
-  const handleConvertSilver = async () => {
-    try {
-      const result = await convertSilver();
-      toast({ title: "Converted!", description: (result as any)?.message });
       refetch();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
@@ -495,30 +483,12 @@ export default function WalletPage() {
 
             {!isHost && (
             <div className="bg-gradient-to-br from-slate-500/20 to-slate-400/10 border border-slate-500/20 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <SilverCoinIcon size="md" />
-                  <p className="text-sm text-muted-foreground">Silver Coins</p>
-                </div>
-                {canConvert && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5 h-7 text-xs border-slate-500/40 text-slate-300"
-                    onClick={handleConvertSilver}
-                    disabled={isConverting}
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    {isConverting ? "Converting..." : "Convert"}
-                  </Button>
-                )}
+              <div className="flex items-center gap-2 mb-1">
+                <SilverCoinIcon size="md" />
+                <p className="text-sm text-muted-foreground">Silver Coins</p>
               </div>
               <h3 className="text-3xl font-bold mb-1">{silverCoins}</h3>
-              {canConvert ? (
-                <p className="text-xs text-amber-400">Ready to convert! 100 Silver = 10 Gold Coins</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">{100 - (silverCoins % 100)} more needed to convert (100 Silver = 10 Gold)</p>
-              )}
+              <p className="text-xs text-muted-foreground">Earn by daily login & completing tasks</p>
 
               <div className="mt-3 border-t border-slate-500/20 pt-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">Daily Tasks</p>
@@ -548,7 +518,7 @@ export default function WalletPage() {
                     claimed={dailyTasks?.paidMatchesClaimed ?? false}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">Tasks reset daily · 100 Silver = 10 Gold Coins</p>
+                <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">Tasks reset daily</p>
               </div>
             </div>
             )}
