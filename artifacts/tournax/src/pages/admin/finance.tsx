@@ -13,6 +13,15 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { FinanceRequest } from "@workspace/api-client-react";
 
+function receiptSrc(receiptUrl: string): string {
+  if (!receiptUrl) return "";
+  if (receiptUrl.startsWith("data:")) return receiptUrl;
+  if (receiptUrl.startsWith("/objects/")) {
+    return `/api/storage/objects/${receiptUrl.slice("/objects/".length)}`;
+  }
+  return receiptUrl;
+}
+
 function statusBadge(status: string) {
   if (status === "approved") return "bg-green-500/20 text-green-400 border-green-500/30";
   if (status === "rejected") return "bg-destructive/20 text-destructive border-destructive/30";
@@ -97,7 +106,7 @@ function RequestCard({
             className="w-full mb-3 rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
           >
             <img
-              src={req.receiptUrl}
+              src={receiptSrc(req.receiptUrl!)}
               alt="Payment receipt"
               className="w-full max-h-32 object-cover"
             />
@@ -109,7 +118,7 @@ function RequestCard({
                 <DialogTitle>Payment Receipt</DialogTitle>
               </DialogHeader>
               <div className="px-4 pb-4">
-                <img src={req.receiptUrl} alt="Payment receipt" className="w-full rounded-lg" />
+                <img src={receiptSrc(req.receiptUrl!)} alt="Payment receipt" className="w-full rounded-lg" />
               </div>
             </DialogContent>
           </Dialog>

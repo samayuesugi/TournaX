@@ -204,19 +204,32 @@ function CoinsPackDialog() {
       return;
     }
     try {
-      const receiptUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(receiptFile);
+      const { uploadURL, objectPath } = await customFetch<{ uploadURL: string; objectPath: string }>(
+        "/api/storage/uploads/request-url",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: receiptFile.name,
+            size: receiptFile.size,
+            contentType: receiptFile.type || "image/jpeg",
+          }),
+        }
+      );
+
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: receiptFile,
+        headers: { "Content-Type": receiptFile.type || "image/jpeg" },
       });
-      await addBalance({ data: { amount: finalCoins, utrNumber: utrNumber.trim(), receiptUrl } });
+      if (!uploadRes.ok) throw new Error("Receipt upload failed. Please try again.");
+
+      await addBalance({ data: { amount: finalCoins, utrNumber: utrNumber.trim(), receiptUrl: objectPath } });
       toast({ title: "Request submitted!", description: "Await admin approval. Usually within 30 mins." });
       reset();
       setOpen(false);
       refetch();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || err?.message || "Something went wrong", variant: "destructive" });
     }
   };
 
