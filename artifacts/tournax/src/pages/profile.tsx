@@ -642,22 +642,7 @@ function OwnProfile() {
             </div>
           </div>
 
-          {user.role === "host" ? (
-            <div className="mt-3 flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Host</span>
-              </div>
-              {user.game && (
-                <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
-                  🎮 {user.game}
-                </span>
-              )}
-              {user.handle && (
-                <span className="text-xs text-muted-foreground">IGN: <span className="text-foreground font-medium">{user.handle}</span></span>
-              )}
-            </div>
-          ) : user.game ? (
+          {user.game ? (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
                 🎮 {user.game}
