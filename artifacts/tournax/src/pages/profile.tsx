@@ -486,7 +486,19 @@ function OwnProfile() {
               <div>
                 <h2 className="text-lg font-bold">{user.name || "Player"}</h2>
                 <p className="text-muted-foreground text-sm">@{user.handle || user.email}</p>
-                <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user.role}</p>
+                {user.role === "admin" ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wide">Administrator</span>
+                  </div>
+                ) : user.role === "host" ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
+                    <span className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Host</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user.role}</p>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
