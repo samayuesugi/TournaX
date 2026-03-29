@@ -7,9 +7,29 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock, CheckCircle, XCircle, Bell } from "lucide-react";
+import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock, CheckCircle, XCircle, Bell, Pencil } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+
+interface Game { id: number; name: string; }
+
+const GAME_EMOJI: Record<string, string> = {
+  "BGMI": "🎯",
+  "Free Fire": "🔥",
+  "COD Mobile": "💀",
+  "Call of Duty": "💀",
+  "Valorant": "⚡",
+  "PUBG PC": "🏆",
+  "PUBG": "🏆",
+  "Chess": "♟️",
+  "FIFA": "⚽",
+  "Cricket": "🏏",
+};
+const EXTRA_EMOJIS = ["🎮", "⚔️", "🌟", "🐉", "🦅", "🏅"];
+
+function getGameEmoji(name: string): string {
+  return GAME_EMOJI[name] || name.charAt(0).toUpperCase();
+}
 
 function SmallAvatar({ avatar, size = "sm" }: { avatar?: string | null; size?: "sm" | "md" }) {
   const dim = size === "md" ? "w-10 h-10 text-xl" : "w-7 h-7 text-sm";
@@ -93,6 +113,8 @@ export default function GroupChatPage() {
   const [retentionDays, setRetentionDays] = useState<number>(3);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -141,6 +163,7 @@ export default function GroupChatPage() {
       setIsLoading(false);
     };
     init();
+    customFetch<Game[]>("/api/games").then(setGames).catch(() => {});
   }, [groupId]);
 
   useEffect(() => {
@@ -251,7 +274,7 @@ export default function GroupChatPage() {
     }
   };
 
-  const handleSaveSettings = async (patch: { messageRetentionDays?: number; isPublic?: boolean }) => {
+  const handleSaveSettings = async (patch: { messageRetentionDays?: number; isPublic?: boolean; avatar?: string }) => {
     setIsSavingSettings(true);
     try {
       await customFetch(`/api/groups/${groupId}/settings`, {
@@ -491,6 +514,81 @@ export default function GroupChatPage() {
             {/* Creator-only settings */}
             {isCreator && (
               <div className="bg-secondary/40 rounded-xl p-3 space-y-3">
+
+                {/* Avatar editor */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    <Pencil className="w-3.5 h-3.5" /> Group Avatar
+                  </div>
+                  {/* Preview row */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-2xl shrink-0">
+                      {pendingAvatar ?? group?.avatar}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Pick a game avatar or icon</p>
+                    </div>
+                    {pendingAvatar && pendingAvatar !== group?.avatar && (
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs shrink-0"
+                        disabled={isSavingSettings}
+                        onClick={async () => {
+                          await handleSaveSettings({ avatar: pendingAvatar });
+                          setPendingAvatar(null);
+                        }}
+                      >
+                        {isSavingSettings ? "Saving…" : "Save"}
+                      </Button>
+                    )}
+                  </div>
+                  {/* Game options */}
+                  {games.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      {games.map((g) => {
+                        const emoji = getGameEmoji(g.name);
+                        const active = (pendingAvatar ?? group?.avatar) === emoji;
+                        return (
+                          <button
+                            key={g.id}
+                            title={g.name}
+                            onClick={() => setPendingAvatar(emoji)}
+                            className={cn(
+                              "flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all",
+                              active
+                                ? "bg-primary/20 border-primary text-foreground"
+                                : "bg-secondary/60 border-transparent hover:border-border"
+                            )}
+                          >
+                            <span className="text-lg">{emoji}</span>
+                            <span className="text-[9px] text-muted-foreground max-w-[44px] truncate leading-tight">{g.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Extra emojis */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {EXTRA_EMOJIS.map((e) => {
+                      const active = (pendingAvatar ?? group?.avatar) === e;
+                      return (
+                        <button
+                          key={e}
+                          onClick={() => setPendingAvatar(e)}
+                          className={cn(
+                            "w-9 h-9 rounded-xl border flex items-center justify-center text-lg transition-all",
+                            active
+                              ? "bg-primary/20 border-primary"
+                              : "bg-secondary/60 border-transparent hover:border-border"
+                          )}
+                        >
+                          {e}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Public / Private toggle */}
                 <div>
                   <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">

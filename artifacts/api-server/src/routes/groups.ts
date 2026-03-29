@@ -266,8 +266,8 @@ router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Respon
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
   if (group.createdBy !== user.id) { res.status(403).json({ error: "Only the group creator can change settings" }); return; }
 
-  const { messageRetentionDays, isPublic } = req.body;
-  const updates: Partial<{ messageRetentionDays: number; isPublic: boolean }> = {};
+  const { messageRetentionDays, isPublic, avatar } = req.body;
+  const updates: Partial<{ messageRetentionDays: number; isPublic: boolean; avatar: string }> = {};
 
   if (messageRetentionDays != null) {
     const days = Number(messageRetentionDays);
@@ -281,6 +281,12 @@ router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Respon
 
   if (isPublic != null) {
     updates.isPublic = !!isPublic;
+  }
+
+  if (avatar != null) {
+    const trimmed = String(avatar).trim();
+    if (!trimmed) { res.status(400).json({ error: "Avatar cannot be empty" }); return; }
+    updates.avatar = trimmed;
   }
 
   if (Object.keys(updates).length === 0) {

@@ -25,7 +25,30 @@ interface GroupSummary {
   lastMessageAt: string;
 }
 
-const AVATARS = ["⚔️", "🔥", "💀", "🏆", "🎯", "🎮", "⚡", "🌟", "🦅", "🐉"];
+interface Game {
+  id: number;
+  name: string;
+}
+
+// Emoji map for known game names
+const GAME_EMOJI: Record<string, string> = {
+  "BGMI": "🎯",
+  "Free Fire": "🔥",
+  "COD Mobile": "💀",
+  "Call of Duty": "💀",
+  "Valorant": "⚡",
+  "PUBG PC": "🏆",
+  "PUBG": "🏆",
+  "Chess": "♟️",
+  "FIFA": "⚽",
+  "Cricket": "🏏",
+};
+
+const EXTRA_EMOJIS = ["🎮", "⚔️", "🌟", "🐉", "🦅", "🏅"];
+
+function getGameEmoji(name: string): string {
+  return GAME_EMOJI[name] || name.charAt(0).toUpperCase();
+}
 
 function timeAgo(iso: string) {
   if (!iso) return "";
@@ -52,9 +75,10 @@ export default function ChatListPage() {
   const { data: conversations, isLoading: convsLoading } = useGetConversations();
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
+  const [games, setGames] = useState<Game[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
-  const [groupAvatar, setGroupAvatar] = useState("⚔️");
+  const [groupAvatar, setGroupAvatar] = useState("🎮");
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchGroups = async () => {
@@ -65,8 +89,16 @@ export default function ChatListPage() {
     setGroupsLoading(false);
   };
 
+  const fetchGames = async () => {
+    try {
+      const data = await customFetch<Game[]>("/api/games");
+      setGames(data);
+    } catch {}
+  };
+
   useEffect(() => {
     fetchGroups();
+    fetchGames();
     const interval = setInterval(fetchGroups, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -90,6 +122,11 @@ export default function ChatListPage() {
   };
 
   const isLoading = convsLoading && groupsLoading;
+
+  // All available avatar options: games + extras
+  const gameAvatars = games.map((g) => ({ label: g.name, emoji: getGameEmoji(g.name) }));
+  const extraAvatars = EXTRA_EMOJIS.map((e) => ({ label: e, emoji: e }));
+  const allAvatars = [...gameAvatars, ...extraAvatars];
 
   return (
     <AppLayout title="Messages">
@@ -232,25 +269,64 @@ export default function ChatListPage() {
                 onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>Icon</Label>
+
+            {/* Avatar preview */}
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-3xl shrink-0">
+                {groupAvatar}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Selected Avatar</p>
+                <p className="text-xs text-muted-foreground">Pick a game or icon below</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {/* Game-based avatars */}
+              {gameAvatars.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Games</p>
+                  <div className="flex flex-wrap gap-2">
+                    {gameAvatars.map((a) => (
+                      <button
+                        key={a.label}
+                        onClick={() => setGroupAvatar(a.emoji)}
+                        title={a.label}
+                        className={cn(
+                          "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all border",
+                          groupAvatar === a.emoji
+                            ? "bg-primary/20 border-primary text-foreground"
+                            : "bg-secondary border-transparent hover:border-border"
+                        )}
+                      >
+                        <span className="text-xl">{a.emoji}</span>
+                        <span className="text-[9px] text-muted-foreground leading-tight max-w-[48px] truncate">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Extra emojis */}
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Others</p>
               <div className="flex flex-wrap gap-2">
-                {AVATARS.map((a) => (
+                {extraAvatars.map((a) => (
                   <button
-                    key={a}
-                    onClick={() => setGroupAvatar(a)}
+                    key={a.emoji}
+                    onClick={() => setGroupAvatar(a.emoji)}
                     className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all",
-                      groupAvatar === a
-                        ? "bg-primary/30 border-2 border-primary ring-1 ring-primary"
-                        : "bg-secondary border-2 border-transparent hover:border-border"
+                      "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border",
+                      groupAvatar === a.emoji
+                        ? "bg-primary/20 border-primary"
+                        : "bg-secondary border-transparent hover:border-border"
                     )}
                   >
-                    {a}
+                    {a.emoji}
                   </button>
                 ))}
               </div>
             </div>
+
             <Button
               className="w-full"
               onClick={handleCreateGroup}
