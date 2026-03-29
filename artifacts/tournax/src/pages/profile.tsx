@@ -630,16 +630,31 @@ function OwnProfile() {
             </div>
           </div>
 
-          {user.game && (
+          {user.role === "host" ? (
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
+                <span className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Host</span>
+              </div>
+              {user.game && (
+                <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
+                  🎮 {user.game}
+                </span>
+              )}
+              {user.handle && (
+                <span className="text-xs text-muted-foreground">IGN: <span className="text-foreground font-medium">{user.handle}</span></span>
+              )}
+            </div>
+          ) : user.game ? (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
-                🎮 {user.game} {user.role === "host" ? "Host" : "Player"}
+                🎮 {user.game}
               </span>
               {user.handle && (
                 <span className="text-xs text-muted-foreground">IGN: <span className="text-foreground font-medium">{user.handle}</span></span>
               )}
             </div>
-          )}
+          ) : null}
           <SocialLinksDisplay instagram={user.instagram} discord={user.discord} x={user.x} youtube={user.youtube} twitch={user.twitch} />
         </div>
 
@@ -902,9 +917,14 @@ function PublicProfile({ handle }: { handle: string }) {
                     <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                     <span className="text-xs font-semibold text-primary uppercase tracking-wide">Administrator</span>
                   </div>
+                ) : profile.role === "host" ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-orange-400" />
+                    <span className="text-xs font-semibold text-orange-400 uppercase tracking-wide">Host</span>
+                  </div>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/25 rounded-full px-2.5 py-0.5 mt-0.5">
-                    🎮 {(profile as any).game ? `${(profile as any).game} ${profile.role === "host" ? "Host" : "Player"}` : profile.role === "host" ? "Host" : "Player"}
+                    🎮 {(profile as any).game ? `${(profile as any).game} Player` : "Player"}
                   </span>
                 )}
               </div>
@@ -945,10 +965,10 @@ function PublicProfile({ handle }: { handle: string }) {
             </div>
           </div>
 
-          {(profile as any).game && (
+          {(profile as any).game && profile.role === "player" && (
             <div className="mt-3">
               <span className="flex items-center gap-1.5 w-fit text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
-                🎮 {(profile as any).game} {profile.role === "host" ? "Host" : "Player"}
+                🎮 {(profile as any).game}
               </span>
             </div>
           )}
