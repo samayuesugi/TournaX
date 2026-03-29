@@ -363,7 +363,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Email and password required" });
     return;
   }
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
   if (!user || !(await verifyPassword(password, user.password))) {
     res.status(401).json({ error: "Invalid email or password" });
     return;
