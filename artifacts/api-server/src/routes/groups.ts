@@ -266,8 +266,15 @@ router.put("/groups/:id/settings", requireAuth, async (req: Request, res: Respon
   if (!group) { res.status(404).json({ error: "Group not found" }); return; }
   if (group.createdBy !== user.id) { res.status(403).json({ error: "Only the group creator can change settings" }); return; }
 
-  const { messageRetentionDays, isPublic, avatar } = req.body;
-  const updates: Partial<{ messageRetentionDays: number; isPublic: boolean; avatar: string }> = {};
+  const { name, messageRetentionDays, isPublic, avatar } = req.body;
+  const updates: Partial<{ name: string; messageRetentionDays: number; isPublic: boolean; avatar: string }> = {};
+
+  if (name != null) {
+    const trimmed = String(name).trim();
+    if (!trimmed) { res.status(400).json({ error: "Group name cannot be empty" }); return; }
+    if (trimmed.length > 50) { res.status(400).json({ error: "Group name too long (max 50 characters)" }); return; }
+    updates.name = trimmed;
+  }
 
   if (messageRetentionDays != null) {
     const days = Number(messageRetentionDays);

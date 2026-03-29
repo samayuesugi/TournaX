@@ -113,6 +113,7 @@ export default function GroupChatPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [retentionDays, setRetentionDays] = useState<number>(3);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [games, setGames] = useState<Game[]>([]);
   const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
@@ -275,7 +276,7 @@ export default function GroupChatPage() {
     }
   };
 
-  const handleSaveSettings = async (patch: { messageRetentionDays?: number; isPublic?: boolean; avatar?: string }) => {
+  const handleSaveSettings = async (patch: { name?: string; messageRetentionDays?: number; isPublic?: boolean; avatar?: string }) => {
     setIsSavingSettings(true);
     try {
       await customFetch(`/api/groups/${groupId}/settings`, {
@@ -522,6 +523,38 @@ export default function GroupChatPage() {
             {/* Creator-only settings */}
             {isCreator && (
               <div className="bg-secondary/40 rounded-xl p-3 space-y-3">
+
+                {/* Group Name editor */}
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    <Pencil className="w-3.5 h-3.5" /> Group Name
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={pendingName ?? group?.name ?? ""}
+                      onChange={(e) => setPendingName(e.target.value)}
+                      maxLength={50}
+                      placeholder="Group name"
+                      className="flex-1 h-8 text-sm bg-background/60"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs shrink-0"
+                      disabled={
+                        isSavingSettings ||
+                        !pendingName?.trim() ||
+                        pendingName.trim() === group?.name
+                      }
+                      onClick={async () => {
+                        if (!pendingName?.trim()) return;
+                        await handleSaveSettings({ name: pendingName.trim() });
+                        setPendingName(null);
+                      }}
+                    >
+                      {isSavingSettings ? "Saving…" : "Save"}
+                    </Button>
+                  </div>
+                </div>
 
                 {/* Avatar editor */}
                 <div>
