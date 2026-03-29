@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock, CheckCircle, XCircle, Bell, Pencil } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import { HOST_AVATARS, isImageAvatar } from "@/lib/host-avatars";
 
 interface Game { id: number; name: string; }
 
@@ -336,8 +337,10 @@ export default function GroupChatPage() {
     return (
       <AppLayout showBack backHref="/chat" hideNav title={group.name}>
         <div className="flex flex-col items-center justify-center h-64 text-center px-4 space-y-4">
-          <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-4xl">
-            {group.avatar}
+          <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-4xl overflow-hidden">
+            {isImageAvatar(group.avatar)
+              ? <img src={group.avatar} alt={group.name} className="w-full h-full object-cover" />
+              : group.avatar}
           </div>
           <div>
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -396,7 +399,9 @@ export default function GroupChatPage() {
           onClick={() => setShowMembers(true)}
           className="flex items-center gap-2 pb-2 border-b border-border mb-2"
         >
-          <span className="text-xl">{group?.avatar}</span>
+          {isImageAvatar(group?.avatar)
+            ? <img src={group!.avatar} alt={group?.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+            : <span className="text-xl">{group?.avatar}</span>}
           <div className="flex-1 text-left">
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-semibold">{group?.name}</p>
@@ -506,7 +511,10 @@ export default function GroupChatPage() {
         <DialogContent className="max-w-sm max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>{group?.avatar}</span> {group?.name}
+              {isImageAvatar(group?.avatar)
+                ? <img src={group!.avatar} alt={group?.name} className="w-6 h-6 rounded-md object-cover shrink-0" />
+                : <span>{group?.avatar}</span>}
+              {group?.name}
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 space-y-4">
@@ -522,8 +530,10 @@ export default function GroupChatPage() {
                   </div>
                   {/* Preview row */}
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-2xl shrink-0">
-                      {pendingAvatar ?? group?.avatar}
+                    <div className="w-12 h-12 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                      {isImageAvatar(pendingAvatar ?? group?.avatar)
+                        ? <img src={pendingAvatar ?? group?.avatar} alt="avatar" className="w-full h-full object-cover" />
+                        : (pendingAvatar ?? group?.avatar)}
                     </div>
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">Pick a game avatar or icon</p>
@@ -542,51 +552,81 @@ export default function GroupChatPage() {
                       </Button>
                     )}
                   </div>
-                  {/* Game options */}
-                  {games.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      {games.map((g) => {
-                        const emoji = getGameEmoji(g.name);
-                        const active = (pendingAvatar ?? group?.avatar) === emoji;
-                        return (
-                          <button
-                            key={g.id}
-                            title={g.name}
-                            onClick={() => setPendingAvatar(emoji)}
-                            className={cn(
-                              "flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all",
-                              active
-                                ? "bg-primary/20 border-primary text-foreground"
-                                : "bg-secondary/60 border-transparent hover:border-border"
-                            )}
-                          >
-                            <span className="text-lg">{emoji}</span>
-                            <span className="text-[9px] text-muted-foreground max-w-[44px] truncate leading-tight">{g.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {/* Extra emojis */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {EXTRA_EMOJIS.map((e) => {
-                      const active = (pendingAvatar ?? group?.avatar) === e;
+                  {/* Host: game image avatars */}
+                  {(() => {
+                    const hostGame = user?.role === "host" ? (user as any)?.game as string | undefined : undefined;
+                    const hostImgs = hostGame ? HOST_AVATARS[hostGame] ?? null : null;
+                    if (hostImgs) {
                       return (
-                        <button
-                          key={e}
-                          onClick={() => setPendingAvatar(e)}
-                          className={cn(
-                            "w-9 h-9 rounded-xl border flex items-center justify-center text-lg transition-all",
-                            active
-                              ? "bg-primary/20 border-primary"
-                              : "bg-secondary/60 border-transparent hover:border-border"
-                          )}
-                        >
-                          {e}
-                        </button>
+                        <div className="flex flex-wrap gap-1.5 mb-1.5">
+                          {hostImgs.map((src) => {
+                            const active = (pendingAvatar ?? group?.avatar) === src;
+                            return (
+                              <button
+                                key={src}
+                                onClick={() => setPendingAvatar(src)}
+                                className={cn(
+                                  "w-12 h-12 rounded-xl border-2 overflow-hidden transition-all",
+                                  active ? "border-primary" : "border-transparent hover:border-border"
+                                )}
+                              >
+                                <img src={src} alt="avatar" className="w-full h-full object-cover" />
+                              </button>
+                            );
+                          })}
+                        </div>
                       );
-                    })}
-                  </div>
+                    }
+                    return (
+                      <>
+                        {/* Game emoji options */}
+                        {games.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-1.5">
+                            {games.map((g) => {
+                              const emoji = getGameEmoji(g.name);
+                              const active = (pendingAvatar ?? group?.avatar) === emoji;
+                              return (
+                                <button
+                                  key={g.id}
+                                  title={g.name}
+                                  onClick={() => setPendingAvatar(emoji)}
+                                  className={cn(
+                                    "flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl border transition-all",
+                                    active
+                                      ? "bg-primary/20 border-primary text-foreground"
+                                      : "bg-secondary/60 border-transparent hover:border-border"
+                                  )}
+                                >
+                                  <span className="text-lg">{emoji}</span>
+                                  <span className="text-[9px] text-muted-foreground max-w-[44px] truncate leading-tight">{g.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {/* Extra emojis */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {EXTRA_EMOJIS.map((e) => {
+                            const active = (pendingAvatar ?? group?.avatar) === e;
+                            return (
+                              <button
+                                key={e}
+                                onClick={() => setPendingAvatar(e)}
+                                className={cn(
+                                  "w-9 h-9 rounded-xl border flex items-center justify-center text-lg transition-all",
+                                  active
+                                    ? "bg-primary/20 border-primary"
+                                    : "bg-secondary/60 border-transparent hover:border-border"
+                                )}
+                              >
+                                {e}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Public / Private toggle */}

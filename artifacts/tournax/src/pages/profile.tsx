@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 
 const COMPLAINT_TOPICS = [
   { id: "Withdrawal Issue", label: "Withdrawal Issue", icon: "💸" },
@@ -151,30 +152,6 @@ function canChat(senderRole: string, recipientRole: string): boolean {
 }
 
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
-const HOST_AVATARS: Record<string, string[]> = {
-  "Free Fire": [
-    "/avatars/ff-avatar-1.jpeg",
-    "/avatars/ff-avatar-2.jpeg",
-    "/avatars/ff-avatar-3.jpeg",
-    "/avatars/ff-avatar-4.jpeg",
-    "/avatars/ff-avatar-5.jpeg",
-  ],
-  "BGMI": [
-    "/avatars/bgmi-avatar-1.jpeg",
-    "/avatars/bgmi-avatar-2.jpeg",
-    "/avatars/bgmi-avatar-3.jpeg",
-    "/avatars/bgmi-avatar-4.jpeg",
-  ],
-};
-
-function isImageAvatar(avatar: string | null | undefined): boolean {
-  return !!avatar && (avatar.startsWith("/") || avatar.startsWith("http"));
-}
-
-function resolveAvatarSrc(avatar: string): string {
-  if (avatar.startsWith("/objects/")) return `/api/storage${avatar}`;
-  return avatar;
-}
 
 export function AvatarDisplay({
   avatar,

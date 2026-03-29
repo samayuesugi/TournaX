@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
+import { HOST_AVATARS, isImageAvatar } from "@/lib/host-avatars";
 
 interface GroupSummary {
   id: number;
@@ -81,6 +82,15 @@ export default function ChatListPage() {
   const [groupAvatar, setGroupAvatar] = useState("🎮");
   const [isCreating, setIsCreating] = useState(false);
 
+  // Set host's default avatar to first game image when dialog opens
+  useEffect(() => {
+    if (createOpen && user?.role === "host") {
+      const game = (user as any)?.game as string | undefined;
+      const imgs = game ? HOST_AVATARS[game] : null;
+      if (imgs && imgs.length > 0) setGroupAvatar(imgs[0]);
+    }
+  }, [createOpen, user]);
+
   const fetchGroups = async () => {
     try {
       const data = await customFetch<GroupSummary[]>("/api/groups");
@@ -123,7 +133,11 @@ export default function ChatListPage() {
 
   const isLoading = convsLoading && groupsLoading;
 
-  // All available avatar options: games + extras
+  // For hosts: use game image avatars from HOST_AVATARS if available
+  const hostGame = (user as any)?.game as string | undefined;
+  const hostImageAvatars = user?.role === "host" && hostGame ? HOST_AVATARS[hostGame] ?? null : null;
+
+  // All available avatar options: games + extras (for non-host or fallback)
   const gameAvatars = games.map((g) => ({ label: g.name, emoji: getGameEmoji(g.name) }));
   const extraAvatars = EXTRA_EMOJIS.map((e) => ({ label: e, emoji: e }));
   const allAvatars = [...gameAvatars, ...extraAvatars];
@@ -151,8 +165,10 @@ export default function ChatListPage() {
             {groups.map((g) => (
               <Link key={g.id} href={`/chat/group/${g.id}`}>
                 <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer">
-                  <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0">
-                    {g.avatar}
+                  <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
+                    {isImageAvatar(g.avatar)
+                      ? <img src={g.avatar} alt={g.name} className="w-full h-full object-cover" />
+                      : g.avatar}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
@@ -272,59 +288,90 @@ export default function ChatListPage() {
 
             {/* Avatar preview */}
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-3xl shrink-0">
-                {groupAvatar}
+              <div className="w-14 h-14 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+                {isImageAvatar(groupAvatar)
+                  ? <img src={groupAvatar} alt="avatar" className="w-full h-full object-cover" />
+                  : groupAvatar}
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Selected Avatar</p>
-                <p className="text-xs text-muted-foreground">Pick a game or icon below</p>
+                <p className="text-xs text-muted-foreground">
+                  {hostImageAvatars ? "Pick a game avatar below" : "Pick a game or icon below"}
+                </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              {/* Game-based avatars */}
-              {gameAvatars.length > 0 && (
+              {/* Host: show game image avatars */}
+              {hostImageAvatars ? (
                 <>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Games</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{hostGame} Avatars</p>
                   <div className="flex flex-wrap gap-2">
-                    {gameAvatars.map((a) => (
+                    {hostImageAvatars.map((src) => (
                       <button
-                        key={a.label}
-                        onClick={() => setGroupAvatar(a.emoji)}
-                        title={a.label}
+                        key={src}
+                        onClick={() => setGroupAvatar(src)}
                         className={cn(
-                          "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all border",
+                          "w-14 h-14 rounded-xl border-2 overflow-hidden transition-all",
+                          groupAvatar === src ? "border-primary" : "border-transparent hover:border-border"
+                        )}
+                      >
+                        <img src={src} alt="avatar" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Game-based emoji avatars (non-host) */}
+                  {gameAvatars.length > 0 && (
+                    <>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Games</p>
+                      <div className="flex flex-wrap gap-2">
+                        {gameAvatars.map((a) => (
+                          <button
+                            key={a.label}
+                            onClick={() => setGroupAvatar(a.emoji)}
+                            title={a.label}
+                            className={cn(
+                              "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all border",
+                              groupAvatar === a.emoji
+                                ? "bg-primary/20 border-primary text-foreground"
+                                : "bg-secondary border-transparent hover:border-border"
+                            )}
+                          >
+                            <span className="text-xl">{a.emoji}</span>
+                            <span className="text-[9px] text-muted-foreground leading-tight max-w-[48px] truncate">{a.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Extra emojis (always shown for non-host, hidden for host who has game images) */}
+              {!hostImageAvatars && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Others</p>
+                  <div className="flex flex-wrap gap-2">
+                    {extraAvatars.map((a) => (
+                      <button
+                        key={a.emoji}
+                        onClick={() => setGroupAvatar(a.emoji)}
+                        className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border",
                           groupAvatar === a.emoji
-                            ? "bg-primary/20 border-primary text-foreground"
+                            ? "bg-primary/20 border-primary"
                             : "bg-secondary border-transparent hover:border-border"
                         )}
                       >
-                        <span className="text-xl">{a.emoji}</span>
-                        <span className="text-[9px] text-muted-foreground leading-tight max-w-[48px] truncate">{a.label}</span>
+                        {a.emoji}
                       </button>
                     ))}
                   </div>
                 </>
               )}
-
-              {/* Extra emojis */}
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Others</p>
-              <div className="flex flex-wrap gap-2">
-                {extraAvatars.map((a) => (
-                  <button
-                    key={a.emoji}
-                    onClick={() => setGroupAvatar(a.emoji)}
-                    className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border",
-                      groupAvatar === a.emoji
-                        ? "bg-primary/20 border-primary"
-                        : "bg-secondary border-transparent hover:border-border"
-                    )}
-                  >
-                    {a.emoji}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <Button
