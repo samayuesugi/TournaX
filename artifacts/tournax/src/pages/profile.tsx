@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetUserProfile, useFollowUser, useUnfollowUser,
@@ -359,6 +359,64 @@ function MonetizationSection({ followers }: { followers: number }) {
   );
 }
 
+function FollowersModal({ handle, count, open, onClose }: { handle: string; count: number; open: boolean; onClose: () => void }) {
+  const [followers, setFollowers] = useState<{ id: number; name: string | null; handle: string | null; avatar: string; role: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!open || !handle) return;
+    setLoading(true);
+    customFetch<typeof followers>(`/api/users/${handle}/followers`)
+      .then(setFollowers)
+      .catch(() => setFollowers([]))
+      .finally(() => setLoading(false));
+  }, [open, handle]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-sm max-h-[70vh] flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle>Followers ({count})</DialogTitle>
+        </DialogHeader>
+        <div className="overflow-y-auto flex-1 -mx-1 px-1">
+          {loading ? (
+            <div className="space-y-3 pt-2">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
+            </div>
+          ) : followers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No followers yet</p>
+          ) : (
+            <div className="space-y-1 pt-1">
+              {followers.map(f => (
+                <button
+                  key={f.id}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/60 transition-colors text-left"
+                  onClick={() => { onClose(); navigate(`/profile/${f.handle}`); }}
+                >
+                  <AvatarDisplay avatar={f.avatar} className="w-10 h-10 rounded-xl text-lg shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{f.name || `@${f.handle}`}</p>
+                    <p className="text-xs text-muted-foreground truncate">@{f.handle}</p>
+                  </div>
+                  {(f.role === "host" || f.role === "admin") && (
+                    <div className="ml-auto shrink-0 flex items-center gap-1">
+                      <ShieldCheck className={`w-3.5 h-3.5 ${f.role === "admin" ? "text-primary" : "text-orange-400"}`} />
+                      <span className={`text-[10px] font-semibold uppercase ${f.role === "admin" ? "text-primary" : "text-orange-400"}`}>
+                        {f.role === "admin" ? "Admin" : "Host"}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OwnProfile() {
   const { user, logout, refreshUser } = useAuth();
   const [, navigate] = useLocation();
@@ -394,6 +452,7 @@ function OwnProfile() {
   } | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [followersOpen, setFollowersOpen] = useState(false);
 
   useEffect(() => {
     if (profileOpen) {
@@ -628,10 +687,13 @@ function OwnProfile() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
+            <button
+              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
+              onClick={() => setFollowersOpen(true)}
+            >
               <div className="font-bold text-lg">{user.followersCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
-            </div>
+            </button>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="font-bold text-lg">{user.followingCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Following</div>
@@ -641,6 +703,14 @@ function OwnProfile() {
               <div className="text-xs text-muted-foreground">Balance</div>
             </div>
           </div>
+          {user.handle && (
+            <FollowersModal
+              handle={user.handle}
+              count={user.followersCount ?? 0}
+              open={followersOpen}
+              onClose={() => setFollowersOpen(false)}
+            />
+          )}
 
           {user.game ? (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -854,6 +924,7 @@ function PublicProfile({ handle }: { handle: string }) {
   const { mutateAsync: follow } = useFollowUser();
   const { mutateAsync: unfollow } = useUnfollowUser();
   const [hostGroup, setHostGroup] = useState<{ id: number; name: string; avatar: string; memberCount: number; isPublic: boolean } | null>(null);
+  const [followersOpen, setFollowersOpen] = useState(false);
 
   useEffect(() => {
     if (profile?.role === "host" && profile.id) {
@@ -945,10 +1016,13 @@ function PublicProfile({ handle }: { handle: string }) {
           </div>
 
           <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
+            <button
+              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
+              onClick={() => setFollowersOpen(true)}
+            >
               <div className="font-bold text-lg">{profile.followersCount}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
-            </div>
+            </button>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="font-bold text-lg">{profile.followingCount}</div>
               <div className="text-xs text-muted-foreground">Following</div>
@@ -958,6 +1032,12 @@ function PublicProfile({ handle }: { handle: string }) {
               <div className="text-xs text-muted-foreground">Matches</div>
             </div>
           </div>
+          <FollowersModal
+            handle={handle}
+            count={profile.followersCount}
+            open={followersOpen}
+            onClose={() => setFollowersOpen(false)}
+          />
 
           {(profile as any).game && profile.role === "player" && (
             <div className="mt-3">
