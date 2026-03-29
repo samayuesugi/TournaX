@@ -103,6 +103,7 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
   }
 
   // Players only see matches from hosts they follow + recommended hosts
+  // If they follow no one and no recommended hosts exist, fall back to showing all matches
   if (user.role === "player") {
     const follows = await db.select({ followingId: followsTable.followingId })
       .from(followsTable).where(eq(followsTable.followerId, user.id));
@@ -113,8 +114,10 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
     const recommendedIds = recommendedHosts.map(h => h.id);
 
     const allowedIds = [...new Set([...followedIds, ...recommendedIds])];
-    if (allowedIds.length === 0) { res.json([]); return; }
-    conditions.push(inArray(matchesTable.hostId, allowedIds));
+    if (allowedIds.length > 0) {
+      conditions.push(inArray(matchesTable.hostId, allowedIds));
+    }
+    // If allowedIds is empty, show all matches so new users don't see a blank home page
   }
 
   const matches = conditions.length > 0

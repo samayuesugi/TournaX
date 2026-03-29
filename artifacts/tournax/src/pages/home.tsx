@@ -260,7 +260,7 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const silverCoins = (user as any)?.silverCoins ?? 0;
+  const silverCoins = user?.silverCoins ?? 0;
   const canPost = silverCoins >= 5;
 
   const reset = () => {

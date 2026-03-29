@@ -447,11 +447,13 @@ export default function WalletPage() {
   useEffect(() => {
     customFetch<DailyTasksData>("/api/auth/daily-tasks")
       .then(setDailyTasks)
-      .catch(() => {});
+      .catch((err: any) => {
+        console.error("Failed to load daily tasks:", err?.data?.error || err);
+      });
   }, []);
 
   const isHost = user?.role === "host";
-  const silverCoins = (wallet as any)?.silverCoins ?? 0;
+  const silverCoins = wallet?.silverCoins ?? 0;
 
   const handleWithdraw = async () => {
     const parsedWithdrawAmount = parseFloat(withdrawForm.amount);
