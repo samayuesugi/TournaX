@@ -100,6 +100,15 @@ router.post("/admin/players/:id/ban", requireAdmin, async (req: Request, res: Re
   res.json({ success: true });
 });
 
+router.delete("/admin/players/:id", requireAdmin, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const [player] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!player) { res.status(404).json({ error: "Player not found" }); return; }
+  if (player.role !== "player") { res.status(400).json({ error: "Only player accounts can be deleted" }); return; }
+  await db.delete(usersTable).where(eq(usersTable.id, id));
+  res.json({ success: true });
+});
+
 router.post("/admin/players/:id/add-balance", requireAdmin, async (req: Request, res: Response) => {
   const { amount } = req.body;
   const parsedAmount = parseFloat(String(amount));

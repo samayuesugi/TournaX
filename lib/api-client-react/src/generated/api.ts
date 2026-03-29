@@ -3799,6 +3799,83 @@ export type AdminListMatchesQueryResult = NonNullable<
 >;
 export type AdminListMatchesQueryError = ErrorType<unknown>;
 
+export const getDeletePlayerUrl = (id: number) => {
+  return `/api/admin/players/${id}`;
+};
+
+export const deletePlayer = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getDeletePlayerUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePlayerMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePlayer>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePlayer>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deletePlayer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePlayer>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+    return deletePlayer(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePlayerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePlayer>>
+>;
+
+export type DeletePlayerMutationError = ErrorType<unknown>;
+
+export const useDeletePlayer = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePlayer>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePlayer>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeletePlayerMutationOptions(options));
+};
+
 export function useAdminListMatches<
   TData = Awaited<ReturnType<typeof adminListMatches>>,
   TError = ErrorType<unknown>,

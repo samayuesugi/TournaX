@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import {
-  useAdminListPlayers, useVerifyPlayer, useBanPlayer, useAdminAddBalance
+  useAdminListPlayers, useVerifyPlayer, useBanPlayer, useAdminAddBalance, useDeletePlayer
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin } from "@/components/ui/Coins";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -20,9 +20,12 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
   const { toast } = useToast();
   const { mutateAsync: verify } = useVerifyPlayer();
   const { mutateAsync: ban } = useBanPlayer();
+  const { mutateAsync: deletePlayer } = useDeletePlayer();
   const { mutateAsync: addBalance } = useAdminAddBalance();
   const [amount, setAmount] = useState("");
   const [balanceOpen, setBalanceOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleVerify = async () => {
     try {
@@ -54,6 +57,20 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       onAction();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deletePlayer({ id: player.id });
+      toast({ title: "Player deleted", description: `${player.name || player.email} has been permanently deleted.` });
+      setDeleteOpen(false);
+      onAction();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -103,6 +120,27 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
               </div>
               <Button className="w-full" onClick={handleAddBalance} disabled={!amount}>Add Balance</Button>
             </div>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="h-7 w-7 p-0 shrink-0 text-destructive border-destructive/40 hover:bg-destructive/10">
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete Player</DialogTitle>
+              <DialogDescription>
+                This will permanently delete <strong>{player.name || player.email}</strong>'s account. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? "Deleting…" : "Delete Permanently"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
