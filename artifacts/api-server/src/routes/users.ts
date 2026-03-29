@@ -334,6 +334,26 @@ router.get("/users/:handle/followers", requireAuth, async (req: Request, res: Re
   })));
 });
 
+router.get("/users/:handle/following", requireAuth, async (req: Request, res: Response) => {
+  const { handle } = req.params;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  const follows = await db.select().from(followsTable).where(eq(followsTable.followerId, user.id));
+  const followingIds = follows.map(f => f.followingId);
+  if (followingIds.length === 0) { res.json([]); return; }
+
+  const following = await db.select({
+    id: usersTable.id, name: usersTable.name, handle: usersTable.handle,
+    avatar: usersTable.avatar, role: usersTable.role,
+  }).from(usersTable).where(inArray(usersTable.id, followingIds));
+
+  res.json(following.map(u => ({
+    id: u.id, name: u.name, handle: u.handle,
+    avatar: u.avatar || "🔥", role: u.role,
+  })));
+});
+
 router.post("/users/:handle/follow", requireAuth, async (req: Request, res: Response) => {
   const currentUser = (req as any).user;
   const { handle } = req.params;

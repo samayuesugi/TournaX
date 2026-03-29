@@ -359,36 +359,39 @@ function MonetizationSection({ followers }: { followers: number }) {
   );
 }
 
-function FollowersModal({ handle, count, open, onClose }: { handle: string; count: number; open: boolean; onClose: () => void }) {
-  const [followers, setFollowers] = useState<{ id: number; name: string | null; handle: string | null; avatar: string; role: string }[]>([]);
+function FollowersModal({ handle, count, type, open, onClose }: { handle: string; count: number; type: "followers" | "following"; open: boolean; onClose: () => void }) {
+  const [users, setUsers] = useState<{ id: number; name: string | null; handle: string | null; avatar: string; role: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
 
   useEffect(() => {
     if (!open || !handle) return;
     setLoading(true);
-    customFetch<typeof followers>(`/api/users/${handle}/followers`)
-      .then(setFollowers)
-      .catch(() => setFollowers([]))
+    customFetch<typeof users>(`/api/users/${handle}/${type}`)
+      .then(setUsers)
+      .catch(() => setUsers([]))
       .finally(() => setLoading(false));
-  }, [open, handle]);
+  }, [open, handle, type]);
+
+  const title = type === "followers" ? `Followers (${count})` : `Following (${count})`;
+  const emptyText = type === "followers" ? "No followers yet" : "Not following anyone yet";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm max-h-[70vh] flex flex-col">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Followers ({count})</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 -mx-1 px-1">
           {loading ? (
             <div className="space-y-3 pt-2">
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
             </div>
-          ) : followers.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No followers yet</p>
+          ) : users.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">{emptyText}</p>
           ) : (
             <div className="space-y-1 pt-1">
-              {followers.map(f => (
+              {users.map(f => (
                 <button
                   key={f.id}
                   className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/60 transition-colors text-left"
@@ -453,6 +456,7 @@ function OwnProfile() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
     if (profileOpen) {
@@ -694,22 +698,23 @@ function OwnProfile() {
               <div className="font-bold text-lg">{user.followersCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
             </button>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
+            <button
+              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
+              onClick={() => setFollowingOpen(true)}
+            >
               <div className="font-bold text-lg">{user.followingCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Following</div>
-            </div>
+            </button>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="font-bold text-lg text-primary"><GoldCoin amount={user.balance.toFixed(0)} /></div>
               <div className="text-xs text-muted-foreground">Balance</div>
             </div>
           </div>
           {user.handle && (
-            <FollowersModal
-              handle={user.handle}
-              count={user.followersCount ?? 0}
-              open={followersOpen}
-              onClose={() => setFollowersOpen(false)}
-            />
+            <>
+              <FollowersModal handle={user.handle} count={user.followersCount ?? 0} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
+              <FollowersModal handle={user.handle} count={user.followingCount ?? 0} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />
+            </>
           )}
 
           {user.game ? (
@@ -925,6 +930,7 @@ function PublicProfile({ handle }: { handle: string }) {
   const { mutateAsync: unfollow } = useUnfollowUser();
   const [hostGroup, setHostGroup] = useState<{ id: number; name: string; avatar: string; memberCount: number; isPublic: boolean } | null>(null);
   const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
     if (profile?.role === "host" && profile.id) {
@@ -1023,21 +1029,20 @@ function PublicProfile({ handle }: { handle: string }) {
               <div className="font-bold text-lg">{profile.followersCount}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
             </button>
-            <div className="bg-secondary/50 rounded-xl p-3 text-center">
+            <button
+              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
+              onClick={() => setFollowingOpen(true)}
+            >
               <div className="font-bold text-lg">{profile.followingCount}</div>
               <div className="text-xs text-muted-foreground">Following</div>
-            </div>
+            </button>
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <div className="font-bold text-lg">{profile.matchesCount}</div>
               <div className="text-xs text-muted-foreground">Matches</div>
             </div>
           </div>
-          <FollowersModal
-            handle={handle}
-            count={profile.followersCount}
-            open={followersOpen}
-            onClose={() => setFollowersOpen(false)}
-          />
+          <FollowersModal handle={handle} count={profile.followersCount} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
+          <FollowersModal handle={handle} count={profile.followingCount} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />
 
           {(profile as any).game && profile.role === "player" && (
             <div className="mt-3">
