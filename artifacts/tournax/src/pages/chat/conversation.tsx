@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send } from "lucide-react";
+import { Send, Check, CheckCheck } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,16 @@ interface OptimisticMessage {
   optimistic?: boolean;
 }
 
+function MessageTick({ optimistic, read }: { optimistic?: boolean; read: boolean }) {
+  if (optimistic) {
+    return <Check className="w-3 h-3 inline-block ml-1 opacity-60 shrink-0" />;
+  }
+  if (read) {
+    return <CheckCheck className="w-3 h-3 inline-block ml-1 text-blue-300 shrink-0" />;
+  }
+  return <CheckCheck className="w-3 h-3 inline-block ml-1 opacity-60 shrink-0" />;
+}
+
 export default function ConversationPage() {
   const { userId } = useParams<{ userId: string }>();
   const partnerId = Number(userId);
@@ -52,7 +62,7 @@ export default function ConversationPage() {
 
   const { data: serverMessages, isLoading } = useGetConversation(partnerId, {
     query: {
-      refetchInterval: 3000,
+      refetchInterval: 2000,
     },
   });
 
@@ -103,7 +113,6 @@ export default function ConversationPage() {
       optimistic: true,
     };
     setOptimisticMessages((prev) => [...prev, optimistic]);
-
     setTimeout(() => inputRef.current?.focus(), 0);
 
     sendMsg(
@@ -151,73 +160,126 @@ export default function ConversationPage() {
   return (
     <AppLayout showBack backHref="/chat" hideNav headerContent={partnerHeaderContent}>
       <div className="flex flex-col h-[calc(100vh-8rem)]">
-        <div className="flex-1 overflow-y-auto space-y-1 pb-2">
+        <div className="flex-1 overflow-y-auto pb-2 px-0.5" style={{ overscrollBehavior: "contain" }}>
           {isLoading ? (
             <div className="space-y-3 py-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className={cn("h-10 w-2/3 rounded-2xl", i % 2 === 0 && "ml-auto")} />
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className={cn("flex", i % 2 === 0 ? "justify-end" : "justify-start")}>
+                  <Skeleton className={cn("h-10 rounded-2xl", i % 2 === 0 ? "w-40" : "w-52")} />
+                </div>
               ))}
             </div>
           ) : messages.length > 0 ? (
-            messages.map((msg) => {
-              const isMine = msg.fromUserId === user?.id;
-              const dateLabel = dateSeparator(msg.createdAt);
-              const showDate = dateLabel !== lastDate;
-              lastDate = dateLabel;
-              return (
-                <div key={msg.id}>
-                  {showDate && (
-                    <div className="text-center my-3">
-                      <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                        {dateLabel}
-                      </span>
-                    </div>
-                  )}
-                  <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
-                    <div
-                      className={cn(
-                        "max-w-[75%] px-3 py-2 rounded-2xl text-sm transition-opacity duration-150",
-                        isMine
-                          ? "bg-primary text-primary-foreground rounded-br-sm"
-                          : "bg-card border border-card-border rounded-bl-sm",
-                        msg.optimistic && "opacity-70"
+            <div className="flex flex-col gap-0.5 py-2">
+              {messages.map((msg, idx) => {
+                const isMine = msg.fromUserId === user?.id;
+                const dateLabel = dateSeparator(msg.createdAt);
+                const showDate = dateLabel !== lastDate;
+                lastDate = dateLabel;
+
+                const prevMsg = messages[idx - 1];
+                const nextMsg = messages[idx + 1];
+                const isFirst = !prevMsg || prevMsg.fromUserId !== msg.fromUserId;
+                const isLast = !nextMsg || nextMsg.fromUserId !== msg.fromUserId;
+
+                return (
+                  <div key={msg.id} className={cn("animate-in fade-in slide-in-from-bottom-1 duration-200")}>
+                    {showDate && (
+                      <div className="flex justify-center my-3">
+                        <span className="text-[10px] text-muted-foreground bg-secondary/80 px-3 py-0.5 rounded-full">
+                          {dateLabel}
+                        </span>
+                      </div>
+                    )}
+                    <div className={cn(
+                      "flex items-end gap-1.5",
+                      isMine ? "justify-end" : "justify-start",
+                      isLast ? "mb-1.5" : "mb-0.5"
+                    )}>
+                      {/* Partner avatar on last bubble of their group */}
+                      {!isMine && (
+                        <div className={cn("w-6 h-6 rounded-full shrink-0 overflow-hidden bg-secondary flex items-center justify-center text-xs", !isLast && "invisible")}>
+                          {partner?.avatar && (partner.avatar.startsWith("/") || partner.avatar.startsWith("http"))
+                            ? <img src={partner.avatar} alt="" className="w-full h-full object-cover" />
+                            : partner?.avatar || "🔥"}
+                        </div>
                       )}
-                    >
-                      <p className="break-words">{msg.content}</p>
-                      <p className={cn(
-                        "text-[10px] mt-0.5",
-                        isMine ? "text-primary-foreground/70 text-right" : "text-muted-foreground"
-                      )}>
-                        {msg.optimistic ? "Sending…" : timeLabel(msg.createdAt)}
-                      </p>
+
+                      <div
+                        className={cn(
+                          "max-w-[72%] px-3.5 py-2 text-sm",
+                          isMine
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card border border-card-border text-foreground",
+                          // Bubble shape: rounded except the corner near the avatar group
+                          isMine
+                            ? isFirst && isLast
+                              ? "rounded-2xl"
+                              : isFirst
+                                ? "rounded-2xl rounded-br-md"
+                                : isLast
+                                  ? "rounded-2xl rounded-tr-md"
+                                  : "rounded-2xl rounded-r-md"
+                            : isFirst && isLast
+                              ? "rounded-2xl"
+                              : isFirst
+                                ? "rounded-2xl rounded-bl-md"
+                                : isLast
+                                  ? "rounded-2xl rounded-tl-md"
+                                  : "rounded-2xl rounded-l-md",
+                          msg.optimistic && "opacity-75"
+                        )}
+                      >
+                        <p className="break-words leading-relaxed">{msg.content}</p>
+                        <div className={cn(
+                          "flex items-center gap-0.5 mt-0.5",
+                          isMine ? "justify-end" : "justify-start"
+                        )}>
+                          <span className={cn(
+                            "text-[10px]",
+                            isMine ? "text-primary-foreground/60" : "text-muted-foreground"
+                          )}>
+                            {msg.optimistic ? "Sending…" : timeLabel(msg.createdAt)}
+                          </span>
+                          {isMine && (
+                            <MessageTick optimistic={msg.optimistic} read={msg.read} />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground text-sm">No messages yet. Say hi!</p>
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+              <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-2xl">
+                {partner?.avatar || "💬"}
+              </div>
+              <div>
+                <p className="font-semibold text-sm">{partner?.name || `User ${partnerId}`}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">No messages yet. Say hi! 👋</p>
+              </div>
             </div>
           )}
           <div ref={bottomRef} />
         </div>
 
-        <div className="flex items-center gap-2 pt-2 pb-safe border-t border-border">
+        <div className="flex items-center gap-2 pt-2 pb-safe border-t border-border bg-background">
           <Input
             ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            className="flex-1 bg-card border-card-border"
+            placeholder="Message..."
+            className="flex-1 bg-card border-card-border rounded-full px-4"
             autoFocus
           />
           <Button
             size="icon"
             onClick={handleSend}
             disabled={!text.trim()}
-            className="shrink-0"
+            className="shrink-0 rounded-full"
           >
             <Send className="w-4 h-4" />
           </Button>
