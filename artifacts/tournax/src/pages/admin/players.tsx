@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import {
-  useAdminListPlayers, useVerifyPlayer, useBanPlayer, useAdminAddBalance, useDeletePlayer
+  useAdminListPlayers, useVerifyPlayer, useBanPlayer, useAdminAddBalance, useDeletePlayer, customFetch
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin } from "@/components/ui/Coins";
@@ -24,6 +24,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
   const { mutateAsync: addBalance } = useAdminAddBalance();
   const [amount, setAmount] = useState("");
   const [balanceOpen, setBalanceOpen] = useState(false);
+  const [balanceMode, setBalanceMode] = useState<"add" | "set">("add");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -52,6 +53,21 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
     try {
       await addBalance({ id: player.id, data: { amount: parseFloat(amount) } });
       toast({ title: `${amount} Gold Coins added to ${player.name || player.email}` });
+      setBalanceOpen(false);
+      setAmount("");
+      onAction();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+    }
+  };
+
+  const handleSetBalance = async () => {
+    try {
+      await customFetch(`/api/admin/players/${player.id}/set-balance`, {
+        method: "POST",
+        body: JSON.stringify({ amount: parseFloat(amount) }),
+      });
+      toast({ title: `Balance set to ${amount} Gold Coins for ${player.name || player.email}` });
       setBalanceOpen(false);
       setAmount("");
       onAction();
@@ -106,19 +122,45 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
         {player.status !== "banned" && (
           <Button variant="destructive" size="sm" className="h-7 text-xs flex-1" onClick={handleBan}>Ban</Button>
         )}
-        <Dialog open={balanceOpen} onOpenChange={setBalanceOpen}>
+        <Dialog open={balanceOpen} onOpenChange={(o) => { setBalanceOpen(o); if (!o) { setAmount(""); setBalanceMode("add"); } }}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 text-xs flex-1">+ Balance</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs flex-1">Balance</Button>
           </DialogTrigger>
           <DialogContent className="max-w-sm">
-            <DialogHeader><DialogTitle>Add Balance</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Manage Balance</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Adding balance to: <strong>{player.name || player.email}</strong></p>
-              <div className="space-y-1.5">
-                <Label>Amount (Gold Coins)</Label>
-                <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Enter amount" />
+              <p className="text-sm text-muted-foreground">Player: <strong>{player.name || player.email}</strong></p>
+              <p className="text-xs text-muted-foreground">Current balance: <GoldCoin amount={player.balance.toFixed(0)} /></p>
+              <div className="flex rounded-lg bg-secondary p-1 gap-1">
+                <button
+                  onClick={() => setBalanceMode("add")}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all ${balanceMode === "add" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                >
+                  + Add Balance
+                </button>
+                <button
+                  onClick={() => setBalanceMode("set")}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all ${balanceMode === "set" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                >
+                  Set Balance
+                </button>
               </div>
-              <Button className="w-full" onClick={handleAddBalance} disabled={!amount}>Add Balance</Button>
+              <div className="space-y-1.5">
+                <Label>{balanceMode === "add" ? "Amount to Add" : "New Balance"} (Gold Coins)</Label>
+                <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Enter amount" min="0" />
+              </div>
+              {balanceMode === "set" && amount && (
+                <p className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                  Balance will be set to exactly <strong>{amount}</strong> coins (replaces current balance)
+                </p>
+              )}
+              <Button
+                className="w-full"
+                onClick={balanceMode === "add" ? handleAddBalance : handleSetBalance}
+                disabled={!amount}
+              >
+                {balanceMode === "add" ? "Add Balance" : "Set Balance"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
