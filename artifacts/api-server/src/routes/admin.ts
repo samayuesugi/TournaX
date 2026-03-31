@@ -216,6 +216,14 @@ router.post("/admin/create-host", requireAdmin, async (req: Request, res: Respon
   res.json({ success: true });
 });
 
+router.delete("/admin/hosts/:id", requireAdmin, async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  const [host] = await db.select().from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.role, "host")));
+  if (!host) { res.status(404).json({ error: "Host not found" }); return; }
+  await db.delete(usersTable).where(eq(usersTable.id, id));
+  res.json({ success: true });
+});
+
 router.patch("/admin/hosts/:id/recommend", requireAdmin, async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
   const [host] = await db.select().from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.role, "host")));

@@ -7,15 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2 } from "lucide-react";
+import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2 } from "lucide-react";
 import { GoldCoin } from "@/components/ui/Coins";
 
-function HostRow({ host }: { host: any }) {
+function HostRow({ host, onDelete }: { host: any; onDelete: () => void }) {
   const { toast } = useToast();
   const [recommended, setRecommended] = useState<boolean>(host.recommended);
   const [loading, setLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toggle = async () => {
     setLoading(true);
@@ -30,6 +32,20 @@ function HostRow({ host }: { host: any }) {
       toast({ title: "Failed to update", variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await customFetch(`/api/admin/hosts/${host.id}`, { method: "DELETE", responseType: "json" });
+      toast({ title: "Host deleted", description: `${host.name || host.email} has been permanently deleted.` });
+      setDeleteOpen(false);
+      onDelete();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Failed to delete", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -58,6 +74,27 @@ function HostRow({ host }: { host: any }) {
           >
             {recommended ? "✓ Recommended" : "Recommend"}
           </button>
+          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <DialogTrigger asChild>
+              <button className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Delete Host</DialogTitle>
+                <DialogDescription>
+                  This will permanently delete <strong>{host.name || host.email}</strong>'s account. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                  {isDeleting ? "Deleting…" : "Delete Permanently"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
@@ -221,7 +258,7 @@ export default function AdminDashboardPage() {
                 <h3 className="font-semibold text-sm mb-3">Hosts ({data.hostList.length})</h3>
                 <div className="space-y-2">
                   {data.hostList.map((h: any) => (
-                    <HostRow key={h.id} host={h} />
+                    <HostRow key={h.id} host={h} onDelete={refetch} />
                   ))}
                 </div>
               </div>
