@@ -482,13 +482,13 @@ function OwnProfile() {
       const link = `${window.location.origin}/auth?ref=${referralStats.myCode}`;
       const name = user?.name ?? "A friend";
       const message =
-        `${name} ne tumhe TournaX pe invite kiya hai! 🎮\n\n` +
-        `Bhai real money gaming tournaments khel aur Gold Coins jeet — ` +
-        `BGMI, Free Fire, Valorant aur aur bhi!\n\n` +
-        `Signup karte waqt mera referral code dalna:\n` +
+        `${name} has invited you to TournaX! 🎮\n\n` +
+        `Join real-money gaming tournaments and win Gold Coins — ` +
+        `BGMI, Free Fire, Valorant & more!\n\n` +
+        `Use my referral code when signing up:\n` +
         `🎟️ *${referralStats.myCode}*\n\n` +
         `👉 ${link}\n\n` +
-        `Aaja competition karate hain! 🏆🔥`;
+        `Let's compete together! 🏆🔥`;
 
       if (navigator.share) {
         try {
