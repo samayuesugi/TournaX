@@ -496,7 +496,19 @@ function OwnProfile() {
           // user cancelled or share failed, fall through to clipboard
         }
       }
-      await navigator.clipboard.writeText(message);
+      try {
+        await navigator.clipboard.writeText(message);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = message;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2500);
     }
