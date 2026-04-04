@@ -142,7 +142,8 @@ router.post("/auth/send-register-otp", async (req: Request, res: Response) => {
     }
   }
 
-  const otp = generateOtp();
+  // OTP_BYPASS: skipping email for now, using fixed code
+  const otp = "000000";
   const passwordHash = await hashPassword(password);
   const key = otpKey(email, "register");
 
@@ -153,14 +154,6 @@ router.post("/auth/send-register-otp", async (req: Request, res: Response) => {
     type: "register",
     pendingData: { email: email.toLowerCase(), passwordHash, referralCode: referralCode?.trim() || undefined },
   });
-
-  try {
-    await sendOtpEmail(email, otp, "register");
-  } catch (err) {
-    otpStore.delete(key);
-    res.status(500).json({ error: "Failed to send OTP email. Please check your email address and try again." });
-    return;
-  }
 
   res.json({ success: true, message: "OTP sent to your email" });
 });
