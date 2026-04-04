@@ -1,10 +1,16 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { usersTable, referralsTable } from "@workspace/db/schema";
-import { eq, sql, ilike } from "drizzle-orm";
+import { eq, sql, ilike, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendOtpEmail } from "../lib/email";
+
+function getAppBaseUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL;
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return "http://localhost:3000";
+}
 
 const router: IRouter = Router();
 
@@ -368,7 +374,15 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
   const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
-  if (!user || !(await verifyPassword(password, user.password))) {
+  if (!user) {
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+  if (!user.password) {
+    res.status(401).json({ error: "This account uses Google Sign-In. Please use the Continue with Google button." });
+    return;
+  }
+  if (!(await verifyPassword(password, user.password))) {
     res.status(401).json({ error: "Invalid email or password" });
     return;
   }
@@ -494,6 +508,110 @@ router.patch("/auth/me", requireAuth, async (req: Request, res: Response) => {
   }
   const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
   res.json(serializeUser(updated));
+});
+
+router.get("/auth/google", (req: Request, res: Response) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    res.status(503).json({ error: "Google login is not configured" });
+    return;
+  }
+  const baseUrl = getAppBaseUrl();
+  const redirectUri = `${baseUrl}/api/auth/google/callback`;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "select_account",
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+router.get("/auth/google/callback", async (req: Request, res: Response) => {
+  const baseUrl = getAppBaseUrl();
+  const { code, error } = req.query;
+
+  if (error || !code) {
+    res.redirect(`${baseUrl}/auth?error=google_cancelled`);
+    return;
+  }
+
+  try {
+    const redirectUri = `${baseUrl}/api/auth/google/callback`;
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code: code as string,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    const tokenData = await tokenRes.json() as any;
+    if (!tokenData.access_token) {
+      res.redirect(`${baseUrl}/auth?error=google_failed`);
+      return;
+    }
+
+    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const googleUser = await userInfoRes.json() as any;
+    const { id: googleId, email, name, picture } = googleUser;
+
+    if (!email) {
+      res.redirect(`${baseUrl}/auth?error=google_no_email`);
+      return;
+    }
+
+    const today = getTodayDate();
+    let dailyBonus = 0;
+
+    let [user] = await db.select().from(usersTable).where(
+      or(eq(usersTable.email, email.toLowerCase()), eq(usersTable.googleId, googleId))
+    );
+
+    if (user) {
+      const patch: Record<string, any> = {};
+      if (!user.googleId) patch.googleId = googleId;
+      if (user.lastLoginDate !== today) {
+        patch.lastLoginDate = today;
+        patch.silverCoins = sql`${usersTable.silverCoins} + 10`;
+        dailyBonus = 10;
+      }
+      if (Object.keys(patch).length > 0) {
+        [user] = await db.update(usersTable).set(patch).where(eq(usersTable.id, user.id)).returning();
+      }
+    } else {
+      const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      [user] = await db.insert(usersTable).values({
+        email: email.toLowerCase(),
+        name: name || email.split("@")[0],
+        avatar: picture || "🔥",
+        googleId,
+        role: "player",
+        status: "active",
+        lastLoginDate: today,
+        referralCode,
+        silverCoins: 10,
+      }).returning();
+      dailyBonus = 10;
+    }
+
+    const token = generateToken(user.id);
+    const params = new URLSearchParams({ token });
+    if (dailyBonus > 0) params.set("dailyBonus", String(dailyBonus));
+    res.redirect(`${baseUrl}/auth/callback?${params}`);
+  } catch (err) {
+    console.error("Google OAuth error:", err);
+    res.redirect(`${baseUrl}/auth?error=google_failed`);
+  }
 });
 
 export default router;

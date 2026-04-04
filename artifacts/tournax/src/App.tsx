@@ -8,6 +8,7 @@ import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
 
 import AuthPage from "@/pages/auth";
+import AuthCallbackPage from "@/pages/auth-callback";
 import SetupProfilePage from "@/pages/setup-profile";
 import HomePage from "@/pages/home";
 import MatchDetailPage from "@/pages/match-detail";
@@ -107,6 +108,10 @@ function Router() {
     <Switch>
       <Route path="/auth">
         <GuestRoute><AuthPage /></GuestRoute>
+      </Route>
+
+      <Route path="/auth/callback">
+        <AuthCallbackPage />
       </Route>
 
       <Route path="/setup-profile">

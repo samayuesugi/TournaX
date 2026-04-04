@@ -8,7 +8,8 @@ export const statusEnum = pgEnum("user_status", ["pending", "active", "banned"])
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
+  googleId: text("google_id").unique(),
   name: text("name"),
   handle: text("handle").unique(),
   avatar: text("avatar").default("🔥"),
