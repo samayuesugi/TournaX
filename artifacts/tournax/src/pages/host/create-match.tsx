@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useCreateMatch, useWallet } from "@workspace/api-client-react";
+import { useCreateMatch, useGetWallet } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ export default function CreateMatchPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { mutateAsync: createMatch, isPending } = useCreateMatch();
-  const { data: wallet } = useWallet();
+  const { data: wallet } = useGetWallet();
 
   const [selectedGame, setSelectedGame] = useState<string>("");
   const [teamSize, setTeamSize] = useState<number>(1);
