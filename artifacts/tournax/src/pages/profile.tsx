@@ -486,8 +486,8 @@ function OwnProfile() {
         `Join real-money gaming tournaments and win real rewards — ` +
         `BGMI, Free Fire, Valorant & more!\n\n` +
         `Use my referral code when signing up:\n` +
-        `🎟️ *${referralStats.myCode}*\n\n` +
-        `👉 ${link}\n\n` +
+        `🎟️ *${referralStats.myCode}*\n` +
+        `Sign up here 👉 ${link}\n\n` +
         `Let's compete together! 🏆🔥`;
 
       if (navigator.share) {
