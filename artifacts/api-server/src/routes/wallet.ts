@@ -67,6 +67,7 @@ router.post("/wallet/withdraw", requireAuth, async (req: Request, res: Response)
   if (!amount || !upiId) { res.status(400).json({ error: "Amount and UPI ID required" }); return; }
   const numericAmount = Number(amount);
   if (isNaN(numericAmount) || numericAmount <= 0) { res.status(400).json({ error: "Invalid amount" }); return; }
+  if (numericAmount < 10) { res.status(400).json({ error: "Minimum withdrawal amount is 10 Gold Coins" }); return; }
   try {
     await db.transaction(async (tx) => {
       const result = await tx.execute(

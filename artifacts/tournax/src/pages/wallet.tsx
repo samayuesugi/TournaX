@@ -450,6 +450,10 @@ export default function WalletPage() {
       toast({ title: "Invalid amount", description: "Please enter a valid withdrawal amount.", variant: "destructive" });
       return;
     }
+    if (parsedWithdrawAmount < 10) {
+      toast({ title: "Minimum 10 coins required", description: "You need at least 10 Gold Coins to withdraw.", variant: "destructive" });
+      return;
+    }
     try {
       await withdraw({ data: { amount: parsedWithdrawAmount, upiId: withdrawForm.upiId } });
       toast({ title: "Withdrawal request submitted!" });
