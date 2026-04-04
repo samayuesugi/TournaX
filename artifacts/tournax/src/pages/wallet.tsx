@@ -553,26 +553,26 @@ export default function WalletPage() {
               <p className="text-xs text-muted-foreground">Earn by daily login & completing tasks</p>
               {showSilverInfo && (
                 <div className="mt-3 pt-3 border-t border-slate-500/20 space-y-2.5">
-                  <p className="text-xs font-semibold mb-2">Silver Coins kahan use hote hain?</p>
+                  <p className="text-xs font-semibold mb-2">Where are Silver Coins used?</p>
                   <div className="flex items-start gap-2">
-                    <span className="text-sm shrink-0">📸</span>
+                    <ImagePlus className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
                     <div>
                       <p className="text-[11px] font-medium">Community Posts</p>
-                      <p className="text-[10px] text-muted-foreground">Home feed pe image post karne ke liye 5 Silver Coins lagte hain</p>
+                      <p className="text-[10px] text-muted-foreground">Posting an image to the home feed costs 5 Silver Coins</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-sm shrink-0">🎁</span>
+                    <Package className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
                     <div>
                       <p className="text-[11px] font-medium">Future Rewards</p>
-                      <p className="text-[10px] text-muted-foreground">Upcoming features mein Silver Coins aur jagah use honge — jama karte raho!</p>
+                      <p className="text-[10px] text-muted-foreground">More ways to spend Silver Coins are coming — keep earning!</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-sm shrink-0">📅</span>
+                    <CalendarCheck className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
                     <div>
-                      <p className="text-[11px] font-medium">Daily Login se milte hain</p>
-                      <p className="text-[10px] text-muted-foreground">Roz app open karo — +5 Silver Coins automatic milenge</p>
+                      <p className="text-[11px] font-medium">Earned via Daily Login</p>
+                      <p className="text-[10px] text-muted-foreground">Open the app every day — get +10 Silver Coins automatically</p>
                     </div>
                   </div>
                 </div>
