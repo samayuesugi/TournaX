@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useGetWallet, useRequestAddBalance, useRequestWithdrawal, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package, Info } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package, Info, UserPlus, CalendarCheck, Gamepad2, Coins, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon, SilverCoin, SilverCoinIcon } from "@/components/ui/Coins";
 
@@ -49,8 +49,8 @@ type DailyTasksData = {
   tournamentWinsClaimed: boolean;
 };
 
-function DailyTask({ icon, title, desc, reward, progress, total, claimed, color = "primary" }: {
-  icon: string;
+function DailyTask({ icon: Icon, title, desc, reward, progress, total, claimed, color = "primary" }: {
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   desc: string;
   reward: string;
@@ -79,10 +79,13 @@ function DailyTask({ icon, title, desc, reward, progress, total, claimed, color 
     )}>
       <div className="flex items-start gap-3">
         <div className={cn(
-          "w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0",
+          "w-11 h-11 rounded-xl flex items-center justify-center shrink-0",
           claimed ? "bg-green-500/15" : pct > 0 ? "bg-primary/15" : "bg-secondary"
         )}>
-          {claimed ? "✅" : icon}
+          {claimed
+            ? <CheckCircle2 className="w-6 h-6 text-green-400" />
+            : <Icon className={cn("w-6 h-6", color === "gold" ? "text-amber-400" : color === "silver" ? "text-slate-300" : "text-primary")} />
+          }
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -594,7 +597,7 @@ export default function WalletPage() {
 
               <div className="space-y-3">
                 <DailyTask
-                  icon="📨"
+                  icon={UserPlus}
                   title="Invite a Friend"
                   desc="Share your referral link today"
                   reward="+10 Silver"
@@ -604,7 +607,7 @@ export default function WalletPage() {
                   color="silver"
                 />
                 <DailyTask
-                  icon="📅"
+                  icon={CalendarCheck}
                   title="Daily Login"
                   desc="Just open the app every day"
                   reward="+10 Silver"
@@ -614,7 +617,7 @@ export default function WalletPage() {
                   color="silver"
                 />
                 <DailyTask
-                  icon="🆓"
+                  icon={Gamepad2}
                   title="Play 3 Free Matches"
                   desc="Join any free tournament"
                   reward="+10 Silver"
@@ -624,7 +627,7 @@ export default function WalletPage() {
                   color="silver"
                 />
                 <DailyTask
-                  icon="🎮"
+                  icon={Coins}
                   title="Play 3 Paid Matches"
                   desc="Join any paid tournament"
                   reward="+10 Silver"
@@ -634,7 +637,7 @@ export default function WalletPage() {
                   color="silver"
                 />
                 <DailyTask
-                  icon="🏆"
+                  icon={Trophy}
                   title="Win 5 Tournaments"
                   desc="Win 5 paid tournaments today"
                   reward="+10 Silver"
