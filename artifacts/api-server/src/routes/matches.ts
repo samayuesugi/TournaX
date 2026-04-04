@@ -440,14 +440,16 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
         const winResult = await tx.execute(
           sql`UPDATE users SET
             balance = balance + ${r.reward},
-            tournament_wins = tournament_wins + 1
+            tournament_wins = tournament_wins + 1,
+            daily_tournament_wins = CASE WHEN daily_task_date = ${today} THEN daily_tournament_wins + 1 ELSE 1 END,
+            daily_task_date = ${today}
           WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})
-          RETURNING id, tournament_wins`
+          RETURNING id, daily_tournament_wins`
         );
         const winRow = winResult.rows[0] as any;
-        // Award 100 Silver Coins milestone when tournament_wins reaches exactly 5
-        if (winRow && winRow.tournament_wins === 5) {
-          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 100 WHERE id = ${winRow.id}`);
+        // Award 10 Silver Coins when daily 5-tournament-wins task first completes
+        if (winRow && winRow.daily_tournament_wins === 5) {
+          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 10 WHERE id = ${winRow.id}`);
         }
       }
     }

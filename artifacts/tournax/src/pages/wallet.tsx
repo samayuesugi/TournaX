@@ -44,8 +44,8 @@ type DailyTasksData = {
   freeMatchesClaimed: boolean;
   paidMatchesToday: number;
   paidMatchesClaimed: boolean;
-  tournamentWins: number;
-  tournamentMilestoneClaimed: boolean;
+  tournamentWinsToday: number;
+  tournamentWinsClaimed: boolean;
 };
 
 function DailyTask({ icon, title, desc, reward, progress, total, claimed, color = "primary" }: {
@@ -585,7 +585,7 @@ export default function WalletPage() {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-semibold text-primary">
-                    {[dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed, dailyTasks?.tournamentMilestoneClaimed].filter(Boolean).length} / 4
+                    {[dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed, dailyTasks?.tournamentWinsClaimed].filter(Boolean).length} / 4
                   </span>
                   <span className="text-[10px] text-muted-foreground">completed</span>
                 </div>
@@ -625,15 +625,15 @@ export default function WalletPage() {
                 <DailyTask
                   icon="🏆"
                   title="Win 5 Tournaments"
-                  desc="Win any 5 paid tournaments (lifetime)"
-                  reward="+100 Silver"
-                  progress={Math.min(dailyTasks?.tournamentWins ?? 0, 5)}
+                  desc="Win 5 paid tournaments today"
+                  reward="+10 Silver"
+                  progress={dailyTasks?.tournamentWinsToday ?? 0}
                   total={5}
-                  claimed={dailyTasks?.tournamentMilestoneClaimed ?? false}
+                  claimed={dailyTasks?.tournamentWinsClaimed ?? false}
                   color="silver"
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Daily tasks reset every midnight · Milestone is one-time</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">All tasks reset every midnight</p>
             </div>
             )}
           </div>

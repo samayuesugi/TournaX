@@ -35,6 +35,7 @@ export const usersTable = pgTable("users", {
   dailyWins: integer("daily_wins").notNull().default(0),
   dailyPaidMatches: integer("daily_paid_matches").notNull().default(0),
   tournamentWins: integer("tournament_wins").notNull().default(0),
+  dailyTournamentWins: integer("daily_tournament_wins").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

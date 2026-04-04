@@ -420,6 +420,7 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
       dailyTaskDate: today,
       dailyWins: 0,
       dailyPaidMatches: 0,
+      dailyTournamentWins: 0,
     }).where(eq(usersTable.id, user.id));
     dailyWins = 0;
     dailyPaidMatches = 0;
@@ -431,8 +432,8 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
     freeMatchesClaimed: dailyWins >= 3,
     paidMatchesToday: dailyPaidMatches,
     paidMatchesClaimed: dailyPaidMatches >= 3,
-    tournamentWins: user.tournamentWins ?? 0,
-    tournamentMilestoneClaimed: (user.tournamentWins ?? 0) >= 5,
+    tournamentWinsToday: user.dailyTaskDate === today ? (user.dailyTournamentWins ?? 0) : 0,
+    tournamentWinsClaimed: user.dailyTaskDate === today && (user.dailyTournamentWins ?? 0) >= 5,
   });
 });
 
