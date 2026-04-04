@@ -21,7 +21,6 @@ export default function SetupProfilePage() {
   const [form, setForm] = useState({
     avatar: AVATARS[0],
     game: "",
-    ign: "",
     handle: "",
   });
 
@@ -96,16 +95,6 @@ export default function SetupProfilePage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">IGN (In-Game Name)</Label>
-              <Input
-                placeholder="Your in-game name"
-                value={form.ign}
-                onChange={(e) => setForm(f => ({ ...f, ign: e.target.value }))}
-                required
-              />
             </div>
 
             <Button type="submit" className="w-full" disabled={isPending || !form.game}>
