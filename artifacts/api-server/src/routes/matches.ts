@@ -437,11 +437,18 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
       }).where(eq(matchParticipantsTable.id, r.participantId));
 
       if (r.reward > 0) {
-        await tx.execute(
+        const winResult = await tx.execute(
           sql`UPDATE users SET
-            balance = balance + ${r.reward}
-          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})`
+            balance = balance + ${r.reward},
+            tournament_wins = tournament_wins + 1
+          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})
+          RETURNING id, tournament_wins`
         );
+        const winRow = winResult.rows[0] as any;
+        // Award 100 Silver Coins milestone when tournament_wins reaches exactly 5
+        if (winRow && winRow.tournament_wins === 5) {
+          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 100 WHERE id = ${winRow.id}`);
+        }
       }
     }
 

@@ -431,6 +431,8 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
     freeMatchesClaimed: dailyWins >= 3,
     paidMatchesToday: dailyPaidMatches,
     paidMatchesClaimed: dailyPaidMatches >= 3,
+    tournamentWins: user.tournamentWins ?? 0,
+    tournamentMilestoneClaimed: (user.tournamentWins ?? 0) >= 5,
   });
 });
 
