@@ -427,10 +427,10 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
 
   res.json({
     loginClaimed: user.lastLoginDate === today,
-    winsToday: dailyWins,
-    winsClaimed: dailyWins >= 3,
+    freeMatchesToday: dailyWins,
+    freeMatchesClaimed: dailyWins >= 3,
     paidMatchesToday: dailyPaidMatches,
-    paidMatchesClaimed: dailyPaidMatches >= 5,
+    paidMatchesClaimed: dailyPaidMatches >= 3,
   });
 });
 

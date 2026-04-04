@@ -306,14 +306,14 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
         });
       }
 
+      const today = new Date().toISOString().slice(0, 10);
       if (totalFee > 0) {
-        const today = new Date().toISOString().slice(0, 10);
         const newPaidMatchesResult = await tx.execute(
           sql`UPDATE users SET paid_matches_played = paid_matches_played + 1 WHERE id = ${user.id} RETURNING paid_matches_played`
         );
         const newPaidMatches = (newPaidMatchesResult.rows[0] as any)?.paid_matches_played as number;
 
-        // Daily task: track paid matches today (reset other daily counter if new day)
+        // Daily task: track paid matches today (reset free match counter if new day)
         const dailyResult = await tx.execute(
           sql`UPDATE users SET
             daily_paid_matches = CASE WHEN daily_task_date = ${today} THEN daily_paid_matches + 1 ELSE 1 END,
@@ -322,8 +322,8 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
           WHERE id = ${user.id} RETURNING daily_paid_matches`
         );
         const todayPaidCount = (dailyResult.rows[0] as any)?.daily_paid_matches as number;
-        // Award 1 Gold Coin when daily 5-match task first completes
-        if (todayPaidCount === 5) {
+        // Award 1 Gold Coin when daily 3-paid-match task first completes
+        if (todayPaidCount === 3) {
           await tx.execute(sql`UPDATE users SET balance = balance + 1 WHERE id = ${user.id}`);
         }
 
@@ -341,6 +341,20 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
             const bonusUntilStr = bonusUntil.toISOString().slice(0, 10);
             await tx.execute(sql`UPDATE users SET referral_bonus_until = ${bonusUntilStr} WHERE id = ${user.id}`);
           }
+        }
+      } else {
+        // Daily task: track free matches today (reset paid match counter if new day)
+        const freeResult = await tx.execute(
+          sql`UPDATE users SET
+            daily_wins = CASE WHEN daily_task_date = ${today} THEN daily_wins + 1 ELSE 1 END,
+            daily_paid_matches = CASE WHEN daily_task_date = ${today} THEN daily_paid_matches ELSE 0 END,
+            daily_task_date = ${today}
+          WHERE id = ${user.id} RETURNING daily_wins`
+        );
+        const todayFreeCount = (freeResult.rows[0] as any)?.daily_wins as number;
+        // Award 1 Gold Coin when daily 3-free-match task first completes
+        if (todayFreeCount === 3) {
+          await tx.execute(sql`UPDATE users SET balance = balance + 1 WHERE id = ${user.id}`);
         }
       }
     });
@@ -423,21 +437,11 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
       }).where(eq(matchParticipantsTable.id, r.participantId));
 
       if (r.reward > 0) {
-        const winResult = await tx.execute(
+        await tx.execute(
           sql`UPDATE users SET
-            balance = balance + ${r.reward},
-            daily_wins = CASE WHEN daily_task_date = ${today} THEN daily_wins + 1 ELSE 1 END,
-            daily_paid_matches = CASE WHEN daily_task_date = ${today} THEN daily_paid_matches ELSE 0 END,
-            daily_task_date = ${today}
-          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})
-          RETURNING id, daily_wins, referral_bonus_until`
+            balance = balance + ${r.reward}
+          WHERE id = (SELECT user_id FROM match_participants WHERE id = ${r.participantId})`
         );
-        const winRow = winResult.rows[0] as any;
-        if (winRow && winRow.daily_wins === 3) {
-          const referralBonus = winRow.referral_bonus_until && winRow.referral_bonus_until >= today ? 1 : 0;
-          const goldReward = 1 + referralBonus;
-          await tx.execute(sql`UPDATE users SET balance = balance + ${goldReward} WHERE id = ${winRow.id}`);
-        }
       }
     }
 

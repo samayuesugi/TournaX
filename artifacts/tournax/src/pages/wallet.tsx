@@ -40,8 +40,8 @@ const COIN_PACKS = [
 
 type DailyTasksData = {
   loginClaimed: boolean;
-  winsToday: number;
-  winsClaimed: boolean;
+  freeMatchesToday: number;
+  freeMatchesClaimed: boolean;
   paidMatchesToday: number;
   paidMatchesClaimed: boolean;
 };
@@ -583,7 +583,7 @@ export default function WalletPage() {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-semibold text-primary">
-                    {[dailyTasks?.loginClaimed, dailyTasks?.winsClaimed, dailyTasks?.paidMatchesClaimed].filter(Boolean).length} / 3
+                    {[dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed].filter(Boolean).length} / 3
                   </span>
                   <span className="text-[10px] text-muted-foreground">completed</span>
                 </div>
@@ -601,22 +601,22 @@ export default function WalletPage() {
                   color="silver"
                 />
                 <DailyTask
-                  icon="🏆"
-                  title="Win 3 Paid Matches"
-                  desc="Enter & win paid tournaments"
+                  icon="🆓"
+                  title="Play 3 Free Matches"
+                  desc="Join any free tournament"
                   reward="+1 Gold"
-                  progress={dailyTasks?.winsToday ?? 0}
+                  progress={dailyTasks?.freeMatchesToday ?? 0}
                   total={3}
-                  claimed={dailyTasks?.winsClaimed ?? false}
+                  claimed={dailyTasks?.freeMatchesClaimed ?? false}
                   color="gold"
                 />
                 <DailyTask
                   icon="🎮"
-                  title="Play 5 Paid Matches"
+                  title="Play 3 Paid Matches"
                   desc="Join any paid tournament"
                   reward="+1 Gold"
                   progress={dailyTasks?.paidMatchesToday ?? 0}
-                  total={5}
+                  total={3}
                   claimed={dailyTasks?.paidMatchesClaimed ?? false}
                   color="gold"
                 />
