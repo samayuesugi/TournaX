@@ -483,7 +483,7 @@ function OwnProfile() {
       const name = user?.name ?? "A friend";
       const message =
         `${name} has invited you to TournaX! 🎮\n\n` +
-        `Join real-money gaming tournaments and win Gold Coins — ` +
+        `Join real-money gaming tournaments and win real rewards — ` +
         `BGMI, Free Fire, Valorant & more!\n\n` +
         `Use my referral code when signing up:\n` +
         `🎟️ *${referralStats.myCode}*\n\n` +
