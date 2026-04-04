@@ -229,6 +229,17 @@ router.post("/auth/verify-register", async (req: Request, res: Response) => {
 
   if (referrer && referrer.id !== user.id) {
     await db.insert(referralsTable).values({ referrerId: referrer.id, referredId: user.id });
+    // Award referrer 10 Silver for invite task (only once per day)
+    const [referrerFull] = await db.select().from(usersTable).where(eq(usersTable.id, referrer.id));
+    const todayStr = getTodayDate();
+    const alreadySharedToday = referrerFull?.dailyTaskDate === todayStr && (referrerFull?.dailyInviteShared ?? 0) >= 1;
+    if (!alreadySharedToday) {
+      await db.update(usersTable).set({
+        dailyTaskDate: todayStr,
+        dailyInviteShared: 1,
+        silverCoins: sql`${usersTable.silverCoins} + 10`,
+      }).where(eq(usersTable.id, referrer.id));
+    }
   }
 
   const [userWithCode] = await db.select().from(usersTable).where(eq(usersTable.id, user.id));
@@ -435,21 +446,6 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
   });
 });
 
-router.post("/auth/claim-invite-task", requireAuth, async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const today = getTodayDate();
-  const dailyInviteShared = user.dailyTaskDate === today ? (user.dailyInviteShared ?? 0) : 0;
-  if (dailyInviteShared >= 1) {
-    res.json({ success: false, message: "Already claimed today" });
-    return;
-  }
-  await db.update(usersTable).set({
-    dailyTaskDate: today,
-    dailyInviteShared: 1,
-    silverCoins: sql`${usersTable.silverCoins} + 10`,
-  }).where(eq(usersTable.id, user.id));
-  res.json({ success: true, silverCoins: (user.silverCoins ?? 0) + 10 });
-});
 
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;

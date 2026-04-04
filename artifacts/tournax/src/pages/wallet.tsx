@@ -597,16 +597,6 @@ export default function WalletPage() {
 
               <div className="space-y-3">
                 <DailyTask
-                  icon={UserPlus}
-                  title="Invite a Friend"
-                  desc="Share your referral link today"
-                  reward="+10 Silver"
-                  progress={dailyTasks?.inviteClaimed ? 1 : 0}
-                  total={1}
-                  claimed={dailyTasks?.inviteClaimed ?? false}
-                  color="silver"
-                />
-                <DailyTask
                   icon={CalendarCheck}
                   title="Daily Login"
                   desc="Just open the app every day"
@@ -644,6 +634,16 @@ export default function WalletPage() {
                   progress={dailyTasks?.tournamentWinsToday ?? 0}
                   total={5}
                   claimed={dailyTasks?.tournamentWinsClaimed ?? false}
+                  color="silver"
+                />
+                <DailyTask
+                  icon={UserPlus}
+                  title="Invite a Friend"
+                  desc="Someone must sign up using your referral code"
+                  reward="+10 Silver"
+                  progress={dailyTasks?.inviteClaimed ? 1 : 0}
+                  total={1}
+                  claimed={dailyTasks?.inviteClaimed ?? false}
                   color="silver"
                 />
               </div>
