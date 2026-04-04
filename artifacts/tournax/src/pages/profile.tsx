@@ -492,7 +492,7 @@ function OwnProfile() {
 
       if (navigator.share) {
         try {
-          await navigator.share({ title: "Join TournaX!", text: message, url: link });
+          await navigator.share({ title: "Join TournaX!", text: message });
           return;
         } catch {
           // user cancelled or share failed, fall through to clipboard
