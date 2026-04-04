@@ -102,12 +102,15 @@ router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) =
 
 router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, uid } = req.body;
-  const existing = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
+  const { name, uid, game } = req.body;
+  const squadGame = game || user.game || null;
+  const existing = await db.select().from(squadMembersTable).where(
+    and(eq(squadMembersTable.userId, user.id), eq(squadMembersTable.game, squadGame))
+  );
   if (existing.length >= 6) {
-    return res.status(400).json({ error: "Squad limit reached. Maximum 6 members allowed." });
+    return res.status(400).json({ error: `Squad limit reached for ${squadGame}. Maximum 6 members per game.` });
   }
-  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid, game: user.game ?? null }).returning();
+  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid, game: squadGame }).returning();
   res.json({ id: member.id, name: member.name, uid: member.uid, game: member.game ?? null });
 });
 

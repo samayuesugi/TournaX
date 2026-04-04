@@ -407,6 +407,8 @@ function OwnProfile() {
   const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateMyProfile();
   const { data: myMatches, isLoading: matchesLoading } = useGetMyMatches();
 
+  const SQUAD_GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile", "Other"];
+  const [squadGame, setSquadGame] = useState<string>((user as any)?.game ?? SQUAD_GAMES[0]);
   const [squadForm, setSquadForm] = useState({ name: "", uid: "" });
   const [availableGames, setAvailableGames] = useState<{ id: number; name: string }[]>([]);
   const [profileForm, setProfileForm] = useState({
@@ -534,7 +536,7 @@ function OwnProfile() {
   const handleAddMember = async () => {
     if (!squadForm.name || !squadForm.uid) return;
     try {
-      await addSquadMember({ data: squadForm });
+      await addSquadMember({ data: { ...squadForm, game: squadGame } });
       refetchSquad();
       setSquadForm({ name: "", uid: "" });
       toast({ title: "Squad member added!" });
@@ -829,10 +831,10 @@ function OwnProfile() {
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold">My Squad</h3>
                 <span className="text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
-                  {squad?.length ?? 0}/6
+                  {(squad ?? []).filter(m => m.game === squadGame).length}/6
                 </span>
               </div>
-              {(squad?.length ?? 0) < 6 ? (
+              {(squad ?? []).filter(m => m.game === squadGame).length < 6 ? (
                 <Dialog open={squadOpen} onOpenChange={setSquadOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" className="h-7 gap-1">
@@ -840,7 +842,7 @@ function OwnProfile() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-sm">
-                    <DialogHeader><DialogTitle>Add Squad Member</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>Add Squad Member — {squadGame}</DialogTitle></DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-1.5">
                         <Label>Player Name / IGN</Label>
@@ -860,9 +862,27 @@ function OwnProfile() {
                 <span className="text-xs text-muted-foreground">Squad Full</span>
               )}
             </div>
-            {squad && squad.length > 0 ? (
+
+            {/* Game selector tabs */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3" style={{ scrollbarWidth: "none" }}>
+              {SQUAD_GAMES.map(g => (
+                <button
+                  key={g}
+                  onClick={() => setSquadGame(g)}
+                  className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all ${
+                    squadGame === g
+                      ? "border-primary bg-primary/20 text-primary font-semibold"
+                      : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            {(squad ?? []).filter(m => m.game === squadGame).length > 0 ? (
               <div className="space-y-2">
-                {squad.map((m) => (
+                {(squad ?? []).filter(m => m.game === squadGame).map((m) => (
                   <div key={m.id} className="flex items-center justify-between bg-secondary/40 rounded-lg px-3 py-2">
                     <div>
                       <div className="text-sm font-medium">{m.name}</div>
@@ -880,7 +900,7 @@ function OwnProfile() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No squad members yet</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No squad members for {squadGame}</p>
             )}
           </div>
         )}

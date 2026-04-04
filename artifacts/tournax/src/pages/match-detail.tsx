@@ -104,7 +104,9 @@ export default function MatchDetailPage() {
 
   const { data: match, isLoading, refetch } = useGetMatch(matchId);
   const { data: players } = useGetMatchPlayers(matchId);
-  const { data: squad } = useGetMySquad({ query: { enabled: !!user } });
+  const { data: squadRaw } = useGetMySquad({ query: { enabled: !!user } });
+  // Filter squad to only show members matching the match's game
+  const squad = match ? (squadRaw ?? []).filter(m => !m.game || m.game === match.game) : (squadRaw ?? []);
 
   const { mutateAsync: joinMatch, isPending: isJoining } = useJoinMatch();
   const { mutateAsync: updateRoom, isPending: isUpdatingRoom } = useUpdateRoomCredentials();
