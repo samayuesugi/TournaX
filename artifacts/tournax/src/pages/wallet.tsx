@@ -531,7 +531,7 @@ export default function WalletPage() {
               <h2 className="text-4xl font-bold mb-1">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
               <p className="text-xs text-muted-foreground mb-4">1₹ = 1 Gold Coin</p>
               <div className="flex gap-2">
-                {!isHost && <CoinsPackDialog />}
+                <CoinsPackDialog />
                 {withdrawDialog}
               </div>
             </div>
