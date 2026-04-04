@@ -16,6 +16,22 @@ const DEFAULT_ACCOUNTS = [
     avatar: "/admin-avatar.jpeg",
     role: "admin" as const,
   },
+  {
+    email: "testhost@tournax.com",
+    password: "TestHost@123",
+    name: "Test Host",
+    handle: "testhost",
+    avatar: "",
+    role: "host" as const,
+  },
+  {
+    email: "testplayer@tournax.com",
+    password: "TestPlayer@123",
+    name: "Test Player",
+    handle: "testplayer",
+    avatar: "",
+    role: "player" as const,
+  },
 ];
 
 const DEFAULT_GAMES = [
