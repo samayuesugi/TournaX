@@ -1,11 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
 import { z } from "zod";
+import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const RequestUploadUrlBody = z.object({
   name: z.string(),
@@ -38,6 +40,31 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
   } catch (error) {
     req.log.error({ err: error }, "Error generating upload URL");
     res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+/**
+ * POST /storage/uploads/file
+ * Proxy upload: client sends the file here, server uploads to GCS.
+ * Avoids CORS issues with direct GCS uploads.
+ */
+router.post("/storage/uploads/file", requireAuth, upload.single("file"), async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!["host", "admin", "player"].includes(user.role)) {
+    res.status(403).json({ error: "Unauthorized" });
+    return;
+  }
+  const file = (req as any).file as Express.Multer.File | undefined;
+  if (!file) {
+    res.status(400).json({ error: "No file provided" });
+    return;
+  }
+  try {
+    const objectPath = await objectStorageService.uploadFile(file.buffer, file.mimetype || "application/octet-stream");
+    res.json({ objectPath });
+  } catch (error) {
+    req.log.error({ err: error }, "Error uploading file");
+    res.status(500).json({ error: "Failed to upload file" });
   }
 });
 

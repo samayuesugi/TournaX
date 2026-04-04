@@ -204,24 +204,13 @@ function CoinsPackDialog() {
       return;
     }
     try {
-      const { uploadURL, objectPath } = await customFetch<{ uploadURL: string; objectPath: string }>(
-        "/api/storage/uploads/request-url",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            name: receiptFile.name,
-            size: receiptFile.size,
-            contentType: receiptFile.type || "image/jpeg",
-          }),
-        }
+      const formData = new FormData();
+      formData.append("file", receiptFile);
+      const uploadRes = await customFetch<{ objectPath: string }>(
+        "/api/storage/uploads/file",
+        { method: "POST", body: formData }
       );
-
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: receiptFile,
-        headers: { "Content-Type": receiptFile.type || "image/jpeg" },
-      });
-      if (!uploadRes.ok) throw new Error("Receipt upload failed. Please try again.");
+      const objectPath = uploadRes.objectPath;
 
       await addBalance({ data: { amount: finalCoins, utrNumber: utrNumber.trim(), receiptUrl: objectPath } });
       toast({ title: "Request submitted!", description: "Await admin approval. Usually within 30 mins." });
