@@ -408,15 +408,19 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
   let dailyWins = user.dailyWins ?? 0;
   let dailyPaidMatches = user.dailyPaidMatches ?? 0;
 
+  let dailyInviteShared = user.dailyInviteShared ?? 0;
+
   if (user.dailyTaskDate !== today) {
     await db.update(usersTable).set({
       dailyTaskDate: today,
       dailyWins: 0,
       dailyPaidMatches: 0,
       dailyTournamentWins: 0,
+      dailyInviteShared: 0,
     }).where(eq(usersTable.id, user.id));
     dailyWins = 0;
     dailyPaidMatches = 0;
+    dailyInviteShared = 0;
   }
 
   res.json({
@@ -427,7 +431,24 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
     paidMatchesClaimed: dailyPaidMatches >= 3,
     tournamentWinsToday: user.dailyTaskDate === today ? (user.dailyTournamentWins ?? 0) : 0,
     tournamentWinsClaimed: user.dailyTaskDate === today && (user.dailyTournamentWins ?? 0) >= 5,
+    inviteClaimed: dailyInviteShared >= 1,
   });
+});
+
+router.post("/auth/claim-invite-task", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const today = getTodayDate();
+  const dailyInviteShared = user.dailyTaskDate === today ? (user.dailyInviteShared ?? 0) : 0;
+  if (dailyInviteShared >= 1) {
+    res.json({ success: false, message: "Already claimed today" });
+    return;
+  }
+  await db.update(usersTable).set({
+    dailyTaskDate: today,
+    dailyInviteShared: 1,
+    silverCoins: sql`${usersTable.silverCoins} + 10`,
+  }).where(eq(usersTable.id, user.id));
+  res.json({ success: true, silverCoins: (user.silverCoins ?? 0) + 10 });
 });
 
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {

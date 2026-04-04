@@ -492,6 +492,9 @@ function OwnProfile() {
         `Sign up here 👉 ${link}\n\n` +
         `Let's compete together! 🏆🔥`;
 
+      // Claim the daily invite task reward
+      customFetch("/api/auth/claim-invite-task", { method: "POST" }).catch(() => {});
+
       if (navigator.share) {
         try {
           await navigator.share({ title: "Join TournaX!", text: message });

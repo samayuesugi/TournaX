@@ -39,6 +39,7 @@ const COIN_PACKS = [
 ];
 
 type DailyTasksData = {
+  inviteClaimed: boolean;
   loginClaimed: boolean;
   freeMatchesToday: number;
   freeMatchesClaimed: boolean;
@@ -585,13 +586,23 @@ export default function WalletPage() {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-semibold text-primary">
-                    {[dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed, dailyTasks?.tournamentWinsClaimed].filter(Boolean).length} / 4
+                    {[dailyTasks?.inviteClaimed, dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed, dailyTasks?.tournamentWinsClaimed].filter(Boolean).length} / 5
                   </span>
                   <span className="text-[10px] text-muted-foreground">completed</span>
                 </div>
               </div>
 
               <div className="space-y-3">
+                <DailyTask
+                  icon="📨"
+                  title="Invite a Friend"
+                  desc="Share your referral link today"
+                  reward="+10 Silver"
+                  progress={dailyTasks?.inviteClaimed ? 1 : 0}
+                  total={1}
+                  claimed={dailyTasks?.inviteClaimed ?? false}
+                  color="silver"
+                />
                 <DailyTask
                   icon="📅"
                   title="Daily Login"
