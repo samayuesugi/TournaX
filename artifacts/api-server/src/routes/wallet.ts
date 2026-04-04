@@ -5,7 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const SILVER_TO_GOLD_RATE = 100;
-const GOLD_PER_CONVERSION = 10;
+const GOLD_PER_CONVERSION = 1;
 
 const router: IRouter = Router();
 
