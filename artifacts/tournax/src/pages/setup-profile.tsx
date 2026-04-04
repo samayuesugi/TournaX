@@ -20,8 +20,9 @@ export default function SetupProfilePage() {
 
   const [form, setForm] = useState({
     avatar: AVATARS[0],
-    game: "",
+    name: "",
     handle: "",
+    game: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,6 +71,16 @@ export default function SetupProfilePage() {
             </div>
 
             <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Full Name</Label>
+              <Input
+                placeholder="Your display name"
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium">Username (handle)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
@@ -97,7 +108,7 @@ export default function SetupProfilePage() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isPending || !form.game}>
+            <Button type="submit" className="w-full" disabled={isPending || !form.game || !form.name || !form.handle}>
               {isPending ? "Setting up..." : "Start Playing"}
             </Button>
           </form>
