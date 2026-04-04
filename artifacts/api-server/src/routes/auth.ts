@@ -366,7 +366,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
   let updatedUser = user;
   if (user.lastLoginDate !== today) {
     const [u] = await db.update(usersTable)
-      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 5` })
+      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 10` })
       .where(eq(usersTable.id, user.id))
       .returning();
     updatedUser = u;

@@ -322,9 +322,9 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
           WHERE id = ${user.id} RETURNING daily_paid_matches`
         );
         const todayPaidCount = (dailyResult.rows[0] as any)?.daily_paid_matches as number;
-        // Award 1 Gold Coin when daily 3-paid-match task first completes
+        // Award 10 Silver Coins when daily 3-paid-match task first completes
         if (todayPaidCount === 3) {
-          await tx.execute(sql`UPDATE users SET balance = balance + 1 WHERE id = ${user.id}`);
+          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 10 WHERE id = ${user.id}`);
         }
 
         if (newPaidMatches === 5) {
@@ -352,9 +352,9 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
           WHERE id = ${user.id} RETURNING daily_wins`
         );
         const todayFreeCount = (freeResult.rows[0] as any)?.daily_wins as number;
-        // Award 1 Gold Coin when daily 3-free-match task first completes
+        // Award 10 Silver Coins when daily 3-free-match task first completes
         if (todayFreeCount === 3) {
-          await tx.execute(sql`UPDATE users SET balance = balance + 1 WHERE id = ${user.id}`);
+          await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 10 WHERE id = ${user.id}`);
         }
       }
     });

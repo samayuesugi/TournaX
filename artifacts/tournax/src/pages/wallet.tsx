@@ -596,7 +596,7 @@ export default function WalletPage() {
                   icon="📅"
                   title="Daily Login"
                   desc="Just open the app every day"
-                  reward="+5 Silver"
+                  reward="+10 Silver"
                   progress={dailyTasks?.loginClaimed ? 1 : 0}
                   total={1}
                   claimed={dailyTasks?.loginClaimed ?? false}
@@ -606,21 +606,21 @@ export default function WalletPage() {
                   icon="🆓"
                   title="Play 3 Free Matches"
                   desc="Join any free tournament"
-                  reward="+1 Gold"
+                  reward="+10 Silver"
                   progress={dailyTasks?.freeMatchesToday ?? 0}
                   total={3}
                   claimed={dailyTasks?.freeMatchesClaimed ?? false}
-                  color="gold"
+                  color="silver"
                 />
                 <DailyTask
                   icon="🎮"
                   title="Play 3 Paid Matches"
                   desc="Join any paid tournament"
-                  reward="+1 Gold"
+                  reward="+10 Silver"
                   progress={dailyTasks?.paidMatchesToday ?? 0}
                   total={3}
                   claimed={dailyTasks?.paidMatchesClaimed ?? false}
-                  color="gold"
+                  color="silver"
                 />
                 <DailyTask
                   icon="🏆"
