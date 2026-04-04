@@ -31,7 +31,7 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
   res.json({
     balance: parseFloat(user.balance as string),
     silverCoins: user.silverCoins ?? 0,
-    upiId: "9971040244@ptaxis",
+    upiId: process.env.ADMIN_UPI_ID ?? "",
     role: user.role,
     addBalanceHistory: addHistory.map(r => ({
       id: r.id, amount: parseFloat(r.amount as string), status: r.status,

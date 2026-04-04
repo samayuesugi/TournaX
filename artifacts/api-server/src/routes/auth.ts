@@ -384,7 +384,7 @@ router.post("/auth/login", async (req: Request, res: Response) => {
   }
 
   const token = generateToken(updatedUser.id);
-  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: user.lastLoginDate !== today ? 5 : 0 });
+  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: user.lastLoginDate !== today ? 10 : 0 });
 });
 
 router.get("/auth/me", requireAuth, async (req: Request, res: Response) => {

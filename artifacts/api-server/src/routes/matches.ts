@@ -414,6 +414,9 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   if (!Array.isArray(results) || results.length === 0) {
     res.status(400).json({ error: "Results are required" }); return;
   }
+  if (results.some(r => typeof r.reward !== "number" || r.reward < 0)) {
+    res.status(400).json({ error: "All reward values must be non-negative numbers" }); return;
+  }
 
   const entryFeeNum = parseFloat(match.entryFee as string);
   const hostContributionNum = parseFloat((match.hostContribution as string) ?? "0");
