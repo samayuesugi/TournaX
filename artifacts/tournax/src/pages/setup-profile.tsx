@@ -23,7 +23,6 @@ export default function SetupProfilePage() {
     game: "",
     ign: "",
     handle: "",
-    gameUid: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,16 +104,6 @@ export default function SetupProfilePage() {
                 placeholder="Your in-game name"
                 value={form.ign}
                 onChange={(e) => setForm(f => ({ ...f, ign: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Game UID</Label>
-              <Input
-                placeholder="Your game UID / player ID"
-                value={form.gameUid}
-                onChange={(e) => setForm(f => ({ ...f, gameUid: e.target.value }))}
                 required
               />
             </div>

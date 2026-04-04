@@ -439,11 +439,11 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
 
 router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { avatar, game, ign, gameUid } = req.body;
+  const { avatar, game, ign } = req.body;
   const handle = typeof req.body.handle === "string"
     ? req.body.handle.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "")
     : "";
-  if (!handle || !ign || !gameUid || !game) {
+  if (!handle || !ign || !game) {
     res.status(400).json({ error: "All fields required" });
     return;
   }
@@ -457,7 +457,6 @@ router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Respon
     game,
     name: ign,
     handle,
-    gameUid,
     profileSetup: true,
     status: "active",
   }).where(eq(usersTable.id, user.id)).returning();
