@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Trophy, Swords, DollarSign, Medal } from "lucide-react";
 import { GoldCoin } from "@/components/ui/Coins";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/useAuth";
 
 const GAMES = ["all", "BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC"];
 

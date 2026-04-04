@@ -60,6 +60,7 @@ export const squadMembersTable = pgTable("squad_members", {
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
   uid: text("uid").notNull(),
+  game: text("game"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

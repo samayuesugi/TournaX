@@ -97,7 +97,7 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
 router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const squad = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
-  res.json(squad.map(s => ({ id: s.id, name: s.name, uid: s.uid })));
+  res.json(squad.map(s => ({ id: s.id, name: s.name, uid: s.uid, game: s.game ?? null })));
 });
 
 router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
@@ -107,8 +107,8 @@ router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) 
   if (existing.length >= 6) {
     return res.status(400).json({ error: "Squad limit reached. Maximum 6 members allowed." });
   }
-  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid }).returning();
-  res.json({ id: member.id, name: member.name, uid: member.uid });
+  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid, game: user.game ?? null }).returning();
+  res.json({ id: member.id, name: member.name, uid: member.uid, game: member.game ?? null });
 });
 
 router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res: Response) => {
