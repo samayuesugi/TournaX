@@ -477,12 +477,28 @@ function OwnProfile() {
     }
   };
 
-  const handleShareLink = () => {
+  const handleShareLink = async () => {
     if (referralStats?.myCode) {
       const link = `${window.location.origin}/auth?ref=${referralStats.myCode}`;
-      navigator.clipboard.writeText(link);
+      const message =
+        `🎮 Hey! Join me on TournaX — India's best gaming tournament platform!\n\n` +
+        `👤 Invited by: ${user?.name}${user?.handle ? ` (@${user.handle})` : ""}\n` +
+        `🎟️ My referral code: ${referralStats.myCode}\n` +
+        `🔗 Sign up here: ${link}\n\n` +
+        `🏆 Compete in real-money tournaments, win Gold Coins & climb the leaderboard!\n` +
+        `💸 Use my code to get a bonus when you start playing!`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: "Join TournaX!", text: message, url: link });
+          return;
+        } catch {
+          // user cancelled or share failed, fall through to clipboard
+        }
+      }
+      await navigator.clipboard.writeText(message);
       setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+      setTimeout(() => setLinkCopied(false), 2500);
     }
   };
 
@@ -891,7 +907,7 @@ function OwnProfile() {
                 disabled={!referralStats.myCode}
               >
                 {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <LinkIcon className="w-3.5 h-3.5" />}
-                {linkCopied ? "Link Copied!" : "Copy Referral Link"}
+                {linkCopied ? "Copied!" : "Share Referral"}
               </Button>
             </div>
 

@@ -224,7 +224,7 @@ router.post("/auth/verify-register", async (req: Request, res: Response) => {
     balance: "0",
   }).returning();
 
-  const referralCode = `TournaX${user.id.toString().padStart(3, "0")}`;
+  const referralCode = `Tx-user${user.id.toString().padStart(3, "0")}`;
   await db.update(usersTable).set({ referralCode }).where(eq(usersTable.id, user.id));
 
   if (referrer && referrer.id !== user.id) {
@@ -445,11 +445,13 @@ router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Respon
     res.status(400).json({ error: "Handle already taken" });
     return;
   }
+  const referralCode = `Tx-${handle}${user.id.toString().padStart(3, "0")}`;
   const [updated] = await db.update(usersTable).set({
     avatar: avatar || "🔥",
     name,
     game,
     handle,
+    referralCode,
     profileSetup: true,
     status: "active",
   }).where(eq(usersTable.id, user.id)).returning();
