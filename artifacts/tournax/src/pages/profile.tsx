@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap } from "lucide-react";
@@ -407,6 +408,7 @@ function OwnProfile() {
   const { data: myMatches, isLoading: matchesLoading } = useGetMyMatches();
 
   const [squadForm, setSquadForm] = useState({ name: "", uid: "" });
+  const [availableGames, setAvailableGames] = useState<{ id: number; name: string }[]>([]);
   const [profileForm, setProfileForm] = useState({
     name: user?.name ?? "",
     handle: user?.handle ?? "",
@@ -416,6 +418,8 @@ function OwnProfile() {
     x: user?.x ?? "",
     youtube: user?.youtube ?? "",
     twitch: user?.twitch ?? "",
+    game: (user as any)?.game ?? "",
+    gameUid: (user as any)?.gameUid ?? "",
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
@@ -446,7 +450,14 @@ function OwnProfile() {
         x: user?.x ?? "",
         youtube: user?.youtube ?? "",
         twitch: user?.twitch ?? "",
+        game: (user as any)?.game ?? "",
+        gameUid: (user as any)?.gameUid ?? "",
       });
+      if (user?.role === "player" && availableGames.length === 0) {
+        customFetch<{ id: number; name: string }[]>("/api/games")
+          .then(setAvailableGames)
+          .catch(() => {});
+      }
     }
   }, [profileOpen]);
 
@@ -614,6 +625,34 @@ function OwnProfile() {
                       <Label>Handle</Label>
                       <Input value={profileForm.handle} onChange={(e) => setProfileForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
                     </div>
+                    {user.role === "player" && (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Game Settings</Label>
+                        <div className="space-y-2">
+                          <div className="space-y-1.5">
+                            <Label>Selected Game</Label>
+                            <Select value={profileForm.game} onValueChange={(val) => setProfileForm(f => ({ ...f, game: val }))}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a game" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableGames.map((g) => (
+                                  <SelectItem key={g.id} value={g.name}>🎮 {g.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Game UID</Label>
+                            <Input
+                              placeholder="Your in-game UID"
+                              value={profileForm.gameUid}
+                              onChange={(e) => setProfileForm(f => ({ ...f, gameUid: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wide">Social Links</Label>
                       <div className="space-y-2">
