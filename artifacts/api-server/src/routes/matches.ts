@@ -40,15 +40,17 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
 
   const entryFee = parseFloat(match.entryFee as string);
   const showcasePrizePool = parseFloat((match.showcasePrizePool as string) ?? "0");
+  const hostContribution = parseFloat((match.hostContribution as string) ?? "0");
 
-  const totalPool = match.filledSlots * entryFee;
+  const entryFeePool = match.filledSlots * entryFee;
+  const totalPool = entryFeePool + hostContribution;
   const isLargePool = match.filledSlots >= 8;
   const winnersPercent = isLargePool ? 0.85 : 0.90;
   const hostPercent = isLargePool ? 0.10 : 0.05;
   const platformPercent = 0.05;
-  const livePrizePool = totalPool * winnersPercent;
-  const hostCut = totalPool * hostPercent;
-  const platformCut = totalPool * platformPercent;
+  const livePrizePool = entryFeePool * winnersPercent + hostContribution;
+  const hostCut = entryFeePool * hostPercent;
+  const platformCut = entryFeePool * platformPercent;
 
   const result: any = {
     id: match.id,
@@ -58,6 +60,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     teamSize: match.teamSize,
     entryFee,
     showcasePrizePool,
+    hostContribution,
     livePrizePool,
     hostCut,
     platformCut,
@@ -134,7 +137,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution } = req.body;
   if (!game || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
   }
@@ -157,25 +160,47 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
   if (parsedStartTime <= new Date()) {
     res.status(400).json({ error: "startTime must be in the future" }); return;
   }
-  const code = generateCode();
-  const [match] = await db.insert(matchesTable).values({
-    code,
-    game,
-    mode,
-    teamSize: parsedTeamSize,
-    entryFee: String(parsedEntryFee),
-    slots: parsedSlots,
-    hostId: user.id,
-    startTime: parsedStartTime,
-    status: "upcoming",
-    filledSlots: 0,
-    showcasePrizePool: showcasePrizePool != null ? String(Number(showcasePrizePool)) : "0",
-    roomReleased: false,
-    description: description ? String(description).trim() : null,
-    thumbnailImage: thumbnailImage ? String(thumbnailImage).trim() : null,
-  }).returning();
 
-  res.json(await serializeMatch(match, user.id));
+  const parsedContribution = hostContribution != null ? Number(hostContribution) : 0;
+  if (isNaN(parsedContribution) || parsedContribution < 0) {
+    res.status(400).json({ error: "hostContribution must be a non-negative number" }); return;
+  }
+
+  if (parsedContribution > 0) {
+    const hostBalance = parseFloat(user.balance as string);
+    if (hostBalance < parsedContribution) {
+      res.status(400).json({ error: `Insufficient balance. You have ${hostBalance.toFixed(0)} GC but tried to contribute ${parsedContribution} GC.` }); return;
+    }
+  }
+
+  const code = generateCode();
+  let match: typeof matchesTable.$inferSelect;
+
+  await db.transaction(async (tx) => {
+    if (parsedContribution > 0) {
+      await tx.execute(sql`UPDATE users SET balance = balance - ${parsedContribution} WHERE id = ${user.id}`);
+    }
+    const [inserted] = await tx.insert(matchesTable).values({
+      code,
+      game,
+      mode,
+      teamSize: parsedTeamSize,
+      entryFee: String(parsedEntryFee),
+      slots: parsedSlots,
+      hostId: user.id,
+      startTime: parsedStartTime,
+      status: "upcoming",
+      filledSlots: 0,
+      showcasePrizePool: showcasePrizePool != null ? String(Number(showcasePrizePool)) : "0",
+      hostContribution: String(parsedContribution),
+      roomReleased: false,
+      description: description ? String(description).trim() : null,
+      thumbnailImage: thumbnailImage ? String(thumbnailImage).trim() : null,
+    }).returning();
+    match = inserted;
+  });
+
+  res.json(await serializeMatch(match!, user.id));
 });
 
 router.get("/matches/:id", requireAuth, async (req: Request, res: Response) => {
@@ -377,11 +402,13 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   }
 
   const entryFeeNum = parseFloat(match.entryFee as string);
-  const totalPool = match.filledSlots * entryFeeNum;
+  const hostContributionNum = parseFloat((match.hostContribution as string) ?? "0");
+  const entryFeePool = match.filledSlots * entryFeeNum;
+  const totalPool = entryFeePool + hostContributionNum;
   const winnersPercent = match.filledSlots >= 8 ? 0.85 : 0.90;
   const hostPercent = match.filledSlots >= 8 ? 0.10 : 0.05;
-  const maxWinnersPool = totalPool * winnersPercent;
-  const hostCut = parseFloat((totalPool * hostPercent).toFixed(2));
+  const maxWinnersPool = entryFeePool * winnersPercent + hostContributionNum;
+  const hostCut = parseFloat((entryFeePool * hostPercent).toFixed(2));
   const totalReward = results.reduce((sum, r) => sum + r.reward, 0);
   if (totalReward > maxWinnersPool + 0.01) {
     res.status(400).json({ error: `Total rewards (${totalReward} GC) exceed the winners pool (${maxWinnersPool.toFixed(2)} GC)` }); return;

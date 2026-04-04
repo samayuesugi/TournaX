@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useCreateMatch } from "@workspace/api-client-react";
+import { useCreateMatch, useWallet } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon } from "lucide-react";
+import { Gift, ImageIcon, Wallet } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
@@ -36,6 +36,7 @@ export default function CreateMatchPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { mutateAsync: createMatch, isPending } = useCreateMatch();
+  const { data: wallet } = useWallet();
 
   const [selectedGame, setSelectedGame] = useState<string>("");
   const [teamSize, setTeamSize] = useState<number>(1);
@@ -46,6 +47,7 @@ export default function CreateMatchPage() {
     slots: "",
     startTime: "",
     showcasePrizePool: "",
+    hostContribution: "",
     description: "",
   });
 
@@ -69,6 +71,7 @@ export default function CreateMatchPage() {
           slots: parseInt(form.slots),
           startTime: new Date(form.startTime).toISOString(),
           showcasePrizePool: parseFloat(form.showcasePrizePool),
+          hostContribution: form.hostContribution ? parseFloat(form.hostContribution) : 0,
           description: form.description.trim() || undefined,
           thumbnailImage: selectedThumbnail || undefined,
         } as any,
@@ -82,12 +85,14 @@ export default function CreateMatchPage() {
 
   const entryFeeNum = parseFloat(form.entryFee) || 0;
   const slotsNum = parseInt(form.slots) || 0;
+  const contributionNum = parseFloat(form.hostContribution) || 0;
+  const hostBalance = wallet?.balance ?? 0;
   const previewPlayers = Math.min(slotsNum, 4);
-  const previewTotal = previewPlayers * entryFeeNum;
+  const previewEntryPool = previewPlayers * entryFeeNum;
   const previewIsLarge = slotsNum >= 8;
-  const previewWinners = Math.round(previewTotal * (previewIsLarge ? 0.85 : 0.90));
-  const previewHost = Math.round(previewTotal * (previewIsLarge ? 0.10 : 0.05));
-  const previewPlatform = Math.round(previewTotal * 0.05);
+  const previewWinners = Math.round(previewEntryPool * (previewIsLarge ? 0.85 : 0.90) + contributionNum);
+  const previewHost = Math.round(previewEntryPool * (previewIsLarge ? 0.10 : 0.05));
+  const previewPlatform = Math.round(previewEntryPool * 0.05);
 
   return (
     <AppLayout showBack backHref="/host" title="Create Match">
@@ -258,13 +263,45 @@ export default function CreateMatchPage() {
             </p>
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Wallet className="w-3.5 h-3.5" />
+              Your Contribution <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                placeholder="0"
+                value={form.hostContribution}
+                onChange={(e) => setForm(f => ({ ...f, hostContribution: e.target.value }))}
+                min={0}
+                max={hostBalance}
+                className={contributionNum > hostBalance ? "border-destructive" : ""}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <p className="text-muted-foreground">
+                This amount will be deducted from your wallet and added entirely to the winners prize pool.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">Your wallet:</span>
+              <GoldCoin amount={hostBalance.toFixed(0)} size="sm" />
+              {contributionNum > hostBalance && (
+                <span className="text-destructive font-medium ml-1">Insufficient balance</span>
+              )}
+            </div>
+          </div>
+
           {entryFeeNum > 0 && (
             <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
               <p className="text-xs text-muted-foreground font-medium">Live pool preview (at {previewPlayers} players)</p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div className="text-sm font-bold text-green-400"><GoldCoin amount={previewWinners} size="sm" /></div>
-                  <div className="text-[10px] text-muted-foreground">Winners {previewIsLarge ? 85 : 90}%</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Winners {previewIsLarge ? 85 : 90}%{contributionNum > 0 ? " + Your Boost" : ""}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm font-bold text-foreground"><GoldCoin amount={previewHost} size="sm" /></div>
@@ -275,6 +312,11 @@ export default function CreateMatchPage() {
                   <div className="text-[10px] text-muted-foreground">Platform 5%</div>
                 </div>
               </div>
+              {contributionNum > 0 && (
+                <div className="mt-1 text-center text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg py-1.5">
+                  🏆 You're boosting the prize pool by <GoldCoin amount={contributionNum.toFixed(0)} size="sm" />
+                </div>
+              )}
             </div>
           )}
         </div>

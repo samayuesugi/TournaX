@@ -22,6 +22,7 @@ export const matchesTable = pgTable("matches", {
   roomReleased: boolean("room_released").notNull().default(false),
   description: text("description"),
   thumbnailImage: text("thumbnail_image"),
+  hostContribution: numeric("host_contribution", { precision: 10, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
