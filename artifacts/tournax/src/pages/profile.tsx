@@ -407,7 +407,7 @@ function OwnProfile() {
   const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateMyProfile();
   const { data: myMatches, isLoading: matchesLoading } = useGetMyMatches();
 
-  const SQUAD_GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile", "Other"];
+  const SQUAD_GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile"];
   const [squadGame, setSquadGame] = useState<string>((user as any)?.game ?? SQUAD_GAMES[0]);
   const [squadForm, setSquadForm] = useState({ name: "", uid: "" });
   const [availableGames, setAvailableGames] = useState<{ id: number; name: string }[]>([]);
