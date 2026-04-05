@@ -165,21 +165,20 @@ export function MatchCard({ match, className }: MatchCardProps) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-border/50">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs shrink-0 overflow-hidden">
-                {hostAvatar && (hostAvatar.startsWith("/") || hostAvatar.startsWith("http"))
-                  ? <img src={hostAvatar} alt="" className="w-full h-full object-cover" />
-                  : hostAvatar}
-              </div>
-              <span className="text-[11px] text-muted-foreground truncate">
-                {hostHandle ? `@${hostHandle}` : "Host"}
-              </span>
+          <div className="flex items-center gap-1.5 pt-2.5 mt-2.5 border-t border-border/50 min-w-0">
+            <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs shrink-0 overflow-hidden">
+              {hostAvatar && (hostAvatar.startsWith("/") || hostAvatar.startsWith("http"))
+                ? <img src={hostAvatar} alt="" className="w-full h-full object-cover" />
+                : hostAvatar}
             </div>
-            {hostRating !== null && hostReviewCount > 0 ? (
-              <StarRating rating={hostRating} count={hostReviewCount} />
-            ) : (
-              <span className="text-[10px] text-muted-foreground italic">No ratings yet</span>
+            <span className="text-[11px] text-muted-foreground shrink-0">
+              {hostHandle ? `@${hostHandle}` : "Host"}
+            </span>
+            {hostRating !== null && hostReviewCount > 0 && (
+              <>
+                <span className="text-muted-foreground/40 text-[10px]">·</span>
+                <StarRating rating={hostRating} count={hostReviewCount} />
+              </>
             )}
           </div>
         </div>
