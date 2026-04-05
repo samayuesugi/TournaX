@@ -179,15 +179,10 @@ export default function AuthPage() {
           referralCode: registerForm.referralCode || undefined,
         }),
       });
-      // OTP_BYPASS: auto-verify without showing OTP screen
-      const res = await customFetch<{ user: any; token: string }>("/api/auth/verify-register", {
-        method: "POST",
-        body: JSON.stringify({ email: registerForm.email, otp: "000000" }),
-      });
-      setToken(res.token);
-      setAuthTokenGetter(getToken);
-      setUser(res.user);
-      navigate("/setup-profile");
+      resetOtpDigits();
+      startResendCooldown();
+      setScreen("register-otp");
+      toast({ title: "OTP Sent", description: `A 6-digit code has been sent to ${registerForm.email}` });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Registration failed", variant: "destructive" });
     } finally {
