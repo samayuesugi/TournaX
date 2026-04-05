@@ -383,6 +383,21 @@ router.put("/matches/:id/room", requireAuth, async (req: Request, res: Response)
     roomPassword,
     roomReleased: true,
   }).where(eq(matchesTable.id, match.id));
+
+  const participants = await db
+    .select({ userId: matchParticipantsTable.userId })
+    .from(matchParticipantsTable)
+    .where(eq(matchParticipantsTable.matchId, match.id));
+
+  const matchLabel = match.code || `Match #${match.id}`;
+  const notifMsg = `🎮 Room is ready for "${matchLabel}"! Room ID: ${roomId}${roomPassword ? ` | Password: ${roomPassword}` : ""} — Join now!`;
+
+  await Promise.allSettled(
+    participants.map((p) =>
+      notify(p.userId, "room_ready", notifMsg, `/matches/${match.id}`)
+    )
+  );
+
   res.json({ success: true, message: "Room credentials updated" });
 });
 
