@@ -110,6 +110,7 @@ router.put("/auctions/:id", requireAuth, async (req: Request, res: Response) => 
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
+  if (user.role === "host" && auction.hostId !== user.id) { res.status(403).json({ error: "You can only edit your own auctions" }); return; }
   if (auction.status === "completed" || auction.status === "cancelled") {
     res.status(400).json({ error: "Cannot edit a finished auction" }); return;
   }
@@ -129,6 +130,7 @@ router.post("/auctions/:id/go-live", requireAuth, async (req: Request, res: Resp
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
+  if (user.role === "host" && auction.hostId !== user.id) { res.status(403).json({ error: "You can only manage your own auctions" }); return; }
   if (auction.status !== "upcoming") { res.status(400).json({ error: "Auction is not in upcoming status" }); return; }
   await db.update(auctionsTable).set({ status: "live" }).where(eq(auctionsTable.id, auctionId));
   res.json({ success: true });
@@ -140,6 +142,7 @@ router.post("/auctions/:id/stop", requireAuth, async (req: Request, res: Respons
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
+  if (user.role === "host" && auction.hostId !== user.id) { res.status(403).json({ error: "You can only manage your own auctions" }); return; }
   if (auction.status !== "live") { res.status(400).json({ error: "Auction is not live" }); return; }
   await db.update(auctionsTable).set({ status: "upcoming" }).where(eq(auctionsTable.id, auctionId));
   res.json({ success: true });
@@ -151,6 +154,7 @@ router.post("/auctions/:id/cancel", requireAuth, async (req: Request, res: Respo
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
+  if (user.role === "host" && auction.hostId !== user.id) { res.status(403).json({ error: "You can only cancel your own auctions" }); return; }
   if (auction.status === "completed" || auction.status === "cancelled") {
     res.status(400).json({ error: "Auction is already finished" }); return;
   }
@@ -170,6 +174,7 @@ router.post("/auctions/:id/submit-result", requireAuth, async (req: Request, res
   const auctionId = Number(req.params.id);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
+  if (user.role === "host" && auction.hostId !== user.id) { res.status(403).json({ error: "You can only submit results for your own auctions" }); return; }
   if (auction.status === "completed") { res.status(400).json({ error: "Result already submitted" }); return; }
   if (auction.status === "cancelled") { res.status(400).json({ error: "Auction is cancelled" }); return; }
 
@@ -236,6 +241,7 @@ router.post("/auctions/:auctionId/teams", requireAuth, async (req: Request, res:
   const auctionId = Number(req.params.auctionId);
   const [auction] = await db.select().from(auctionsTable).where(eq(auctionsTable.id, auctionId));
   if (!auction) { res.status(404).json({ error: "Auction not found" }); return; }
+  if (user.role === "host" && auction.hostId !== user.id) { res.status(403).json({ error: "You can only manage your own auctions" }); return; }
   const { name, logo, displayOrder } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
   const [team] = await db.insert(auctionTeamsTable).values({
