@@ -55,11 +55,30 @@ export default function SetupProfilePage() {
         <div className="bg-card border border-card-border rounded-2xl p-6 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Choose Avatar</Label>
+              <div className="grid grid-cols-8 gap-1.5">
+                {AVATARS.map((av) => (
+                  <button
+                    key={av}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, avatar: av }))}
+                    className={`text-xl h-9 w-full rounded-lg flex items-center justify-center transition-all ${form.avatar === av ? "bg-primary/30 ring-2 ring-primary" : "bg-secondary hover:bg-secondary/80"}`}
+                  >
+                    {av}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium">Full Name</Label>
               <Input
                 placeholder="Your display name"
                 value={form.name}
-                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "");
+                  setForm(f => ({ ...f, name: val }));
+                }}
                 required
               />
             </div>
