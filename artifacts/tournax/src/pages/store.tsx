@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { ShoppingBag, Sparkles, Check, Lock, Shield } from "lucide-react";
+import { ShoppingBag, Sparkles, Check, Shield } from "lucide-react";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 
 interface CosmeticItem {
@@ -99,7 +99,7 @@ function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
           onClick={handleAction}
           disabled={loading || (!owned && !canAfford)}
         >
-          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : canAfford ? "Buy" : <><Lock className="w-3 h-3 mr-1" />Need {item.cost}</>}
+          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : "Buy"}
         </Button>
       </div>
     </div>
@@ -157,7 +157,7 @@ function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
           onClick={handleAction}
           disabled={loading || (!owned && !canAfford)}
         >
-          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : canAfford ? "Buy" : <><Lock className="w-3 h-3 mr-1" />Need {item.cost}</>}
+          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : "Buy"}
         </Button>
       </div>
     </div>
@@ -218,7 +218,7 @@ function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, sil
           onClick={handleAction}
           disabled={loading || (!owned && !canAfford)}
         >
-          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : canAfford ? "Buy" : <><Lock className="w-3 h-3 mr-1" />Need {item.cost}</>}
+          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : "Buy"}
         </Button>
       </div>
     </div>
