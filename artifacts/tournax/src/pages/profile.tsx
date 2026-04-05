@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -591,6 +591,13 @@ function OwnProfile() {
               </div>
             </div>
             <div className="flex gap-2">
+              {user.role === "player" && (
+                <Link href="/store">
+                  <Button variant="outline" size="icon" className="h-8 w-8" title="Cosmetics Store">
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                  </Button>
+                </Link>
+              )}
               <RaiseComplaintDialog />
               <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
                 <DialogTrigger asChild>
