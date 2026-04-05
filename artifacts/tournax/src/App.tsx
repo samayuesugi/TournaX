@@ -213,6 +213,12 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
+      <Route path="/admin/earnings">
+        <ProtectedRoute roles={["admin"]}>
+          <AdminEarningsPage />
+        </ProtectedRoute>
+      </Route>
+
       <Route path="/admin/complaints">
         <ProtectedRoute roles={["admin"]}>
           <AdminComplaintsPage />

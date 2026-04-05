@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2 } from "lucide-react";
-import { GoldCoin } from "@/components/ui/Coins";
+import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight } from "lucide-react";
+import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
+import { useLocation } from "wouter";
 
 function HostRow({ host, onDelete }: { host: any; onDelete: () => void }) {
   const { toast } = useToast();
@@ -118,6 +119,7 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const { mutateAsync: createHost, isPending: isCreatingHost } = useAdminCreateHost();
   const { mutateAsync: createAdmin, isPending: isCreatingAdmin } = useAdminCreateAdmin();
+  const [, setLocation] = useLocation();
 
   const [hostForm, setHostForm] = useState({ email: "", password: "", name: "", game: "" });
   const [adminForm, setAdminForm] = useState({ email: "", password: "", name: "" });
@@ -174,6 +176,24 @@ export default function AdminDashboardPage() {
               <StatCard icon={DollarSign} label="Total Revenue" value={<GoldCoin amount={data.totalRevenue.toFixed(0)} />} color="bg-green-500/20 text-green-400" />
               <StatCard icon={AlertTriangle} label="Complaints" value={data.complaintsCount} color="bg-destructive/20 text-destructive" />
             </div>
+
+            {/* Revenue analysis shortcut */}
+            <button
+              onClick={() => setLocation("/admin/earnings")}
+              className="w-full flex items-center gap-3 bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/25 rounded-2xl px-4 py-3.5 text-left hover:from-primary/20 hover:to-primary/10 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">Revenue Dashboard</p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                  <GoldCoinIcon size="sm" />
+                  <span>{data?.totalRevenue !== undefined ? data.totalRevenue.toFixed(0) : "—"} all-time · daily chart & game breakdown</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </button>
 
             <div className="bg-card border border-card-border rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">

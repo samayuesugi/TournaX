@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Wallet, Trash2, IndianRupee } from "lucide-react";
+import { Wallet, Trash2, IndianRupee, TrendingUp, ChevronRight } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin } from "@/components/ui/Coins";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +53,7 @@ export default function AdminWalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [clearing, setClearing] = useState(false);
+  const [, setLocation] = useLocation();
 
   const clearHistory = async () => {
     setClearing(true);
@@ -73,6 +75,21 @@ export default function AdminWalletPage() {
           <h1 className="text-xl font-bold">Platform Wallet</h1>
           <p className="text-muted-foreground text-sm">Platform fees collected from completed matches</p>
         </div>
+
+        {/* Revenue analysis CTA */}
+        <button
+          onClick={() => setLocation("/admin/earnings")}
+          className="w-full flex items-center gap-3 bg-primary/10 border border-primary/25 rounded-2xl px-4 py-3 text-left hover:bg-primary/15 transition-colors"
+        >
+          <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-primary">Revenue Analysis</p>
+            <p className="text-xs text-muted-foreground">Charts, daily breakdown & game revenue</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </button>
 
         {/* Total balance card */}
         <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 rounded-2xl p-5 flex items-center gap-4">
