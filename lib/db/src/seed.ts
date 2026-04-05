@@ -225,5 +225,40 @@ export async function seedDefaults() {
     }
   }
 
+  const [testHostRow] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, "testhost@tournax.com"));
+  if (testHostRow) hostIds.set("testhost@tournax.com", testHostRow.id);
+
+  const UPCOMING_MATCHES: Array<{ hostEmail: string; code: string; game: string; mode: string; teamSize: number; entryFee: string; slots: number; showcasePrize: string; daysFromNow: number }> = [
+    { hostEmail: "prokd@tournax.com",     code: "LIVE-PROKD-01",  game: "BGMI",       mode: "Squad",  teamSize: 4, entryFee: "25",  slots: 25, showcasePrize: "500",  daysFromNow: 1 },
+    { hostEmail: "squadrx@tournax.com",   code: "LIVE-SQDRX-01",  game: "Free Fire",  mode: "Duo",    teamSize: 2, entryFee: "15",  slots: 20, showcasePrize: "250",  daysFromNow: 2 },
+    { hostEmail: "battlesk@tournax.com",  code: "LIVE-BTLSK-01",  game: "Valorant",   mode: "Team",   teamSize: 5, entryFee: "50",  slots: 10, showcasePrize: "400",  daysFromNow: 1 },
+    { hostEmail: "tourneyvn@tournax.com", code: "LIVE-TRNVN-01",  game: "BGMI",       mode: "Solo",   teamSize: 1, entryFee: "10",  slots: 50, showcasePrize: "400",  daysFromNow: 3 },
+    { hostEmail: "testhost@tournax.com",  code: "LIVE-THOST-01",  game: "COD Mobile", mode: "Squad",  teamSize: 4, entryFee: "30",  slots: 20, showcasePrize: "480",  daysFromNow: 1 },
+  ];
+
+  for (const m of UPCOMING_MATCHES) {
+    const hostId = hostIds.get(m.hostEmail);
+    if (!hostId) continue;
+    const [existing] = await db.select({ id: matchesTable.id }).from(matchesTable).where(eq(matchesTable.code, m.code));
+    if (!existing) {
+      const startTime = new Date(Date.now() + m.daysFromNow * 24 * 60 * 60 * 1000);
+      await db.insert(matchesTable).values({
+        code: m.code,
+        game: m.game,
+        mode: m.mode,
+        teamSize: m.teamSize,
+        entryFee: m.entryFee,
+        showcasePrizePool: m.showcasePrize,
+        startTime,
+        status: "upcoming",
+        slots: m.slots,
+        filledSlots: 0,
+        hostId,
+        hostContribution: "0",
+      });
+      console.log(`[seed] Created upcoming match: ${m.code} by hostId ${hostId}`);
+    }
+  }
+
   console.log("[seed] Dummy hosts + ratings seeded successfully");
 }
