@@ -827,6 +827,56 @@ function OwnProfile() {
 
         {user.role === "player" && (
           <div className="bg-card border border-card-border rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Swords className="w-4 h-4 text-primary" />
+              <h3 className="font-semibold">Match History</h3>
+            </div>
+            {matchesLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+              </div>
+            ) : (
+              <Tabs defaultValue="active">
+                <TabsList className="w-full mb-3">
+                  <TabsTrigger value="active" className="flex-1">
+                    Active ({myMatches?.participated.length ?? 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex-1">
+                    History ({myMatches?.history.length ?? 0})
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="active">
+                  {myMatches?.participated.length ? (
+                    <div className="flex flex-col gap-2">
+                      {myMatches.participated.map((m) => <MatchCard key={m.id} match={m} />)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-3xl mb-2">🎮</div>
+                      <p className="text-sm">No active matches</p>
+                    </div>
+                  )}
+                </TabsContent>
+                <TabsContent value="history">
+                  {myMatches?.history.length ? (
+                    <div className="flex flex-col gap-2">
+                      {myMatches.history.map((m) => <MatchCard key={m.id} match={m} />)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-3xl mb-2">📜</div>
+                      <p className="text-sm">No match history yet</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
+        )}
+
+        {user.role === "player" && (
+          <div className="bg-card border border-card-border rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold">My Squad</h3>

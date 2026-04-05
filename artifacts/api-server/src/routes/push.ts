@@ -59,10 +59,18 @@ router.delete("/push/unsubscribe", requireAuth, async (req: Request, res: Respon
 router.post("/notifications/read-all", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { notificationsTable } = await import("@workspace/db/schema");
-  const { sql } = await import("drizzle-orm");
   await db
     .update(notificationsTable)
     .set({ read: true })
+    .where(eq(notificationsTable.userId, user.id));
+  res.json({ success: true });
+});
+
+router.delete("/notifications/clear-all", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { notificationsTable } = await import("@workspace/db/schema");
+  await db
+    .delete(notificationsTable)
     .where(eq(notificationsTable.userId, user.id));
   res.json({ success: true });
 });

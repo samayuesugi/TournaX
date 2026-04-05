@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import { useGetNotifications } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Info, Trophy, AlertCircle, CheckCircle, Wallet } from "lucide-react";
+import { Bell, Info, Trophy, AlertCircle, CheckCircle, Wallet, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { customFetch } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 function getIcon(type: string) {
   if (type.includes("result") || type.includes("win")) return <Trophy className="w-4 h-4" />;
@@ -31,6 +32,7 @@ function timeAgo(iso: string) {
 export default function NotificationsPage() {
   const { data: notifications, isLoading } = useGetNotifications();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const unread = notifications?.some((n) => !n.read);
@@ -45,6 +47,7 @@ export default function NotificationsPage() {
   }, [notifications, queryClient]);
 
   const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
+  const hasAny = (notifications?.length ?? 0) > 0;
 
   async function markAllRead() {
     try {
@@ -53,13 +56,26 @@ export default function NotificationsPage() {
     } catch {}
   }
 
+  async function clearAll() {
+    try {
+      await customFetch("/api/notifications/clear-all", { method: "DELETE" });
+      queryClient.invalidateQueries({ queryKey: ["getNotifications"] });
+      toast({ title: "Notifications cleared" });
+    } catch {}
+  }
+
   return (
     <AppLayout showBack backHref="/" title="Notifications">
       <div className="space-y-2 pb-4">
-        {unreadCount > 0 && (
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" className="text-xs text-primary h-7 px-2" onClick={markAllRead}>
-              Mark all read
+        {hasAny && (
+          <div className="flex justify-end gap-1">
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" className="text-xs text-primary h-7 px-2" onClick={markAllRead}>
+                Mark all read
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="text-xs text-destructive h-7 px-2 gap-1" onClick={clearAll}>
+              <Trash2 className="w-3 h-3" /> Clear all
             </Button>
           </div>
         )}

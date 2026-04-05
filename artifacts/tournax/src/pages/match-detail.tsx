@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
@@ -92,6 +92,40 @@ function CopyButton({ value }: { value: string }) {
     <button onClick={copy} className="text-muted-foreground hover:text-foreground transition-colors">
       {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
     </button>
+  );
+}
+
+function NotifyMeButton({ matchId }: { matchId: number }) {
+  const { toast } = useToast();
+  const [notified, setNotified] = useState(false);
+
+  const handleNotify = () => {
+    setNotified(true);
+    toast({
+      title: "You're on the waitlist!",
+      description: "We'll notify you if a slot opens up in this match.",
+    });
+  };
+
+  if (notified) {
+    return (
+      <div className="flex items-center justify-center gap-2 w-full rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3">
+        <BellRing className="w-4 h-4 text-green-400 shrink-0" />
+        <span className="text-sm font-medium text-green-400">You'll be notified if a slot opens</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-center gap-2 w-full rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5">
+        <Users className="w-4 h-4 text-destructive shrink-0" />
+        <span className="text-sm font-medium text-destructive">Match is Full — All slots taken</span>
+      </div>
+      <Button variant="outline" className="w-full gap-2" size="lg" onClick={handleNotify}>
+        <BellRing className="w-4 h-4" /> Notify Me if a Slot Opens
+      </Button>
+    </div>
   );
 }
 
@@ -401,7 +435,11 @@ export default function MatchDetailPage() {
           </div>
         )}
 
-        {!match.isJoined && match.status === "upcoming" && user?.role === "player" && (
+        {!match.isJoined && match.status === "upcoming" && user?.role === "player" && slotsLeft === 0 && (
+          <NotifyMeButton matchId={matchId} />
+        )}
+
+        {!match.isJoined && match.status === "upcoming" && user?.role === "player" && slotsLeft > 0 && (
           (
             <Dialog open={joinOpen} onOpenChange={(o) => { setJoinOpen(o); if (!o) { setSelectedSquadIds(new Set()); setTeamName(""); setJoinPlayers([]); setSoloSquadId(null); setSoloManual({ ign: "", uid: "" }); } }}>
               <DialogTrigger asChild>

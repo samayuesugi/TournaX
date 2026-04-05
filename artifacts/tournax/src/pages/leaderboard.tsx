@@ -100,24 +100,38 @@ function LeaderboardList({ data, type, isLoading }: { data: LeaderboardEntry[] |
   );
 }
 
-function LeaderboardTab({ game, type }: { game: string; type: string }) {
+function LeaderboardTab({ game, type, timeframe }: { game: string; type: string; timeframe: string }) {
   const { data, isLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["leaderboard", game, type],
-    queryFn: () => customFetch(`/api/leaderboard?game=${encodeURIComponent(game)}&type=${type}`),
+    queryKey: ["leaderboard", game, type, timeframe],
+    queryFn: () => customFetch(`/api/leaderboard?game=${encodeURIComponent(game)}&type=${type}&timeframe=${timeframe}`),
   });
   return <LeaderboardList data={data} type={type} isLoading={isLoading} />;
 }
 
 export default function LeaderboardPage() {
   const [game, setGame] = useState("all");
+  const [timeframe, setTimeframe] = useState("all");
 
   return (
     <AppLayout title="Leaderboard">
       <div className="space-y-4 pb-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Top players across all tournaments</p>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-secondary rounded-lg p-0.5 shrink-0">
+            <button
+              onClick={() => setTimeframe("all")}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${timeframe === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              All Time
+            </button>
+            <button
+              onClick={() => setTimeframe("week")}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${timeframe === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              This Week
+            </button>
+          </div>
           <Select value={game} onValueChange={setGame}>
-            <SelectTrigger className="w-36 h-8 text-xs">
+            <SelectTrigger className="h-8 text-xs flex-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -140,9 +154,9 @@ export default function LeaderboardPage() {
               <Swords className="w-3.5 h-3.5" /> Matches
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="wins"><LeaderboardTab game={game} type="wins" /></TabsContent>
-          <TabsContent value="earnings"><LeaderboardTab game={game} type="earnings" /></TabsContent>
-          <TabsContent value="matches"><LeaderboardTab game={game} type="matches" /></TabsContent>
+          <TabsContent value="wins"><LeaderboardTab game={game} type="wins" timeframe={timeframe} /></TabsContent>
+          <TabsContent value="earnings"><LeaderboardTab game={game} type="earnings" timeframe={timeframe} /></TabsContent>
+          <TabsContent value="matches"><LeaderboardTab game={game} type="matches" timeframe={timeframe} /></TabsContent>
         </Tabs>
       </div>
     </AppLayout>

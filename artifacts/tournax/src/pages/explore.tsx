@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Search, Trophy, DollarSign, Swords, Medal } from "lucide-react";
+import { Search, Trophy, DollarSign, Swords, Medal, UserPlus, UserCheck } from "lucide-react";
 import { GoldCoin } from "@/components/ui/Coins";
-import { useExploreUsers, customFetch } from "@workspace/api-client-react";
+import { useExploreUsers, customFetch, useFollowUser, useUnfollowUser } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UserProfile } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/useAuth";
 
 const GAMES = ["all", "BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC"];
 
@@ -135,7 +137,30 @@ function TopPlayersSection() {
 }
 
 function UserCard({ profile }: { profile: UserProfile }) {
-  const inner = (
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [following, setFollowing] = useState(profile.isFollowing ?? false);
+  const { mutateAsync: follow, isPending: isFollowing } = useFollowUser();
+  const { mutateAsync: unfollow, isPending: isUnfollowing } = useUnfollowUser();
+
+  const isSelf = user?.id === profile.id;
+
+  const handleFollowToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      if (following) {
+        await unfollow({ handle: profile.handle! });
+        setFollowing(false);
+      } else {
+        await follow({ handle: profile.handle! });
+        setFollowing(true);
+      }
+      queryClient.invalidateQueries({ queryKey: ["exploreUsers"] });
+    } catch {}
+  };
+
+  const card = (
     <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:border-primary/30 transition-all cursor-pointer">
       {(profile.avatar?.startsWith("/") || profile.avatar?.startsWith("http")) ? (
         <img src={profile.avatar.startsWith("/objects/") ? `/api/storage${profile.avatar}` : profile.avatar} alt="avatar" className="w-11 h-11 rounded-xl object-cover bg-secondary shrink-0" />
@@ -149,17 +174,33 @@ function UserCard({ profile }: { profile: UserProfile }) {
         <div className="text-xs text-muted-foreground">@{profile.handle || "no handle"} · {profile.role}</div>
         <div className="text-xs text-muted-foreground mt-0.5">{profile.followersCount} followers · {profile.matchesCount} matches</div>
       </div>
-      {profile.rating && (
-        <div className="shrink-0 text-right">
-          <div className="text-sm font-bold text-accent">{profile.rating.toFixed(1)}</div>
-          <div className="text-xs text-muted-foreground">rating</div>
-        </div>
-      )}
+      <div className="shrink-0 flex items-center gap-2">
+        {profile.rating && (
+          <div className="text-right">
+            <div className="text-sm font-bold text-accent">{profile.rating.toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground">rating</div>
+          </div>
+        )}
+        {user && !isSelf && profile.handle && (
+          <Button
+            size="sm"
+            variant={following ? "secondary" : "default"}
+            className={cn("h-7 px-2.5 text-xs gap-1 shrink-0", following ? "" : "")}
+            onClick={handleFollowToggle}
+            disabled={isFollowing || isUnfollowing}
+          >
+            {following
+              ? <><UserCheck className="w-3 h-3" /> Following</>
+              : <><UserPlus className="w-3 h-3" /> Follow</>
+            }
+          </Button>
+        )}
+      </div>
     </div>
   );
 
-  if (!profile.handle) return inner;
-  return <Link href={`/profile/${profile.handle}`}>{inner}</Link>;
+  if (!profile.handle) return card;
+  return <Link href={`/profile/${profile.handle}`}>{card}</Link>;
 }
 
 export default function ExplorePage() {

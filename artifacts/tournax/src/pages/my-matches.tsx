@@ -42,6 +42,7 @@ function ReviewDialog({ match, onDone }: { match: any; onDone: () => void }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async () => {
@@ -56,6 +57,7 @@ function ReviewDialog({ match, onDone }: { match: any; onDone: () => void }) {
       });
       toast({ title: "Review submitted!", description: "Thanks for rating this host." });
       setOpen(false);
+      setSubmitted(true);
       onDone();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Failed to submit review", variant: "destructive" });
@@ -64,7 +66,7 @@ function ReviewDialog({ match, onDone }: { match: any; onDone: () => void }) {
     }
   };
 
-  if ((match as any).hasReviewed) {
+  if ((match as any).hasReviewed || submitted) {
     return (
       <div className="flex items-center gap-1 mt-2">
         {[1, 2, 3, 4, 5].map(s => (

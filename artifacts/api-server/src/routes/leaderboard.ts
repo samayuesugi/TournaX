@@ -1,20 +1,31 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import { matchParticipantsTable, usersTable, matchesTable } from "@workspace/db/schema";
-import { eq, sql, and, inArray } from "drizzle-orm";
+import { eq, sql, and, inArray, gte } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
 router.get("/leaderboard", requireAuth, async (req: Request, res: Response) => {
-  const { game, type = "wins" } = req.query;
+  const { game, type = "wins", timeframe = "all" } = req.query;
+
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
 
   let matchIds: number[] | null = null;
+  const matchConditions: any[] = [];
   if (game && game !== "all") {
+    matchConditions.push(eq(matchesTable.game, game as string));
+  }
+  if (timeframe === "week") {
+    matchConditions.push(gte(matchesTable.createdAt, weekAgo));
+  }
+
+  if (matchConditions.length > 0) {
     const matchRows = await db
       .select({ id: matchesTable.id })
       .from(matchesTable)
-      .where(eq(matchesTable.game, game as string));
+      .where(matchConditions.length === 1 ? matchConditions[0] : and(...matchConditions));
     matchIds = matchRows.map((m) => m.id);
     if (matchIds.length === 0) {
       res.json([]);

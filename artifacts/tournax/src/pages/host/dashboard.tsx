@@ -15,7 +15,84 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download } from "lucide-react";
+
+function EarningsBreakdownDialog({ matches }: { matches: any[] }) {
+  const completedMatches = matches.filter((m) => m.status === "completed" && parseFloat(String(m.hostCut || 0)) > 0);
+  const totalEarnings = completedMatches.reduce((sum, m) => sum + parseFloat(String(m.hostCut || 0)), 0);
+
+  const handleExport = () => {
+    const rows = [
+      ["Match Code", "Game", "Mode", "Entry Fee", "Players", "Host Earnings", "Date"],
+      ...completedMatches.map((m) => [
+        m.code,
+        m.game,
+        m.mode,
+        m.entryFee,
+        m.filledSlots,
+        parseFloat(String(m.hostCut || 0)).toFixed(2),
+        new Date(m.startTime || m.createdAt).toLocaleDateString("en-IN"),
+      ]),
+      ["", "", "", "", "Total", totalEarnings.toFixed(2), ""],
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tournax_earnings.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+          <BarChart3 className="w-3.5 h-3.5" /> Breakdown
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-accent" /> Earnings Breakdown
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto space-y-3">
+          <div className="bg-accent/10 border border-accent/20 rounded-xl p-3 flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Total Earned</span>
+            <GoldCoin amount={totalEarnings.toFixed(0)} className="font-bold text-accent text-base" />
+          </div>
+
+          {completedMatches.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              <Trophy className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              No earnings yet
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {completedMatches.map((m) => (
+                <div key={m.id} className="bg-secondary/50 rounded-xl px-3 py-2.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{m.game} · {m.mode}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{m.code}</div>
+                    <div className="text-xs text-muted-foreground">{m.filledSlots} players · {new Date(m.startTime || m.createdAt).toLocaleDateString("en-IN")}</div>
+                  </div>
+                  <GoldCoin amount={parseFloat(String(m.hostCut || 0)).toFixed(0)} className="font-bold text-green-400 text-sm shrink-0" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {completedMatches.length > 0 && (
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs mt-2 shrink-0" onClick={handleExport}>
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </Button>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function statusColor(status: string) {
   if (status === "live") return "bg-green-500/20 text-green-400 border-green-500/30";
@@ -376,7 +453,7 @@ export default function HostDashboardPage() {
             <div className="text-xl font-bold text-green-400">{liveCount}</div>
             <div className="text-[10px] text-muted-foreground">Live Now</div>
           </div>
-          <div className="bg-card border border-card-border rounded-xl p-3 text-center">
+          <div className="bg-card border border-card-border rounded-xl p-3 text-center relative">
             <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center mx-auto mb-1.5">
               <Trophy className="w-3.5 h-3.5 text-accent" />
             </div>
@@ -384,6 +461,12 @@ export default function HostDashboardPage() {
             <div className="text-[10px] text-muted-foreground">Earned</div>
           </div>
         </div>
+
+        {(allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? []).length > 0 && (
+          <div className="flex justify-end">
+            <EarningsBreakdownDialog matches={allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? []} />
+          </div>
+        )}
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {STATUS_OPTS.map((s) => (
