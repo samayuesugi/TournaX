@@ -62,7 +62,9 @@ export default function ConversationPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ msgId: number; x: number; y: number; content: string } | null>(null);
   const [reactionPicker, setReactionPicker] = useState<{ msgId: number } | null>(null);
+  const [heartAnim, setHeartAnim] = useState<{ msgId: number; key: number } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapRef = useRef<Map<number, number>>(new Map());
 
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
@@ -181,6 +183,19 @@ export default function ConversationPage() {
     }
   };
 
+  const handleMessageTap = (msg: OptimisticMessage) => {
+    if (msg.optimistic) return;
+    const now = Date.now();
+    const lastTap = lastTapRef.current.get(msg.id) ?? 0;
+    lastTapRef.current.set(msg.id, now);
+    if (now - lastTap < 300) {
+      if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+      handleReact(msg.id, "❤️");
+      setHeartAnim({ msgId: msg.id, key: now });
+      setTimeout(() => setHeartAnim((prev) => (prev?.key === now ? null : prev)), 800);
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent, msg: OptimisticMessage) => {
     if (msg.optimistic) return;
     e.preventDefault();
@@ -207,6 +222,15 @@ export default function ConversationPage() {
 
   return (
     <AppLayout showBack backHref="/chat" hideNav headerContent={partnerHeaderContent}>
+      <style>{`
+        @keyframes heartPop {
+          0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+          30%  { transform: scale(1.5) rotate(5deg);  opacity: 1; }
+          55%  { transform: scale(1.1) rotate(-3deg); opacity: 1; }
+          80%  { transform: scale(1.25); opacity: 1; }
+          100% { transform: scale(1.1); opacity: 0; }
+        }
+      `}</style>
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         <div
           className="flex-1 overflow-y-auto pb-2 px-0.5"
@@ -256,13 +280,14 @@ export default function ConversationPage() {
                       <div className="flex flex-col" style={{ maxWidth: "72%" }}>
                         <div
                           className={cn(
-                            "px-3.5 py-2 text-sm cursor-pointer select-none",
+                            "relative px-3.5 py-2 text-sm cursor-pointer select-none overflow-hidden",
                             isMine ? "bg-primary text-primary-foreground" : "bg-card border border-card-border text-foreground",
                             isMine
                               ? isFirst && isLast ? "rounded-2xl" : isFirst ? "rounded-2xl rounded-br-md" : isLast ? "rounded-2xl rounded-tr-md" : "rounded-2xl rounded-r-md"
                               : isFirst && isLast ? "rounded-2xl" : isFirst ? "rounded-2xl rounded-bl-md" : isLast ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md",
                             msg.optimistic && "opacity-75"
                           )}
+                          onClick={() => handleMessageTap(msg)}
                           onMouseDown={(e) => handleLongPressStart(e, msg)}
                           onMouseUp={handleLongPressEnd}
                           onMouseLeave={handleLongPressEnd}
@@ -278,6 +303,11 @@ export default function ConversationPage() {
                             </span>
                             {isMine && <MessageTick optimistic={msg.optimistic} read={msg.read} />}
                           </div>
+                          {heartAnim?.msgId === msg.id && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <span key={heartAnim.key} className="text-5xl" style={{ animation: "heartPop 0.7s ease-out forwards" }}>❤️</span>
+                            </div>
+                          )}
                         </div>
 
                         {reactionEntries.length > 0 && (
