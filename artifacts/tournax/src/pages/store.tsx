@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { ShoppingBag, Sparkles, Check, Shield } from "lucide-react";
+import { ShoppingBag, Sparkles, Check, Shield, Frame, Award, Palette } from "lucide-react";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 
 interface CosmeticItem {
@@ -306,9 +306,9 @@ export default function StorePage() {
         ) : (
           <Tabs defaultValue="frames">
             <TabsList className="w-full grid grid-cols-3 mb-4">
-              <TabsTrigger value="frames">🖼 Frames</TabsTrigger>
-              <TabsTrigger value="badges">🏅 Badges</TabsTrigger>
-              <TabsTrigger value="colors">🎨 Handle</TabsTrigger>
+              <TabsTrigger value="frames" className="gap-1.5"><Frame className="w-3.5 h-3.5" /> Frames</TabsTrigger>
+              <TabsTrigger value="badges" className="gap-1.5"><Award className="w-3.5 h-3.5" /> Badges</TabsTrigger>
+              <TabsTrigger value="colors" className="gap-1.5"><Palette className="w-3.5 h-3.5" /> Handle</TabsTrigger>
             </TabsList>
 
             <TabsContent value="frames" className="space-y-3 mt-0">
