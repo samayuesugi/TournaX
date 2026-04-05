@@ -399,7 +399,20 @@ router.post("/groups/:id/messages", requireAuth, async (req: Request, res: Respo
     res.status(403).json({ error: "Only the host can send messages in this group" }); return;
   }
 
-  await db.insert(groupMessagesTable).values({ groupId, fromUserId: user.id, content: content.trim() });
+  const [saved] = await db.insert(groupMessagesTable).values({ groupId, fromUserId: user.id, content: content.trim() }).returning();
+  try {
+    const { getIO } = await import("../lib/socket");
+    getIO().to(`group-${groupId}`).emit("group:message", {
+      id: saved.id,
+      groupId,
+      fromUserId: user.id,
+      senderName: user.name || user.handle || "",
+      senderHandle: user.handle || "",
+      senderAvatar: user.avatar || "🔥",
+      content: saved.content,
+      createdAt: saved.createdAt,
+    });
+  } catch {}
   res.json({ success: true });
 });
 

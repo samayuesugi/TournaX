@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { customFetch } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSocket } from "@/contexts/SocketContext";
 
 const QUICK_EMOJIS = ["❤️","😂","😍","🔥","👍","😮","😢","😡","🎮","🏆","💪","✅"];
 const REACTION_EMOJIS = ["❤️","😂","😍","🔥","👍","😮","😢","😡","🎉","💯"];
@@ -70,9 +71,26 @@ export default function ConversationPage() {
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
 
+  const socket = useSocket();
+
   const { data: serverMessages, isLoading } = useGetConversation(partnerId, {
-    query: { refetchInterval: 2000 },
+    query: { refetchInterval: socket ? false : 2000 },
   });
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleDmMessage = (msg: OptimisticMessage) => {
+      if (
+        (msg.fromUserId === partnerId && msg.toUserId === user?.id) ||
+        (msg.fromUserId === user?.id && msg.toUserId === partnerId)
+      ) {
+        queryClient.invalidateQueries({ queryKey: [`/api/conversations/${partnerId}`] });
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      }
+    };
+    socket.on("dm:message", handleDmMessage);
+    return () => { socket.off("dm:message", handleDmMessage); };
+  }, [socket, partnerId, user?.id, queryClient]);
 
   const { mutate: markRead } = useMarkConversationRead();
   const { mutate: sendMsg, isPending } = useSendMessage();

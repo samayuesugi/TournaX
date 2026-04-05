@@ -11,6 +11,7 @@ import { Send, Users, UserPlus, UserMinus, Crown, Lock, Globe, Megaphone, Clock,
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar } from "@/lib/host-avatars";
+import { useSocket } from "@/contexts/SocketContext";
 
 interface Game { id: number; name: string; }
 
@@ -97,6 +98,7 @@ export default function GroupChatPage() {
   const groupId = Number(groupIdStr);
   const { user } = useAuth();
   const { toast } = useToast();
+  const socket = useSocket();
   const [, navigate] = useLocation();
 
   const [group, setGroup] = useState<GroupInfo | null>(null);
@@ -171,9 +173,24 @@ export default function GroupChatPage() {
   useEffect(() => {
     if (!isMember) return;
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
   }, [groupId, isMember]);
+
+  useEffect(() => {
+    if (!socket || !isMember) return;
+    socket.emit("join:group", { groupId });
+    const handleGroupMessage = (msg: GroupMessage) => {
+      if (msg.groupId !== groupId) return;
+      setMessages((prev) => {
+        const exists = prev.some((m) => m.id === msg.id);
+        return exists ? prev : [...prev, msg];
+      });
+      setOptimisticMessages((prev) =>
+        prev.filter((o) => !(o.content === msg.content && o.fromUserId === msg.fromUserId))
+      );
+    };
+    socket.on("group:message", handleGroupMessage);
+    return () => { socket.off("group:message", handleGroupMessage); };
+  }, [socket, groupId, isMember]);
 
   const allMessages = [
     ...messages,
@@ -238,15 +255,17 @@ export default function GroupChatPage() {
         method: "POST",
         body: JSON.stringify({ content: trimmed }),
       });
-      setOptimisticMessages([]);
-      await fetchMessages();
+      if (!socket) {
+        setOptimisticMessages([]);
+        await fetchMessages();
+      }
     } catch (err: any) {
       setOptimisticMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       toast({ title: "Error", description: err?.data?.error || "Failed to send", variant: "destructive" });
     } finally {
       setIsSending(false);
     }
-  }, [text, isSending, groupId, user]);
+  }, [text, isSending, groupId, user, socket]);
 
   const handleAddMember = async () => {
     if (!addHandle.trim()) return;

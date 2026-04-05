@@ -317,7 +317,21 @@ router.post("/messages", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "You are not allowed to message this user" }); return;
   }
   if (user.id === target.id) { res.status(400).json({ error: "Cannot message yourself" }); return; }
-  await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content: content.trim() });
+  const [saved] = await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content: content.trim() }).returning();
+  try {
+    const { getIO } = await import("../lib/socket");
+    const payload = {
+      id: saved.id,
+      fromUserId: user.id,
+      toUserId: target.id,
+      content: saved.content,
+      createdAt: saved.createdAt,
+      read: false,
+      reactions: {},
+    };
+    getIO().to(`user-${target.id}`).emit("dm:message", payload);
+    getIO().to(`user-${user.id}`).emit("dm:message", payload);
+  } catch {}
   res.json({ success: true });
 });
 

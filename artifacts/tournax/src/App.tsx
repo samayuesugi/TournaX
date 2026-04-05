@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/useAuth";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
 
@@ -314,7 +315,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <AppContent />
+          <SocketProvider>
+            <AppContent />
+          </SocketProvider>
         </AuthProvider>
         <Toaster />
         <PwaInstallBanner />

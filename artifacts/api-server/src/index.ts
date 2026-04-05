@@ -1,6 +1,8 @@
+import { createServer } from "http";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedDefaults } from "@workspace/db/seed";
+import { initSocketIO } from "./lib/socket";
 
 const rawPort = process.env["PORT"];
 
@@ -23,11 +25,10 @@ async function main() {
     logger.warn({ err }, "Seed skipped (database may not be ready yet)");
   }
 
-  app.listen(port, (err) => {
-    if (err) {
-      logger.error({ err }, "Error listening on port");
-      process.exit(1);
-    }
+  const httpServer = createServer(app);
+  initSocketIO(httpServer);
+
+  httpServer.listen(port, () => {
     logger.info({ port }, "Server listening");
   });
 }
