@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Swords, DollarSign, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight } from "lucide-react";
+import { Users, Swords, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import { useLocation } from "wouter";
 
@@ -164,7 +164,7 @@ export default function AdminDashboardPage() {
       <div className="space-y-4 pb-4">
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
           </div>
         ) : data ? (
           <>
@@ -172,8 +172,6 @@ export default function AdminDashboardPage() {
               <StatCard icon={Users} label="Total Players" value={data.totalPlayers} color="bg-primary/20 text-primary" />
               <StatCard icon={Activity} label="Live Now" value={data.liveNow} color="bg-green-500/20 text-green-400" />
               <StatCard icon={Swords} label="Total Matches" value={data.totalMatches} color="bg-accent/20 text-accent" />
-              <StatCard icon={AlertTriangle} label="Pending KYC" value={data.pendingKyc} color="bg-yellow-500/20 text-yellow-400" />
-              <StatCard icon={DollarSign} label="Total Revenue" value={<GoldCoin amount={data.totalRevenue.toFixed(0)} />} color="bg-green-500/20 text-green-400" />
               <StatCard icon={AlertTriangle} label="Complaints" value={data.complaintsCount} color="bg-destructive/20 text-destructive" />
             </div>
 
