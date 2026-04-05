@@ -467,7 +467,7 @@ export default function WalletPage() {
       setWithdrawOpen(false);
       refetch();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

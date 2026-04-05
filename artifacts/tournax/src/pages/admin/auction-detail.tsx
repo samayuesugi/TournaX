@@ -348,7 +348,7 @@ export default function AdminAuctionDetailPage() {
       toast({ title: "Auction is now LIVE!", description: "Bidding is open." });
       load();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsActionLoading(false);
     }
@@ -362,7 +362,7 @@ export default function AdminAuctionDetailPage() {
       toast({ title: "Auction stopped.", description: "Bidding is closed." });
       load();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsActionLoading(false);
     }
@@ -376,7 +376,7 @@ export default function AdminAuctionDetailPage() {
       toast({ title: "Auction cancelled", description: "All bids refunded." });
       load();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsActionLoading(false);
     }
@@ -426,7 +426,7 @@ export default function AdminAuctionDetailPage() {
       setResultOpen(false);
       load();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsActionLoading(false);
     }

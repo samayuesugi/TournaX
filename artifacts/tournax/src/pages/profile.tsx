@@ -68,7 +68,7 @@ function RaiseComplaintDialog() {
       reset();
       setOpen(false);
     } catch (err: any) {
-      toast({ title: "Failed to submit", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed to submit", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -542,7 +542,7 @@ function OwnProfile() {
       setSquadForm({ name: "", uid: "" });
       toast({ title: "Squad member added!" });
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -554,7 +554,7 @@ function OwnProfile() {
       setProfileOpen(false);
       toast({ title: "Profile updated!" });
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -1029,7 +1029,7 @@ function PublicProfile({ handle }: { handle: string }) {
       }
       refetch();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

@@ -76,7 +76,7 @@ function GameCard({ game }: { game: Game }) {
       await deleteGame(game.id);
       toast({ title: `${game.name} deleted` });
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -92,7 +92,7 @@ function GameCard({ game }: { game: Game }) {
       setTeamSize("1");
       setModeOpen(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -101,7 +101,7 @@ function GameCard({ game }: { game: Game }) {
       await deleteMode({ gameId: game.id, modeId });
       toast({ title: `Mode "${modeName}" removed` });
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -212,7 +212,7 @@ export default function AdminGamesPage() {
       setNewGameName("");
       setCreateOpen(false);
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

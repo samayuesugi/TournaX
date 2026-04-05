@@ -350,7 +350,7 @@ export default function StorePage() {
       toast({ title: "Purchased!", description: res.message });
       await fetchStore();
     } catch (err: any) {
-      toast({ title: "Purchase failed", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Purchase failed", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -360,7 +360,7 @@ export default function StorePage() {
       toast({ title: "Equipped!", description: res.message });
       await fetchStore();
     } catch (err: any) {
-      toast({ title: "Failed to equip", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed to equip", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -370,7 +370,7 @@ export default function StorePage() {
       toast({ title: "Unequipped" });
       await fetchStore();
     } catch (err: any) {
-      toast({ title: "Failed", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

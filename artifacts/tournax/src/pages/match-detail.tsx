@@ -197,7 +197,7 @@ export default function MatchDetailPage() {
       setJoinPlayers([]);
       refetch();
     } catch (err: any) {
-      toast({ title: "Failed to join", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed to join", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -208,7 +208,7 @@ export default function MatchDetailPage() {
       setRoomOpen(false);
       refetch();
     } catch (err: any) {
-      toast({ title: "Failed to update room", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed to update room", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -218,7 +218,7 @@ export default function MatchDetailPage() {
       toast({ title: "Match is now live!" });
       refetch();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -229,7 +229,7 @@ export default function MatchDetailPage() {
       toast({ title: "Match deleted and refunds processed" });
       navigate("/");
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

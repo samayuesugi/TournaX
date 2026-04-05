@@ -83,7 +83,7 @@ export default function CreateMatchPage() {
       toast({ title: "Match created!" });
       navigate(`/matches/${match.id}`);
     } catch (err: any) {
-      toast({ title: "Failed to create match", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed to create match", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

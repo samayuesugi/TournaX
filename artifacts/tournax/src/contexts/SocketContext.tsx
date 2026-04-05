@@ -34,10 +34,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setSocket(s);
     });
 
-    s.on("connect_error", () => {
+    s.on("connect_error", (err) => {
+      console.warn("[socket] connection error:", err.message);
+      setSocket(null);
     });
 
-    s.on("disconnect", () => {
+    s.on("disconnect", (reason) => {
+      console.warn("[socket] disconnected:", reason);
+      setSocket(null);
     });
 
     return () => {

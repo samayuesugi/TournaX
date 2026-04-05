@@ -54,7 +54,7 @@ function RequestCard({
       toast({ title: "Approved!" });
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setActionPending(false);
     }
@@ -69,7 +69,7 @@ function RequestCard({
       toast({ title: "Rejected" });
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setActionPending(false);
     }

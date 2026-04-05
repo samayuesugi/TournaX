@@ -341,7 +341,7 @@ export default function AdminProfilePage() {
       toast({ title: "Profile updated!" });
       setEditOpen(false);
     } catch (err: any) {
-      toast({ title: "Failed to update", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Failed to update", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }

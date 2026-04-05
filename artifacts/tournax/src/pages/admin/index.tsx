@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
       setHostForm({ email: "", password: "", name: "", game: "" });
       refetch();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
       setAdminForm({ email: "", password: "", name: "" });
       refetch();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 

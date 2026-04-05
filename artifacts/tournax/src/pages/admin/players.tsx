@@ -34,7 +34,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       toast({ title: "Player verified!" });
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -45,7 +45,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       toast({ title: "Player banned" });
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -57,7 +57,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       setAmount("");
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -72,7 +72,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       setAmount("");
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
 
@@ -84,7 +84,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
       setDeleteOpen(false);
       onAction();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }

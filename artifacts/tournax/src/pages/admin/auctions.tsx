@@ -74,7 +74,7 @@ export default function AdminAuctionsPage() {
       setCreateOpen(false);
       load();
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error, variant: "destructive" });
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsCreating(false);
     }
