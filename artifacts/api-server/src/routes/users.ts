@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable } from "@workspace/db/schema";
+import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, avg, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
@@ -92,6 +92,30 @@ router.get("/users/explore", requireAuth, async (req: Request, res: Response) =>
     .map(({ user: u }) => serialize(u));
 
   res.json({ recommendedHosts, mostActivePlayers });
+});
+
+router.get("/users/search", requireAuth, async (req: Request, res: Response) => {
+  const currentUser = (req as any).user;
+  const q = String(req.query.q ?? "").trim();
+  if (!q) { res.json([]); return; }
+  const results = await db.select().from(usersTable).where(
+    or(
+      ilike(usersTable.handle, `%${q}%`),
+      ilike(usersTable.name, `%${q}%`)
+    )
+  );
+  res.json(
+    results
+      .filter((u) => u.id !== currentUser.id)
+      .slice(0, 20)
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        handle: u.handle,
+        avatar: u.avatar,
+        role: u.role,
+      }))
+  );
 });
 
 router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
@@ -206,7 +230,6 @@ router.get("/conversations", requireAuth, async (req: Request, res: Response) =>
 });
 
 router.get("/conversations/:userId", requireAuth, async (req: Request, res: Response) => {
-  const { messagesTable } = await import("@workspace/db/schema");
   const user = (req as any).user;
   const partnerId = Number(req.params.userId);
   const [partner] = await db.select().from(usersTable).where(eq(usersTable.id, partnerId));
@@ -219,6 +242,20 @@ router.get("/conversations/:userId", requireAuth, async (req: Request, res: Resp
     )
   );
   msgs.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime());
+
+  const msgIds = msgs.map(m => m.id);
+  const reactions = msgIds.length > 0
+    ? await db.select().from(messageReactionsTable).where(inArray(messageReactionsTable.messageId, msgIds))
+    : [];
+
+  const reactionsByMsg = new Map<number, Record<string, number[]>>();
+  for (const r of reactions) {
+    if (!reactionsByMsg.has(r.messageId)) reactionsByMsg.set(r.messageId, {});
+    const map = reactionsByMsg.get(r.messageId)!;
+    if (!map[r.emoji]) map[r.emoji] = [];
+    map[r.emoji].push(r.userId);
+  }
+
   res.json(msgs.map(m => ({
     id: m.id,
     fromUserId: m.fromUserId,
@@ -226,7 +263,37 @@ router.get("/conversations/:userId", requireAuth, async (req: Request, res: Resp
     content: m.content,
     createdAt: m.createdAt?.toISOString(),
     read: m.read,
+    reactions: reactionsByMsg.get(m.id) ?? {},
   })));
+});
+
+router.post("/messages/:id/react", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const messageId = Number(req.params.id);
+  const { emoji } = req.body;
+  if (!emoji) { res.status(400).json({ error: "Emoji required" }); return; }
+
+  const existing = await db.select().from(messageReactionsTable).where(
+    and(
+      eq(messageReactionsTable.messageId, messageId),
+      eq(messageReactionsTable.userId, user.id),
+      eq(messageReactionsTable.emoji, emoji)
+    )
+  );
+
+  if (existing.length > 0) {
+    await db.delete(messageReactionsTable).where(
+      and(
+        eq(messageReactionsTable.messageId, messageId),
+        eq(messageReactionsTable.userId, user.id),
+        eq(messageReactionsTable.emoji, emoji)
+      )
+    );
+    res.json({ action: "removed" });
+  } else {
+    await db.insert(messageReactionsTable).values({ messageId, userId: user.id, emoji });
+    res.json({ action: "added" });
+  }
 });
 
 router.put("/conversations/:userId/read", requireAuth, async (req: Request, res: Response) => {

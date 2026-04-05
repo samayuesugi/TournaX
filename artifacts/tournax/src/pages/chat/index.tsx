@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Users, Plus, Crown } from "lucide-react";
+import { MessageCircle, Users, Plus, Crown, Search, SquarePen } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
@@ -31,20 +31,19 @@ interface Game {
   name: string;
 }
 
-// Emoji map for known game names
-const GAME_EMOJI: Record<string, string> = {
-  "BGMI": "🎯",
-  "Free Fire": "🔥",
-  "COD Mobile": "💀",
-  "Call of Duty": "💀",
-  "Valorant": "⚡",
-  "PUBG PC": "🏆",
-  "PUBG": "🏆",
-  "Chess": "♟️",
-  "FIFA": "⚽",
-  "Cricket": "🏏",
-};
+interface UserSearchResult {
+  id: number;
+  name: string;
+  handle: string;
+  avatar: string;
+  role: string;
+}
 
+const GAME_EMOJI: Record<string, string> = {
+  "BGMI": "🎯", "Free Fire": "🔥", "COD Mobile": "💀",
+  "Call of Duty": "💀", "Valorant": "⚡", "PUBG PC": "🏆",
+  "PUBG": "🏆", "Chess": "♟️", "FIFA": "⚽", "Cricket": "🏏",
+};
 const EXTRA_EMOJIS = ["🎮", "⚔️", "🌟", "🐉", "🦅", "🏅"];
 
 function getGameEmoji(name: string): string {
@@ -78,11 +77,15 @@ export default function ChatListPage() {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [games, setGames] = useState<Game[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [newDmOpen, setNewDmOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupAvatar, setGroupAvatar] = useState("🎮");
   const [isCreating, setIsCreating] = useState(false);
+  const [search, setSearch] = useState("");
+  const [dmSearch, setDmSearch] = useState("");
+  const [dmResults, setDmResults] = useState<UserSearchResult[]>([]);
+  const [dmSearching, setDmSearching] = useState(false);
 
-  // Set host's default avatar to first game image when dialog opens
   useEffect(() => {
     if (createOpen && user?.role === "host") {
       const game = (user as any)?.game as string | undefined;
@@ -113,6 +116,21 @@ export default function ChatListPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!dmSearch.trim()) { setDmResults([]); return; }
+    const timeout = setTimeout(async () => {
+      setDmSearching(true);
+      try {
+        const data = await customFetch<UserSearchResult[]>(`/api/users/search?q=${encodeURIComponent(dmSearch)}`);
+        setDmResults(data.filter((u) => u.id !== user?.id));
+      } catch {
+        setDmResults([]);
+      }
+      setDmSearching(false);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [dmSearch]);
+
   const handleCreateGroup = async () => {
     if (!groupName.trim()) return;
     setIsCreating(true);
@@ -131,20 +149,50 @@ export default function ChatListPage() {
     }
   };
 
-  const isLoading = convsLoading && groupsLoading;
+  const handleStartDm = (userId: number) => {
+    setNewDmOpen(false);
+    setDmSearch("");
+    navigate(`/chat/${userId}`);
+  };
 
-  // For hosts: use game image avatars from HOST_AVATARS if available
+  const q = search.toLowerCase();
+  const filteredConversations = conversations?.filter((c) =>
+    !q || (c.name || "").toLowerCase().includes(q) || (c.handle || "").toLowerCase().includes(q)
+  );
+  const filteredGroups = groups.filter((g) =>
+    !q || g.name.toLowerCase().includes(q)
+  );
+
+  const isLoading = convsLoading && groupsLoading;
   const hostGame = (user as any)?.game as string | undefined;
   const hostImageAvatars = user?.role === "host" && hostGame ? HOST_AVATARS[hostGame] ?? null : null;
-
-  // All available avatar options: games + extras (for non-host or fallback)
   const gameAvatars = games.map((g) => ({ label: g.name, emoji: getGameEmoji(g.name) }));
   const extraAvatars = EXTRA_EMOJIS.map((e) => ({ label: e, emoji: e }));
-  const allAvatars = [...gameAvatars, ...extraAvatars];
 
   return (
     <AppLayout title="Messages">
       <div className="space-y-1 pb-4">
+
+        {/* Search + New DM */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search chats..."
+              className="pl-8 h-9 rounded-xl text-sm bg-card border-card-border"
+            />
+          </div>
+          <button
+            onClick={() => setNewDmOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0"
+            title="New Message"
+          >
+            <SquarePen className="w-4 h-4" />
+          </button>
+        </div>
+
         {/* Groups section */}
         <div className="flex items-center justify-between mb-2 mt-1">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Groups</h3>
@@ -160,9 +208,9 @@ export default function ChatListPage() {
 
         {groupsLoading ? (
           <Skeleton className="h-16 rounded-xl" />
-        ) : groups.length > 0 ? (
+        ) : filteredGroups.length > 0 ? (
           <div className="flex flex-col gap-1 mb-4">
-            {groups.map((g) => (
+            {filteredGroups.map((g) => (
               <Link key={g.id} href={`/chat/group/${g.id}`}>
                 <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer">
                   <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
@@ -198,10 +246,7 @@ export default function ChatListPage() {
           </div>
         ) : (
           <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-xl mb-4">
-            No groups yet.{" "}
-            {(user?.role === "player" || user?.role === "host") && (
-              <button onClick={() => setCreateOpen(true)} className="text-primary underline">Create one</button>
-            )}
+            {q ? "No groups match your search" : <>No groups yet.{" "}{(user?.role === "player" || user?.role === "host") && <button onClick={() => setCreateOpen(true)} className="text-primary underline">Create one</button>}</>}
           </div>
         )}
 
@@ -210,49 +255,45 @@ export default function ChatListPage() {
 
         {isLoading ? (
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
-        ) : conversations && conversations.length > 0 ? (
+        ) : filteredConversations && filteredConversations.length > 0 ? (
           <div className="flex flex-col gap-1">
-          {conversations.map((conv) => (
-            <Link key={conv.userId} href={`/chat/${conv.userId}`}>
-              <div
-                className={cn(
+            {filteredConversations.map((conv) => (
+              <Link key={conv.userId} href={`/chat/${conv.userId}`}>
+                <div className={cn(
                   "flex items-center gap-3 bg-card border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer",
                   conv.unreadCount > 0 ? "border-primary/30" : "border-card-border"
-                )}
-              >
-                <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
-                  {conv.avatar && (conv.avatar.startsWith("/") || conv.avatar.startsWith("http") || conv.avatar.startsWith("data:"))
-                    ? <img src={conv.avatar} alt={conv.name || "avatar"} className="w-full h-full object-cover" />
-                    : conv.avatar || "🔥"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="font-semibold text-sm truncate">{conv.name || conv.handle}</span>
-                    {roleBadge(conv.role)}
+                )}>
+                  <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
+                    {conv.avatar && (conv.avatar.startsWith("/") || conv.avatar.startsWith("http") || conv.avatar.startsWith("data:"))
+                      ? <img src={conv.avatar} alt={conv.name || "avatar"} className="w-full h-full object-cover" />
+                      : conv.avatar || "🔥"}
                   </div>
-                  <p className={cn(
-                    "text-xs truncate",
-                    conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
-                  )}>
-                    {conv.lastMessage}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="font-semibold text-sm truncate">{conv.name || conv.handle}</span>
+                      {roleBadge(conv.role)}
+                    </div>
+                    <p className={cn("text-xs truncate", conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground")}>
+                      {conv.lastMessage}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-[10px] text-muted-foreground">{timeAgo(conv.lastMessageAt)}</span>
+                    {conv.unreadCount > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                        {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className="text-[10px] text-muted-foreground">{timeAgo(conv.lastMessageAt)}</span>
-                  {conv.unreadCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                      {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
           </div>
         ) : (
           <div className="text-center py-10 text-muted-foreground text-sm">
             <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            No direct messages yet
+            {q ? "No conversations match your search" : "No direct messages yet"}
+            {!q && <p className="text-xs mt-1">Tap the <SquarePen className="w-3 h-3 inline" /> button to start one</p>}
           </div>
         )}
       </div>
@@ -260,9 +301,7 @@ export default function ChatListPage() {
       {/* Create Group Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Create Group</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Create Group</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {user?.role === "host" && (
               <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
@@ -273,49 +312,29 @@ export default function ChatListPage() {
             {user?.role === "player" && (
               <div className="flex items-start gap-2 bg-secondary/50 border border-border rounded-xl p-3">
                 <Users className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">Player groups are private and limited to 10 members. You can add teammates by their handle.</p>
+                <p className="text-xs text-muted-foreground">Player groups are private and limited to 10 members.</p>
               </div>
             )}
             <div className="space-y-1.5">
               <Label>Group Name</Label>
-              <Input
-                placeholder="e.g. Squad Alpha"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()}
-              />
+              <Input placeholder="e.g. Squad Alpha" value={groupName} onChange={(e) => setGroupName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateGroup()} />
             </div>
-
-            {/* Avatar preview */}
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-2xl bg-primary/15 border-2 border-primary/40 flex items-center justify-center text-3xl shrink-0 overflow-hidden">
-                {isImageAvatar(groupAvatar)
-                  ? <img src={groupAvatar} alt="avatar" className="w-full h-full object-cover" />
-                  : groupAvatar}
+                {isImageAvatar(groupAvatar) ? <img src={groupAvatar} alt="avatar" className="w-full h-full object-cover" /> : groupAvatar}
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Selected Avatar</p>
-                <p className="text-xs text-muted-foreground">
-                  {hostImageAvatars ? "Pick a game avatar below" : "Pick a game or icon below"}
-                </p>
+                <p className="text-xs text-muted-foreground">{hostImageAvatars ? "Pick a game avatar below" : "Pick a game or icon below"}</p>
               </div>
             </div>
-
             <div className="space-y-2">
-              {/* Host: show game image avatars */}
               {hostImageAvatars ? (
                 <>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{hostGame} Avatars</p>
                   <div className="flex flex-wrap gap-2">
                     {hostImageAvatars.map((src) => (
-                      <button
-                        key={src}
-                        onClick={() => setGroupAvatar(src)}
-                        className={cn(
-                          "w-14 h-14 rounded-xl border-2 overflow-hidden transition-all",
-                          groupAvatar === src ? "border-primary" : "border-transparent hover:border-border"
-                        )}
-                      >
+                      <button key={src} onClick={() => setGroupAvatar(src)} className={cn("w-14 h-14 rounded-xl border-2 overflow-hidden transition-all", groupAvatar === src ? "border-primary" : "border-transparent hover:border-border")}>
                         <img src={src} alt="avatar" className="w-full h-full object-cover" />
                       </button>
                     ))}
@@ -323,23 +342,12 @@ export default function ChatListPage() {
                 </>
               ) : (
                 <>
-                  {/* Game-based emoji avatars (non-host) */}
                   {gameAvatars.length > 0 && (
                     <>
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Games</p>
                       <div className="flex flex-wrap gap-2">
                         {gameAvatars.map((a) => (
-                          <button
-                            key={a.label}
-                            onClick={() => setGroupAvatar(a.emoji)}
-                            title={a.label}
-                            className={cn(
-                              "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all border",
-                              groupAvatar === a.emoji
-                                ? "bg-primary/20 border-primary text-foreground"
-                                : "bg-secondary border-transparent hover:border-border"
-                            )}
-                          >
+                          <button key={a.label} onClick={() => setGroupAvatar(a.emoji)} title={a.label} className={cn("flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all border", groupAvatar === a.emoji ? "bg-primary/20 border-primary text-foreground" : "bg-secondary border-transparent hover:border-border")}>
                             <span className="text-xl">{a.emoji}</span>
                             <span className="text-[9px] text-muted-foreground leading-tight max-w-[48px] truncate">{a.label}</span>
                           </button>
@@ -349,23 +357,12 @@ export default function ChatListPage() {
                   )}
                 </>
               )}
-
-              {/* Extra emojis (always shown for non-host, hidden for host who has game images) */}
               {!hostImageAvatars && (
                 <>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Others</p>
                   <div className="flex flex-wrap gap-2">
                     {extraAvatars.map((a) => (
-                      <button
-                        key={a.emoji}
-                        onClick={() => setGroupAvatar(a.emoji)}
-                        className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border",
-                          groupAvatar === a.emoji
-                            ? "bg-primary/20 border-primary"
-                            : "bg-secondary border-transparent hover:border-border"
-                        )}
-                      >
+                      <button key={a.emoji} onClick={() => setGroupAvatar(a.emoji)} className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border", groupAvatar === a.emoji ? "bg-primary/20 border-primary" : "bg-secondary border-transparent hover:border-border")}>
                         {a.emoji}
                       </button>
                     ))}
@@ -373,14 +370,55 @@ export default function ChatListPage() {
                 </>
               )}
             </div>
-
-            <Button
-              className="w-full"
-              onClick={handleCreateGroup}
-              disabled={isCreating || !groupName.trim()}
-            >
+            <Button className="w-full" onClick={handleCreateGroup} disabled={isCreating || !groupName.trim()}>
               {isCreating ? "Creating..." : "Create Group"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New DM Dialog */}
+      <Dialog open={newDmOpen} onOpenChange={(o) => { setNewDmOpen(o); if (!o) { setDmSearch(""); setDmResults([]); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>New Message</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={dmSearch}
+                onChange={(e) => setDmSearch(e.target.value)}
+                placeholder="Search by name or @handle..."
+                className="pl-9"
+                autoFocus
+              />
+            </div>
+            {dmSearching && <p className="text-xs text-muted-foreground text-center py-2">Searching...</p>}
+            {!dmSearching && dmSearch && dmResults.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">No users found</p>
+            )}
+            {dmResults.length > 0 && (
+              <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
+                {dmResults.map((u) => (
+                  <button key={u.id} onClick={() => handleStartDm(u.id)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-secondary transition-colors text-left">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0 overflow-hidden">
+                      {u.avatar && (u.avatar.startsWith("/") || u.avatar.startsWith("http"))
+                        ? <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                        : u.avatar || "🔥"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{u.name || u.handle}</p>
+                      {u.handle && <p className="text-xs text-muted-foreground">@{u.handle}</p>}
+                    </div>
+                    {roleBadge(u.role)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!dmSearch && (
+              <p className="text-xs text-muted-foreground text-center py-6">
+                Type a name or handle to find someone
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
