@@ -108,14 +108,18 @@ router.post("/store/equip/:itemId", requireAuth, async (req: Request, res: Respo
     return;
   }
 
-  const [owned] = await db
-    .select({ id: userCosmeticsTable.id })
-    .from(userCosmeticsTable)
-    .where(and(eq(userCosmeticsTable.userId, user.id), eq(userCosmeticsTable.itemId, itemId)));
+  const isHostOrAdmin = user.role === "host" || user.role === "admin";
 
-  if (!owned) {
-    res.status(403).json({ error: "You don't own this item" });
-    return;
+  if (!isHostOrAdmin) {
+    const [owned] = await db
+      .select({ id: userCosmeticsTable.id })
+      .from(userCosmeticsTable)
+      .where(and(eq(userCosmeticsTable.userId, user.id), eq(userCosmeticsTable.itemId, itemId)));
+
+    if (!owned) {
+      res.status(403).json({ error: "You don't own this item" });
+      return;
+    }
   }
 
   if (item.category === "frame") {
