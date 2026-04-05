@@ -190,7 +190,7 @@ export default function ConversationPage() {
     lastTapRef.current.set(msg.id, now);
     if (now - lastTap < 300) {
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-      handleReact(msg.id, "❤️");
+      handleReact(msg.id, "👍");
       setHeartAnim({ msgId: msg.id, key: now });
       setTimeout(() => setHeartAnim((prev) => (prev?.key === now ? null : prev)), 800);
     }
@@ -305,7 +305,7 @@ export default function ConversationPage() {
                           </div>
                           {heartAnim?.msgId === msg.id && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <span key={heartAnim.key} className="text-5xl" style={{ animation: "heartPop 0.7s ease-out forwards" }}>❤️</span>
+                              <span key={heartAnim.key} className="text-5xl" style={{ animation: "heartPop 0.7s ease-out forwards" }}>👍</span>
                             </div>
                           )}
                         </div>
