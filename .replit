@@ -36,3 +36,6 @@ DEFAULT_ADMIN_PASSWORD = "SmityXmr@0816"
 VAPID_PUBLIC_KEY = "BFQMqdjU5uyWAUrzXy6kQ0T-rJ9JmkRJF2w3CHCdrcnQ6MeSVGzR84avrTqqTpVna2POPHlvz_T1BZ3os3w55Y4"
 VAPID_PRIVATE_KEY = "MRoBLguzVGeOyYHV_UEw1NKdQDbNwCw9nRzRUucm0uI"
 VAPID_EMAIL = "mailto:admin@tournax.app"
+
+[userenv.production]
+APP_URL = "https://tourna-x--tournaxofficial.replit.app"
