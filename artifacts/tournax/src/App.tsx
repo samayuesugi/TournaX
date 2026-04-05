@@ -36,6 +36,7 @@ import AuctionDetailPage from "@/pages/auctions/detail";
 import AdminAuctionsPage from "@/pages/admin/auctions";
 import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
 import AdminEarningsPage from "@/pages/admin/earnings";
+import StorePage from "@/pages/store";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
@@ -159,6 +160,10 @@ function Router() {
         <ProtectedRoute roles={["player", "host"]}>
           <ExplorePage />
         </ProtectedRoute>
+      </Route>
+
+      <Route path="/store">
+        <ProtectedRoute roles={["player"]}><StorePage /></ProtectedRoute>
       </Route>
 
       <Route path="/notifications">

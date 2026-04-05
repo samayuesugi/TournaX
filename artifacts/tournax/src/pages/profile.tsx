@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
+import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
 
 const COMPLAINT_TOPICS = [
   { id: "Withdrawal Issue", label: "Withdrawal Issue", icon: "💸" },
@@ -565,10 +566,15 @@ function OwnProfile() {
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <AvatarDisplay avatar={user.avatar} className="w-16 h-16 rounded-2xl text-3xl" />
+              <AvatarDisplay avatar={user.avatar} className={cn("w-16 h-16 rounded-2xl text-3xl", getFrameClass((user as any).equippedFrame))} />
               <div>
-                <h2 className="text-lg font-bold">{user.name || "Player"}</h2>
-                <p className="text-muted-foreground text-sm">@{user.handle || user.email}</p>
+                <h2 className="text-lg font-bold flex items-center gap-1.5">
+                  {user.name || "Player"}
+                  {getBadgeEmoji((user as any).equippedBadge) && (
+                    <span className="text-base" title="Profile Badge">{getBadgeEmoji((user as any).equippedBadge)}</span>
+                  )}
+                </h2>
+                <p className={cn("text-sm", getHandleColorClass((user as any).equippedHandleColor) ?? "text-muted-foreground")}>@{user.handle || user.email}</p>
                 {user.role === "admin" ? (
                   <div className="flex items-center gap-1.5 mt-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-primary" />
@@ -1095,10 +1101,15 @@ function PublicProfile({ handle }: { handle: string }) {
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 flex-1">
-              <AvatarDisplay avatar={profile.avatar} className="w-16 h-16 rounded-2xl text-3xl" />
+              <AvatarDisplay avatar={profile.avatar} className={cn("w-16 h-16 rounded-2xl text-3xl", getFrameClass((profile as any).equippedFrame))} />
               <div>
-                <h2 className="text-lg font-bold">{profile.name || `@${handle}`}</h2>
-                <p className="text-muted-foreground text-sm">@{profile.handle}</p>
+                <h2 className="text-lg font-bold flex items-center gap-1.5">
+                  {profile.name || `@${handle}`}
+                  {getBadgeEmoji((profile as any).equippedBadge) && (
+                    <span className="text-base" title="Profile Badge">{getBadgeEmoji((profile as any).equippedBadge)}</span>
+                  )}
+                </h2>
+                <p className={cn("text-sm", getHandleColorClass((profile as any).equippedHandleColor) ?? "text-muted-foreground")}>@{profile.handle}</p>
                 {profile.role === "admin" ? (
                   <div className="flex items-center gap-1.5 mt-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-primary" />

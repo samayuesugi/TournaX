@@ -373,6 +373,9 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     x: user.x,
     youtube: user.youtube,
     twitch: user.twitch,
+    equippedFrame: user.equippedFrame ?? null,
+    equippedBadge: user.equippedBadge ?? null,
+    equippedHandleColor: user.equippedHandleColor ?? null,
     upcomingMatches: upcomingMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),

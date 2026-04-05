@@ -38,6 +38,9 @@ export const usersTable = pgTable("users", {
   tournamentWins: integer("tournament_wins").notNull().default(0),
   dailyTournamentWins: integer("daily_tournament_wins").notNull().default(0),
   dailyInviteShared: integer("daily_invite_shared").notNull().default(0),
+  equippedFrame: text("equipped_frame"),
+  equippedBadge: text("equipped_badge"),
+  equippedHandleColor: text("equipped_handle_color"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

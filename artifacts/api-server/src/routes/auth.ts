@@ -86,6 +86,9 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     referralBonusActive: user.referralBonusUntil ? user.referralBonusUntil >= today : false,
     referralBonusUntil: user.referralBonusUntil ?? null,
     paidMatchesPlayed: user.paidMatchesPlayed ?? 0,
+    equippedFrame: user.equippedFrame ?? null,
+    equippedBadge: user.equippedBadge ?? null,
+    equippedHandleColor: user.equippedHandleColor ?? null,
   };
 }
 

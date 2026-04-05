@@ -1,12 +1,12 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Gavel } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Gavel, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { cn } from "@/lib/utils";
 
 const playerNav = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/explore", icon: Compass, label: "Explore" },
-  { href: "/auctions", icon: Gavel, label: "Auctions" },
+  { href: "/store", icon: ShoppingBag, label: "Store" },
   { href: "/my-matches", icon: Swords, label: "Matches" },
   { href: "/profile", icon: User, label: "Profile" },
 ];

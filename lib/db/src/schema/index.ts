@@ -7,3 +7,4 @@ export * from "./groups";
 export * from "./reviews";
 export * from "./auctions";
 export * from "./social";
+export * from "./cosmetics";

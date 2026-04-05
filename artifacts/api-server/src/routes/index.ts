@@ -13,6 +13,7 @@ import referralRouter from "./referral";
 import auctionsRouter from "./auctions";
 import pushRouter from "./push";
 import postsRouter from "./posts";
+import storeRouter from "./store";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(referralRouter);
 router.use(auctionsRouter);
 router.use(pushRouter);
 router.use(postsRouter);
+router.use(storeRouter);
 
 export default router;
