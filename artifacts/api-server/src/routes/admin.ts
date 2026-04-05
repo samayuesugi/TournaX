@@ -5,7 +5,7 @@ import {
   addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable,
   platformEarningsTable
 } from "@workspace/db/schema";
-import { eq, and, ilike, or, sql } from "drizzle-orm";
+import { eq, and, ilike, or, sql, gte, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import bcrypt from "bcryptjs";
 import { notify } from "../lib/notify";
@@ -295,6 +295,55 @@ router.get("/admin/platform-earnings", requireAdmin, async (req: Request, res: R
 router.delete("/admin/platform-earnings", requireAdmin, async (req: Request, res: Response) => {
   await db.delete(platformEarningsTable);
   res.json({ success: true });
+});
+
+router.get("/admin/earnings", requireAdmin, async (req: Request, res: Response) => {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(now.getDate() - 30);
+  const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(now.getDate() - 7);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const allEarnings = await db.select().from(platformEarningsTable).orderBy(desc(platformEarningsTable.createdAt));
+
+  const totalAllTime = allEarnings.reduce((s, e) => s + parseFloat(e.amount as string), 0);
+  const last30 = allEarnings.filter(e => new Date(e.createdAt!) >= thirtyDaysAgo);
+  const last7 = allEarnings.filter(e => new Date(e.createdAt!) >= sevenDaysAgo);
+  const thisMonth = allEarnings.filter(e => new Date(e.createdAt!) >= startOfMonth);
+
+  const totalLast30 = last30.reduce((s, e) => s + parseFloat(e.amount as string), 0);
+  const totalLast7 = last7.reduce((s, e) => s + parseFloat(e.amount as string), 0);
+  const totalThisMonth = thisMonth.reduce((s, e) => s + parseFloat(e.amount as string), 0);
+
+  const dailyMap = new Map<string, number>();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    dailyMap.set(d.toISOString().split("T")[0], 0);
+  }
+  for (const e of last30) {
+    const day = new Date(e.createdAt!).toISOString().split("T")[0];
+    if (dailyMap.has(day)) dailyMap.set(day, (dailyMap.get(day) ?? 0) + parseFloat(e.amount as string));
+  }
+  const dailyBreakdown = Array.from(dailyMap.entries()).map(([date, amount]) => ({ date, amount }));
+
+  const gameMap = new Map<string, number>();
+  for (const e of allEarnings) {
+    const [match] = await db.select({ game: matchesTable.game }).from(matchesTable).where(eq(matchesTable.id, e.matchId));
+    const game = match?.game || "Unknown";
+    gameMap.set(game, (gameMap.get(game) ?? 0) + parseFloat(e.amount as string));
+  }
+  const byGame = Array.from(gameMap.entries())
+    .map(([game, amount]) => ({ game, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const recentEarnings = allEarnings.slice(0, 30).map(e => ({
+    id: e.id,
+    matchId: e.matchId,
+    matchCode: e.matchCode,
+    amount: parseFloat(e.amount as string),
+    createdAt: e.createdAt?.toISOString(),
+  }));
+
+  res.json({ totalAllTime, totalLast30, totalLast7, totalThisMonth, dailyBreakdown, byGame, recentEarnings });
 });
 
 export default router;

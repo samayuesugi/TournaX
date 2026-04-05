@@ -35,6 +35,7 @@ import AuctionsPage from "@/pages/auctions/index";
 import AuctionDetailPage from "@/pages/auctions/detail";
 import AdminAuctionsPage from "@/pages/admin/auctions";
 import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
+import AdminEarningsPage from "@/pages/admin/earnings";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
