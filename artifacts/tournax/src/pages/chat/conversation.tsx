@@ -31,6 +31,7 @@ function dateSeparator(iso: string) {
 
 interface OptimisticMessage {
   id: number;
+  clientId?: string;
   fromUserId: number;
   toUserId: number;
   content: string;
@@ -117,8 +118,10 @@ export default function ConversationPage() {
     }
     setShowEmojiPicker(false);
 
+    const clientId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimistic: OptimisticMessage = {
       id: Date.now(),
+      clientId,
       fromUserId: user!.id,
       toUserId: partnerId,
       content: trimmed,
@@ -134,12 +137,12 @@ export default function ConversationPage() {
       { data: { toUserId: partnerId, content: trimmed } },
       {
         onSuccess: () => {
-          setOptimisticMessages([]);
+          setOptimisticMessages((prev) => prev.filter((m) => m.clientId !== clientId));
           queryClient.invalidateQueries({ queryKey: [`/api/conversations/${partnerId}`] });
           queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
         },
         onError: () => {
-          setOptimisticMessages((prev) => prev.filter((m) => m.content !== trimmed));
+          setOptimisticMessages((prev) => prev.filter((m) => m.clientId !== clientId));
         },
       }
     );

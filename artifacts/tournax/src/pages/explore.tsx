@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UserProfile } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const GAMES = ["all", "BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC"];
 
@@ -139,6 +140,7 @@ function TopPlayersSection() {
 function UserCard({ profile }: { profile: UserProfile }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [following, setFollowing] = useState(profile.isFollowing ?? false);
   const { mutateAsync: follow, isPending: isFollowing } = useFollowUser();
   const { mutateAsync: unfollow, isPending: isUnfollowing } = useUnfollowUser();
@@ -148,16 +150,19 @@ function UserCard({ profile }: { profile: UserProfile }) {
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const wasFollowing = following;
+    setFollowing(!wasFollowing);
     try {
-      if (following) {
+      if (wasFollowing) {
         await unfollow({ handle: profile.handle! });
-        setFollowing(false);
       } else {
         await follow({ handle: profile.handle! });
-        setFollowing(true);
       }
       queryClient.invalidateQueries({ queryKey: ["exploreUsers"] });
-    } catch {}
+    } catch {
+      setFollowing(wasFollowing);
+      toast({ title: "Action failed", description: "Could not update follow status. Please try again.", variant: "destructive" });
+    }
   };
 
   const card = (
