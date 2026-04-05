@@ -27,7 +27,7 @@ interface StoreData {
 
 function SilverIcon({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center justify-center rounded-full bg-slate-400/20 border border-slate-400/40 text-slate-300 font-bold text-[10px] w-4 h-4", className)}>S</span>
+    <img src="/silver-coin.png" alt="Silver" className={cn("w-4 h-4 shrink-0 object-contain", className)} />
   );
 }
 
