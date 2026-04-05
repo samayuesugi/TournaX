@@ -57,6 +57,10 @@ export default function CreateMatchPage() {
       toast({ title: "Fill in all fields", variant: "destructive" });
       return;
     }
+    if (!selectedThumbnail) {
+      toast({ title: "Select a match thumbnail", variant: "destructive" });
+      return;
+    }
     if (!form.showcasePrizePool) {
       toast({ title: "Enter the showcase prize pool amount", variant: "destructive" });
       return;
@@ -206,9 +210,9 @@ export default function CreateMatchPage() {
 
         <div className="bg-card border border-card-border rounded-2xl p-4 space-y-3">
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <ImageIcon className="w-3.5 h-3.5" /> Match Thumbnail <span className="font-normal normal-case">(optional)</span>
+            <ImageIcon className="w-3.5 h-3.5" /> Match Thumbnail <span className="text-destructive font-normal normal-case">*</span>
           </h3>
-          <p className="text-xs text-muted-foreground">Select a banner image to show on your match card</p>
+          <p className="text-xs text-muted-foreground">Select a banner image to show on your match card (required)</p>
           <div className="grid grid-cols-2 gap-2">
             {THUMBNAIL_OPTIONS.map((t) => (
               <button
