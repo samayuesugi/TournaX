@@ -377,7 +377,10 @@ export default function StorePage() {
   const frames = storeData?.items.filter(i => i.category === "frame") ?? [];
   const badges = storeData?.items.filter(i => i.category === "badge") ?? [];
   const colors = storeData?.items.filter(i => i.category === "handle_color") ?? [];
-  const owned = new Set(storeData?.owned ?? []);
+  const isHostOrAdmin = user?.role === "host" || user?.role === "admin";
+  const owned = isHostOrAdmin
+    ? new Set(storeData?.items.map(i => i.id) ?? [])
+    : new Set(storeData?.owned ?? []);
   const equipped = storeData?.equipped ?? { frame: null, badge: null, handle_color: null };
 
   return (
@@ -389,7 +392,9 @@ export default function StorePage() {
           </div>
           <div className="flex-1">
             <div className="font-semibold text-sm">Cosmetics Store</div>
-            <div className="text-xs text-muted-foreground">Spend Silver Coins on exclusive cosmetics</div>
+            <div className="text-xs text-muted-foreground">
+              {isHostOrAdmin ? "All cosmetics unlocked for hosts" : "Spend Silver Coins on exclusive cosmetics"}
+            </div>
           </div>
           <div className="flex items-center gap-1.5 bg-slate-400/10 border border-slate-400/25 rounded-xl px-3 py-1.5">
             <SilverIcon />

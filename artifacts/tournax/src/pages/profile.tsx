@@ -591,7 +591,7 @@ function OwnProfile() {
               </div>
             </div>
             <div className="flex gap-2">
-              {user.role === "player" && (
+              {(user.role === "player" || user.role === "host") && (
                 <Link href="/store">
                   <Button variant="outline" size="icon" className="h-8 w-8" title="Cosmetics Store">
                     <ShoppingBag className="w-3.5 h-3.5" />
