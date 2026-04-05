@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const playerNav = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/explore", icon: Compass, label: "Explore" },
-  { href: "/auctions", icon: Gavel, label: "Auctions" },
+  { href: "/store", icon: ShoppingBag, label: "Store" },
   { href: "/my-matches", icon: Swords, label: "Matches" },
   { href: "/profile", icon: User, label: "Profile" },
 ];
