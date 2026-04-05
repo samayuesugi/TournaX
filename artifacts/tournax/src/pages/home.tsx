@@ -86,6 +86,7 @@ function PostCard({ post }: { post: Post }) {
   const [commentInput, setCommentInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const imageSrc = post.imageUrl.startsWith("data:")
     ? post.imageUrl
@@ -112,7 +113,7 @@ function PostCard({ post }: { post: Post }) {
       setComments(data);
       setCommentsLoaded(true);
     } catch {
-      /* ignore */
+      toast({ title: "Failed to load comments", variant: "destructive" });
     } finally {
       setCommentsLoading(false);
     }
@@ -137,7 +138,7 @@ function PostCard({ post }: { post: Post }) {
       setCommentCount((c) => c + 1);
       setCommentInput("");
     } catch {
-      /* ignore */
+      toast({ title: "Failed to post comment", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -379,7 +380,7 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
             onClick={handleSubmit}
             disabled={isSubmitting || !imageFile || !canPost}
           >
-            {isSubmitting ? "Posting..." : "Post · -5 Silver"}
+            {isSubmitting ? "Posting..." : "Post · -10 Silver"}
           </Button>
         </div>
       </DialogContent>
