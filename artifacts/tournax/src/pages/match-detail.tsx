@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
@@ -321,15 +321,39 @@ export default function MatchDetailPage() {
             </div>
           </div>
           {match.hostHandle && (
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
-                <Shield className="w-4 h-4 text-muted-foreground" />
+            <button
+              type="button"
+              onClick={() => navigate(`/profile/${match.hostHandle}`)}
+              className="w-full flex items-center gap-3 bg-secondary/40 hover:bg-secondary/70 transition-colors rounded-xl px-3 py-2.5 text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden text-lg">
+                {(match as any).hostAvatar && ((match as any).hostAvatar.startsWith("/") || (match as any).hostAvatar.startsWith("http"))
+                  ? <img src={(match as any).hostAvatar} alt="" className="w-full h-full object-cover" />
+                  : ((match as any).hostAvatar ?? "🛡️")}
               </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Hosted by</p>
-                <p className="text-sm font-medium">@{match.hostHandle}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-semibold truncate">{(match as any).hostName || `@${match.hostHandle}`}</p>
+                  <Shield className="w-3 h-3 text-primary shrink-0" />
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="text-[11px] text-muted-foreground">@{match.hostHandle}</span>
+                  {((match as any).hostFollowers ?? 0) > 0 && (
+                    <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                      <Users className="w-3 h-3" /> {(match as any).hostFollowers}
+                    </span>
+                  )}
+                  {(match as any).hostRating != null && (match as any).hostReviewCount > 0 && (
+                    <span className="text-[11px] text-amber-400 flex items-center gap-0.5">
+                      <Star className="w-3 h-3 fill-amber-400" />
+                      {((match as any).hostRating as number).toFixed(1)}
+                      <span className="text-muted-foreground">({(match as any).hostReviewCount})</span>
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+            </button>
           )}
           {/* Slot fill bar */}
           <div>
