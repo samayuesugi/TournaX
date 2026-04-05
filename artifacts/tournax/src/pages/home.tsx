@@ -261,7 +261,7 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const silverCoins = user?.silverCoins ?? 0;
-  const canPost = silverCoins >= 5;
+  const canPost = silverCoins >= 10;
 
   const reset = () => {
     setCaption("");
@@ -302,7 +302,7 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
         method: "POST",
         body: JSON.stringify({ imageUrl, caption: caption.trim() || null }),
       });
-      toast({ title: "Posted!", description: "5 Silver Coins deducted." });
+      toast({ title: "Posted!", description: "10 Silver Coins deducted." });
       reset();
       setOpen(false);
       onSuccess();
@@ -331,12 +331,12 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
         <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
           {!canPost && (
             <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-3 py-2 text-xs text-yellow-400">
-              You need 5 Silver Coins to post. You have {silverCoins}.
+              You need 10 Silver Coins to post. You have {silverCoins}.
             </div>
           )}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <SilverCoinIcon size="sm" />
-            <span>Posting costs <span className="font-bold text-foreground">5 Silver Coins</span></span>
+            <span>Posting costs <span className="font-bold text-foreground">10 Silver Coins</span></span>
           </div>
           <input
             ref={fileInputRef}

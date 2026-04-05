@@ -6,7 +6,7 @@ import { requireAuth } from "./auth";
 
 const router: IRouter = Router();
 
-const POST_COST_SILVER = 5;
+const POST_COST_SILVER = 10;
 
 router.get("/posts", requireAuth, async (req: Request, res: Response) => {
   const limit = Math.min(parseInt((req.query.limit as string) || "20"), 50);
