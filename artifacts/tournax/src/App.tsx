@@ -164,7 +164,7 @@ function Router() {
       </Route>
 
       <Route path="/store">
-        <ProtectedRoute roles={["player"]}><StorePage /></ProtectedRoute>
+        <ProtectedRoute roles={["player", "host"]}><StorePage /></ProtectedRoute>
       </Route>
 
       <Route path="/notifications">
