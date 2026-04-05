@@ -3,10 +3,11 @@ import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { ShoppingBag, Sparkles, Check, Shield, Frame, Award, Palette } from "lucide-react";
+import { ShoppingBag, Sparkles, Check, Shield, Frame, Award, Palette, Eye } from "lucide-react";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 
 interface CosmeticItem {
@@ -50,7 +51,97 @@ function AvatarWithFrame({ avatar, frameClass, size = "lg" }: { avatar?: string 
   );
 }
 
-function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }: {
+function PreviewDialog({ item, userAvatar, userHandle, userName, owned, equipped, silver, onBuy, onEquip, onUnequip, onClose }: {
+  item: CosmeticItem;
+  userAvatar?: string | null;
+  userHandle?: string;
+  userName?: string;
+  owned: boolean;
+  equipped: boolean;
+  silver: number;
+  onBuy: (id: string) => Promise<void>;
+  onEquip: (id: string) => Promise<void>;
+  onUnequip: (cat: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const handle = userHandle ?? "yourhandle";
+  const name = userName ?? "Player";
+
+  const handleAction = async () => {
+    setLoading(true);
+    try {
+      if (!owned) await onBuy(item.id);
+      else if (!equipped) await onEquip(item.id);
+      else await onUnequip(item.category);
+      onClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-xs p-0 overflow-hidden">
+        <DialogHeader className="px-4 pt-4 pb-2">
+          <DialogTitle className="text-sm flex items-center gap-2">
+            <Eye className="w-4 h-4 text-primary" /> Preview · {item.name}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="px-4 pb-5 space-y-4">
+          <div className="bg-secondary/40 border border-border rounded-2xl p-5 flex flex-col items-center gap-3">
+            {item.category === "frame" && (
+              <>
+                <AvatarWithFrame avatar={userAvatar} frameClass={item.cssValue} size="lg" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm">{name}</div>
+                  <div className="text-xs text-muted-foreground">@{handle}</div>
+                </div>
+              </>
+            )}
+            {item.category === "badge" && (
+              <>
+                <AvatarWithFrame avatar={userAvatar} size="lg" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm flex items-center justify-center gap-1.5">
+                    {name} <span className="text-lg">{item.emoji}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">@{handle}</div>
+                </div>
+              </>
+            )}
+            {item.category === "handle_color" && (
+              <>
+                <AvatarWithFrame avatar={userAvatar} size="lg" />
+                <div className="text-center">
+                  <div className="font-semibold text-sm">{name}</div>
+                  <div className={cn("text-sm font-bold font-mono", item.cssValue)}>@{handle}</div>
+                </div>
+              </>
+            )}
+            <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-sm font-semibold text-slate-300">
+              <SilverIcon /> {item.cost}
+            </div>
+            <Button
+              size="sm"
+              variant={equipped ? "outline" : "default"}
+              className={cn("h-8 px-5 text-sm", equipped && "border-primary/40 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40")}
+              onClick={handleAction}
+              disabled={loading || (!owned && silver < item.cost)}
+            >
+              {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : "Buy"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver, onPreview }: {
   item: CosmeticItem;
   owned: boolean;
   equipped: boolean;
@@ -58,6 +149,7 @@ function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
   onEquip: (id: string) => Promise<void>;
   onUnequip: (cat: string) => Promise<void>;
   silver: number;
+  onPreview: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const canAfford = silver >= item.cost;
@@ -78,7 +170,7 @@ function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
       "bg-card border rounded-2xl p-4 flex flex-col gap-3 transition-all",
       equipped ? "border-primary/60 bg-primary/5" : "border-border"
     )}>
-      <div className="flex items-center gap-3">
+      <button type="button" onClick={onPreview} className="flex items-center gap-3 text-left w-full">
         <AvatarWithFrame avatar="🎮" frameClass={owned ? item.cssValue : undefined} size="sm" />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm flex items-center gap-1.5">
@@ -87,7 +179,8 @@ function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
           </div>
           <div className="text-xs text-muted-foreground leading-tight mt-0.5">{item.description}</div>
         </div>
-      </div>
+        <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
+      </button>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-sm font-semibold text-slate-300">
           <SilverIcon /> {item.cost}
@@ -106,7 +199,7 @@ function FrameCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
   );
 }
 
-function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }: {
+function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver, onPreview }: {
   item: CosmeticItem;
   owned: boolean;
   equipped: boolean;
@@ -114,6 +207,7 @@ function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
   onEquip: (id: string) => Promise<void>;
   onUnequip: (cat: string) => Promise<void>;
   silver: number;
+  onPreview: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const canAfford = silver >= item.cost;
@@ -134,7 +228,7 @@ function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
       "bg-card border rounded-2xl p-4 flex flex-col gap-3 transition-all",
       equipped ? "border-primary/60 bg-primary/5" : "border-border"
     )}>
-      <div className="flex items-center gap-3">
+      <button type="button" onClick={onPreview} className="flex items-center gap-3 text-left w-full">
         <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center text-2xl shrink-0">
           {item.emoji}
         </div>
@@ -145,7 +239,8 @@ function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
           </div>
           <div className="text-xs text-muted-foreground leading-tight mt-0.5">{item.description}</div>
         </div>
-      </div>
+        <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
+      </button>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-sm font-semibold text-slate-300">
           <SilverIcon /> {item.cost}
@@ -164,7 +259,7 @@ function BadgeCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver }:
   );
 }
 
-function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver, handle }: {
+function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, silver, handle, onPreview }: {
   item: CosmeticItem;
   owned: boolean;
   equipped: boolean;
@@ -173,6 +268,7 @@ function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, sil
   onUnequip: (cat: string) => Promise<void>;
   silver: number;
   handle?: string;
+  onPreview: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const canAfford = silver >= item.cost;
@@ -193,7 +289,7 @@ function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, sil
       "bg-card border rounded-2xl p-4 flex flex-col gap-3 transition-all",
       equipped ? "border-primary/60 bg-primary/5" : "border-border"
     )}>
-      <div className="flex items-center gap-3">
+      <button type="button" onClick={onPreview} className="flex items-center gap-3 text-left w-full">
         <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center text-xl shrink-0">
           {item.emoji}
         </div>
@@ -206,7 +302,8 @@ function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, sil
             @{handle || "yourhandle"}
           </div>
         </div>
-      </div>
+        <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
+      </button>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 text-sm font-semibold text-slate-300">
           <SilverIcon /> {item.cost}
@@ -230,6 +327,7 @@ export default function StorePage() {
   const { toast } = useToast();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewItem, setPreviewItem] = useState<CosmeticItem | null>(null);
 
   const silverCoins = user?.silverCoins ?? 0;
 
@@ -323,6 +421,7 @@ export default function StorePage() {
                   onEquip={handleEquip}
                   onUnequip={handleUnequip}
                   silver={silverCoins}
+                  onPreview={() => setPreviewItem(item)}
                 />
               ))}
             </TabsContent>
@@ -339,6 +438,7 @@ export default function StorePage() {
                   onEquip={handleEquip}
                   onUnequip={handleUnequip}
                   silver={silverCoins}
+                  onPreview={() => setPreviewItem(item)}
                 />
               ))}
             </TabsContent>
@@ -356,6 +456,7 @@ export default function StorePage() {
                   onUnequip={handleUnequip}
                   silver={silverCoins}
                   handle={user?.handle ?? "yourhandle"}
+                  onPreview={() => setPreviewItem(item)}
                 />
               ))}
             </TabsContent>
@@ -374,6 +475,26 @@ export default function StorePage() {
           </div>
         )}
       </div>
+
+      {previewItem && (
+        <PreviewDialog
+          item={previewItem}
+          userAvatar={user?.avatar}
+          userHandle={user?.handle}
+          userName={user?.name}
+          owned={owned.has(previewItem.id)}
+          equipped={
+            previewItem.category === "frame" ? equipped.frame === previewItem.id :
+            previewItem.category === "badge" ? equipped.badge === previewItem.id :
+            equipped.handle_color === previewItem.id
+          }
+          silver={silverCoins}
+          onBuy={handleBuy}
+          onEquip={handleEquip}
+          onUnequip={handleUnequip}
+          onClose={() => setPreviewItem(null)}
+        />
+      )}
     </AppLayout>
   );
 }
