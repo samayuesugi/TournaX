@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Clock, Users, Trophy } from "lucide-react";
+import { Clock, Users, Trophy, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoinIcon } from "@/components/ui/Coins";
 import type { Match } from "@workspace/api-client-react";
@@ -26,10 +26,37 @@ function formatTime(iso: string) {
   return d.toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" });
 }
 
+function StarRating({ rating, count }: { rating: number; count: number }) {
+  const stars = Math.round(rating * 2) / 2;
+  return (
+    <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            className={cn(
+              "w-3 h-3",
+              s <= Math.floor(stars) ? "fill-amber-400 text-amber-400" :
+              s - 0.5 === stars ? "fill-amber-400/50 text-amber-400" :
+              "fill-none text-muted-foreground/40"
+            )}
+          />
+        ))}
+      </div>
+      <span className="text-xs font-semibold text-amber-400">{rating.toFixed(1)}</span>
+      <span className="text-[10px] text-muted-foreground">({count})</span>
+    </div>
+  );
+}
+
 export function MatchCard({ match, className }: MatchCardProps) {
   const slotsLeft = match.slots - match.filledSlots;
   const showcase = (match as any).showcasePrizePool ?? 0;
   const thumbnail = (match as any).thumbnailImage;
+  const hostRating: number | null = (match as any).hostRating ?? null;
+  const hostReviewCount: number = (match as any).hostReviewCount ?? 0;
+  const hostAvatar: string = (match as any).hostAvatar ?? "🛡️";
+  const hostHandle: string = (match as any).hostHandle ?? "";
 
   return (
     <Link href={`/matches/${match.id}`}>
@@ -136,6 +163,24 @@ export function MatchCard({ match, className }: MatchCardProps) {
                 style={{ width: `${Math.min((match.filledSlots / match.slots) * 100, 100)}%` }}
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-border/50">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs shrink-0 overflow-hidden">
+                {hostAvatar && (hostAvatar.startsWith("/") || hostAvatar.startsWith("http"))
+                  ? <img src={hostAvatar} alt="" className="w-full h-full object-cover" />
+                  : hostAvatar}
+              </div>
+              <span className="text-[11px] text-muted-foreground truncate">
+                {hostHandle ? `@${hostHandle}` : "Host"}
+              </span>
+            </div>
+            {hostRating !== null && hostReviewCount > 0 ? (
+              <StarRating rating={hostRating} count={hostReviewCount} />
+            ) : (
+              <span className="text-[10px] text-muted-foreground italic">No ratings yet</span>
+            )}
           </div>
         </div>
       </div>

@@ -52,6 +52,14 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
   const hostCut = entryFeePool * hostPercent;
   const platformCut = entryFeePool * platformPercent;
 
+  const [ratingRow] = await db
+    .select({ avgRating: avg(hostReviewsTable.rating), totalReviews: count() })
+    .from(hostReviewsTable)
+    .where(eq(hostReviewsTable.hostId, match.hostId));
+
+  const hostRating = ratingRow?.avgRating ? parseFloat(ratingRow.avgRating as string) : null;
+  const hostReviewCount = Number(ratingRow?.totalReviews ?? 0);
+
   const result: any = {
     id: match.id,
     code: match.code,
@@ -76,6 +84,8 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     hostName: host?.name || "Host",
     hostAvatar: host?.avatar || "🛡️",
     hostFollowers: host?.followersCount || 0,
+    hostRating,
+    hostReviewCount,
     isFollowingHost,
     isRecommended: !isFollowingHost && !!host?.recommended,
     isJoined,
