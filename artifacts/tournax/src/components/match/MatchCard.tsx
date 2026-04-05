@@ -122,8 +122,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
               <div className="text-xs text-muted-foreground mb-0.5 flex items-center justify-center gap-1">
                 <Users className="w-3 h-3" /> Slots
               </div>
-              <div className={cn("font-bold text-sm", slotsLeft === 0 ? "text-destructive" : "text-foreground")}>
-                {slotsLeft}/{match.slots}
+              <div className={cn("font-bold text-sm", slotsLeft === 0 ? "text-destructive" : "text-primary")}>
+                {match.filledSlots}/{match.slots}
               </div>
             </div>
           </div>
