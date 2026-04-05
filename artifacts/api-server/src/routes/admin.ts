@@ -1,9 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
-  usersTable, matchesTable, matchParticipantsTable,
+  usersTable, matchesTable, matchParticipantsTable, matchPlayersTable,
   addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable,
-  platformEarningsTable
+  platformEarningsTable, hostEarningsTable,
+  auctionsTable, auctionTeamsTable, auctionPlayersTable, auctionBidsTable, auctionResultsTable
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, gte, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
@@ -230,7 +231,42 @@ router.delete("/admin/hosts/:id", requireAdmin, async (req: Request, res: Respon
   const id = parseInt(req.params.id);
   const [host] = await db.select().from(usersTable).where(and(eq(usersTable.id, id), eq(usersTable.role, "host")));
   if (!host) { res.status(404).json({ error: "Host not found" }); return; }
-  await db.delete(usersTable).where(eq(usersTable.id, id));
+
+  await db.transaction(async (tx) => {
+    // Delete match-related data for this host's matches
+    const hostMatches = await tx.select({ id: matchesTable.id }).from(matchesTable).where(eq(matchesTable.hostId, id));
+    const matchIds = hostMatches.map(m => m.id);
+    if (matchIds.length > 0) {
+      const participants = await tx.select({ id: matchParticipantsTable.id }).from(matchParticipantsTable).where(sql`match_id = ANY(${matchIds})`);
+      const participantIds = participants.map(p => p.id);
+      if (participantIds.length > 0) {
+        await tx.delete(matchPlayersTable).where(sql`participant_id = ANY(${participantIds})`);
+      }
+      await tx.delete(matchParticipantsTable).where(sql`match_id = ANY(${matchIds})`);
+      await tx.delete(hostEarningsTable).where(sql`match_id = ANY(${matchIds})`);
+      await tx.delete(platformEarningsTable).where(sql`match_id = ANY(${matchIds})`);
+      await tx.delete(matchesTable).where(sql`id = ANY(${matchIds})`);
+    }
+
+    // Delete auction-related data for this host's auctions
+    const hostAuctions = await tx.select({ id: auctionsTable.id }).from(auctionsTable).where(eq(auctionsTable.hostId, id));
+    const auctionIds = hostAuctions.map(a => a.id);
+    if (auctionIds.length > 0) {
+      const teams = await tx.select({ id: auctionTeamsTable.id }).from(auctionTeamsTable).where(sql`auction_id = ANY(${auctionIds})`);
+      const teamIds = teams.map(t => t.id);
+      if (teamIds.length > 0) {
+        await tx.delete(auctionPlayersTable).where(sql`team_id = ANY(${teamIds})`);
+      }
+      await tx.delete(auctionResultsTable).where(sql`auction_id = ANY(${auctionIds})`);
+      await tx.delete(auctionBidsTable).where(sql`auction_id = ANY(${auctionIds})`);
+      await tx.delete(auctionTeamsTable).where(sql`auction_id = ANY(${auctionIds})`);
+      await tx.delete(auctionsTable).where(sql`id = ANY(${auctionIds})`);
+    }
+
+    // Delete the host
+    await tx.delete(usersTable).where(eq(usersTable.id, id));
+  });
+
   res.json({ success: true });
 });
 
