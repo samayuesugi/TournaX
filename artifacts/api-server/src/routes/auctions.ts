@@ -214,8 +214,14 @@ router.post("/auctions/:id/submit-result", requireAuth, async (req: Request, res
       const teamTotal = teamTotals[teamId] || 0;
       const bidders = teamBidders[teamId] || [];
       if (teamTotal === 0 || bidders.length === 0) continue;
-      for (const bidder of bidders) {
-        const userReward = parseFloat(((bidder.amount / teamTotal) * teamReward).toFixed(2));
+      let distributed = 0;
+      for (let i = 0; i < bidders.length; i++) {
+        const bidder = bidders[i];
+        const isLast = i === bidders.length - 1;
+        const userReward = isLast
+          ? parseFloat((teamReward - distributed).toFixed(2))
+          : parseFloat(((bidder.amount / teamTotal) * teamReward).toFixed(2));
+        distributed += userReward;
         if (userReward > 0) {
           await tx.execute(sql`UPDATE users SET balance = balance + ${userReward} WHERE id = ${bidder.userId}`);
         }
