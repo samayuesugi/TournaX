@@ -54,22 +54,6 @@ export default function SetupProfilePage() {
 
         <div className="bg-card border border-card-border rounded-2xl p-6 shadow-lg">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Choose Avatar</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {AVATARS.map((avatar) => (
-                  <button
-                    key={avatar}
-                    type="button"
-                    className={`text-2xl p-3 rounded-xl border transition-all ${form.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
-                    onClick={() => setForm(f => ({ ...f, avatar }))}
-                  >
-                    {avatar}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">Full Name</Label>
               <Input
