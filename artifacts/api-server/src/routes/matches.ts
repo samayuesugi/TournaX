@@ -275,6 +275,25 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
     }
   }
 
+  // Check for duplicate UIDs already in this match
+  const submittedUids: string[] = players
+    ? players.map((p: any) => String(p.uid).trim())
+    : [String(req.body.uid || user.gameUid || "").trim()].filter(Boolean);
+
+  if (submittedUids.length > 0) {
+    const existingPlayers = await db
+      .select({ uid: matchPlayersTable.uid })
+      .from(matchPlayersTable)
+      .where(eq(matchPlayersTable.matchId, match.id));
+
+    const takenUids = new Set(existingPlayers.map((p) => String(p.uid).trim()));
+    const duplicateUid = submittedUids.find((uid) => takenUids.has(uid));
+    if (duplicateUid) {
+      res.status(400).json({ error: `UID "${duplicateUid}" is already registered in this match.` });
+      return;
+    }
+  }
+
   const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
 
   try {
