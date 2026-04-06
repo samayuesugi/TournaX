@@ -187,6 +187,14 @@ export default function MatchDetailPage() {
         return;
       }
     }
+    // Check for duplicate UIDs within the submitted players list
+    const uids = players.map(p => p.uid.trim()).filter(Boolean);
+    const uniqueUids = new Set(uids);
+    if (uniqueUids.size !== uids.length) {
+      toast({ title: "Duplicate UID", description: "Each player must have a unique UID. Please check and correct.", variant: "destructive" });
+      return;
+    }
+
     try {
       await joinMatch({ id: matchId, data: { teamName: teamName || undefined, players } });
       toast({ title: "Joined successfully!" });
