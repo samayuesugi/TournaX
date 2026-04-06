@@ -4,6 +4,7 @@ import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, sq
 import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { notify } from "../lib/notify";
+import { getIO } from "../lib/socket";
 
 const router: IRouter = Router();
 
@@ -210,7 +211,9 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     match = inserted;
   });
 
-  res.json(await serializeMatch(match!, user.id));
+  const serialized = await serializeMatch(match!, user.id);
+  try { getIO().emit("match:new", { id: match!.id }); } catch {}
+  res.json(serialized);
 });
 
 router.get("/matches/:id", requireAuth, async (req: Request, res: Response) => {
@@ -248,6 +251,7 @@ router.delete("/matches/:id", requireAuth, async (req: Request, res: Response) =
     await tx.delete(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
     await tx.delete(matchesTable).where(eq(matchesTable.id, match.id));
   });
+  try { getIO().emit("match:deleted", { id: match.id }); } catch {}
   res.json({ success: true, message: "Match deleted and refunds processed" });
 });
 

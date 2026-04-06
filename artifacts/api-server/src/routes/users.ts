@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, avg, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
+import { getIO } from "../lib/socket";
 
 async function getHostRatings(hostIds: number[]): Promise<Map<number, number>> {
   if (hostIds.length === 0) return new Map();
@@ -167,6 +168,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     if (gameUid !== undefined) updateData.gameUid = gameUid || null;
   }
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
+  try { getIO().to(`user-${user.id}`).emit("user:updated"); } catch {}
   res.json({
     id: updated.id, email: updated.email, name: updated.name, handle: updated.handle,
     avatar: updated.avatar, game: updated.game, gameUid: updated.gameUid, role: updated.role,

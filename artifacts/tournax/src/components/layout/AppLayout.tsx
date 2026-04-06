@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState, useCallback } from "react";
+import { ReactNode, useRef, useState, useCallback, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Bell, Plus, ArrowLeft, LogOut, RefreshCw, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
@@ -9,6 +9,7 @@ import { useGetWallet, useGetNotifications, useGetConversations } from "@workspa
 import { cn } from "@/lib/utils";
 import { GoldCoinIcon, SilverCoinIcon } from "@/components/ui/Coins";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSocket } from "@/contexts/SocketContext";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -32,6 +33,31 @@ export function AppLayout({
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const socket = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onMatchNew = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+    };
+    const onMatchDeleted = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+    };
+    const onUserUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    };
+
+    socket.on("match:new", onMatchNew);
+    socket.on("match:deleted", onMatchDeleted);
+    socket.on("user:updated", onUserUpdated);
+
+    return () => {
+      socket.off("match:new", onMatchNew);
+      socket.off("match:deleted", onMatchDeleted);
+      socket.off("user:updated", onUserUpdated);
+    };
+  }, [socket, queryClient]);
 
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
