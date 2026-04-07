@@ -28,11 +28,20 @@ const DEFAULT_ACCOUNTS = [
   {
     email: "host@test.com",
     password: "Host@123",
-    name: "Test Host",
-    handle: "testhost",
+    name: "BGMI Host",
+    handle: "bgmihost",
     avatar: "🏆",
     role: "host" as const,
     game: "BGMI",
+  },
+  {
+    email: "ffhost@test.com",
+    password: "FFHost@123",
+    name: "Free Fire Host",
+    handle: "ffhost",
+    avatar: "🔥",
+    role: "host" as const,
+    game: "Free Fire",
   },
 ];
 
