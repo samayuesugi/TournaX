@@ -8,7 +8,6 @@ import { MatchCard } from "@/components/match/MatchCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -543,44 +542,25 @@ export default function HomePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="matches">
-          <TabsList className="w-full">
-            <TabsTrigger value="matches" className="flex-1">
-              Matches
-            </TabsTrigger>
-            <TabsTrigger value="explore" className="flex-1 gap-1.5">
-              <Camera className="w-3.5 h-3.5" /> Explore
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="matches">
-            <div className="mt-3 space-y-4">
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium shrink-0 border transition-all capitalize",
-                      filter === f
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                    )}
-                  >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </button>
-                ))}
-              </div>
-              {matchesContent}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="explore">
-            <div className="mt-3">
-              <PostsFeed />
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="mt-3 space-y-4">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium shrink-0 border transition-all capitalize",
+                  filter === f
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                )}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+          {matchesContent}
+        </div>
       </div>
     </AppLayout>
   );
