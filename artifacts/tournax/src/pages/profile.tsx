@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, TrendingUp, ImageIcon, Zap, ShoppingBag } from "lucide-react";
+import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -245,98 +245,6 @@ function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
   );
 }
 
-const MONETIZATION_PHASES = [
-  {
-    phase: 1,
-    followers: 10,
-    icon: <ImageIcon className="w-4 h-4" />,
-    title: "Image Upload Access",
-    desc: "Share gaming moments in the Explore feed",
-    color: "from-blue-500/20 to-blue-600/10 border-blue-500/30",
-    textColor: "text-blue-400",
-  },
-  {
-    phase: 2,
-    followers: 50,
-    icon: <Zap className="w-4 h-4" />,
-    title: "Host Mini Tournaments",
-    desc: "Create small matches (up to 8 players) like a host",
-    color: "from-violet-500/20 to-violet-600/10 border-violet-500/30",
-    textColor: "text-violet-400",
-  },
-  {
-    phase: 3,
-    followers: 100,
-    icon: <Crown className="w-4 h-4" />,
-    title: "Become a Host",
-    desc: "Get full host privileges and create unlimited tournaments",
-    color: "from-amber-500/20 to-yellow-400/10 border-amber-500/30",
-    textColor: "text-amber-400",
-  },
-];
-
-function MonetizationSection({ followers }: { followers: number }) {
-  return (
-    <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <TrendingUp className="w-4 h-4 text-primary" />
-        <h3 className="font-semibold">Monetization</h3>
-        <span className="text-xs text-muted-foreground ml-auto">{followers} followers</span>
-      </div>
-
-      <p className="text-xs text-muted-foreground">Grow your followers to unlock more features and earn more!</p>
-
-      <div className="space-y-2.5">
-        {MONETIZATION_PHASES.map((phase) => {
-          const unlocked = followers >= phase.followers;
-          const progress = Math.min(100, (followers / phase.followers) * 100);
-          return (
-            <div
-              key={phase.phase}
-              className={cn(
-                "rounded-xl border p-3 bg-gradient-to-br transition-all",
-                unlocked ? phase.color : "from-secondary/30 to-secondary/10 border-border opacity-70"
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", unlocked ? `bg-card/60 ${phase.textColor}` : "bg-secondary/50 text-muted-foreground")}>
-                  {phase.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className={cn("text-xs font-bold uppercase tracking-wide", unlocked ? phase.textColor : "text-muted-foreground")}>
-                      Phase {phase.phase}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">{phase.followers} followers</span>
-                    {unlocked && (
-                      <span className="text-[10px] font-bold text-green-400 ml-auto">✓ Unlocked</span>
-                    )}
-                  </div>
-                  <p className="text-xs font-semibold text-foreground leading-tight">{phase.title}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{phase.desc}</p>
-                  {!unlocked && (
-                    <div className="mt-2">
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                        <span>{followers}/{phase.followers} followers</span>
-                        <span>{phase.followers - followers} more to go</span>
-                      </div>
-                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function FollowersModal({ handle, count, type, open, onClose }: { handle: string; count: number; type: "followers" | "following"; open: boolean; onClose: () => void }) {
   const [users, setUsers] = useState<{ id: number; name: string | null; handle: string | null; avatar: string; role: string }[]>([]);
@@ -994,9 +902,6 @@ function OwnProfile() {
           </div>
         )}
 
-        {user.role === "player" && (
-          <MonetizationSection followers={user.followersCount ?? 0} />
-        )}
       </div>
     </AppLayout>
   );
