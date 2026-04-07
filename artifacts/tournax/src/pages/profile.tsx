@@ -18,135 +18,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, LogOut, Settings, Plus, Trash2, MessageCircle, Crown, Flag, ShieldCheck, Copy, Check, Gift, Link as LinkIcon, ShoppingBag } from "lucide-react";
+import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
-
-const COMPLAINT_TOPICS = [
-  { id: "Withdrawal Issue", label: "Withdrawal Issue", icon: "💸" },
-  { id: "Add Balance Issue", label: "Add Balance Issue", icon: "💳" },
-  { id: "Bugs", label: "Bugs / Errors", icon: "🐛" },
-  { id: "Host Issues", label: "Host Issues", icon: "🛡️" },
-  { id: "Other", label: "Other", icon: "📋" },
-];
-
-function RaiseComplaintDialog() {
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [topic, setTopic] = useState("");
-  const [description, setDescription] = useState("");
-  const [hostHandle, setHostHandle] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const reset = () => {
-    setTopic("");
-    setDescription("");
-    setHostHandle("");
-  };
-
-  const handleSubmit = async () => {
-    if (!topic || !description.trim()) {
-      toast({ title: "Please select a topic and write a description", variant: "destructive" });
-      return;
-    }
-    if (topic === "Host Issues" && !hostHandle.trim()) {
-      toast({ title: "Please enter the host's handle", variant: "destructive" });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await customFetch("/api/complaints", {
-        method: "POST",
-        body: JSON.stringify({
-          subject: topic,
-          description: description.trim(),
-          hostHandle: topic === "Host Issues" ? hostHandle.trim() : undefined,
-        }),
-      });
-      toast({ title: "Complaint submitted!", description: "Our team will review it shortly." });
-      reset();
-      setOpen(false);
-    } catch (err: any) {
-      toast({ title: "Failed to submit", description: err?.data?.error || "Something went wrong", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8" title="Raise a Complaint">
-          <Flag className="w-3.5 h-3.5 text-destructive" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Flag className="w-4 h-4 text-destructive" /> Raise a Complaint
-          </DialogTitle>
-        </DialogHeader>
-        <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
-          <div className="space-y-2">
-            <Label>Topic</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {COMPLAINT_TOPICS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => { setTopic(t.id); if (t.id !== "Host Issues") setHostHandle(""); }}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left",
-                    topic === t.id
-                      ? "bg-primary/15 border-primary text-primary"
-                      : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:border-border/80"
-                  )}
-                >
-                  <span className="text-base shrink-0">{t.icon}</span>
-                  <span className="leading-tight">{t.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {topic === "Host Issues" && (
-            <div className="space-y-1.5">
-              <Label>Host Handle</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
-                <Input
-                  placeholder="hosthandle"
-                  value={hostHandle}
-                  onChange={(e) => setHostHandle(e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, ""))}
-                  className="pl-7"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <Label>Description</Label>
-            <Textarea
-              placeholder="Describe your issue in detail..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[100px] resize-none"
-            />
-          </div>
-
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={isSubmitting || !topic || !description.trim()}
-          >
-            {isSubmitting ? "Submitting..." : "Submit Complaint"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function canChat(senderRole: string, recipientRole: string): boolean {
   if (senderRole === "player" && recipientRole === "admin") return false;
@@ -308,129 +183,18 @@ function FollowersModal({ handle, count, type, open, onClose }: { handle: string
 }
 
 function OwnProfile() {
-  const { user, logout, refreshUser } = useAuth();
-  const [, navigate] = useLocation();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { data: squad, refetch: refetchSquad } = useGetMySquad();
   const { mutateAsync: addSquadMember, isPending: isAdding } = useAddSquadMember();
-  const { mutateAsync: updateProfile, isPending: isUpdating } = useUpdateMyProfile();
   const { data: myMatches, isLoading: matchesLoading } = useGetMyMatches();
 
   const SQUAD_GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile"];
   const [squadGame, setSquadGame] = useState<string>((user as any)?.game ?? SQUAD_GAMES[0]);
   const [squadForm, setSquadForm] = useState({ name: "", uid: "" });
-  const [availableGames, setAvailableGames] = useState<{ id: number; name: string }[]>([]);
-  const [profileForm, setProfileForm] = useState({
-    name: user?.name ?? "",
-    handle: user?.handle ?? "",
-    avatar: user?.avatar ?? "🎮",
-    instagram: user?.instagram ?? "",
-    discord: user?.discord ?? "",
-    x: user?.x ?? "",
-    youtube: user?.youtube ?? "",
-    twitch: user?.twitch ?? "",
-    game: (user as any)?.game ?? "",
-    gameUid: (user as any)?.gameUid ?? "",
-  });
-  const [profileOpen, setProfileOpen] = useState(false);
   const [squadOpen, setSquadOpen] = useState(false);
-  const [referralStats, setReferralStats] = useState<{
-    myCode: string | null;
-    totalReferrals: number;
-    completedReferrals: number;
-    pendingReferrals: number;
-    usedCode: boolean;
-    myReferralCompleted: boolean;
-    bonusActive: boolean;
-    bonusUntil: string | null;
-    paidMatchesPlayed: number;
-  } | null>(null);
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
-
-  useEffect(() => {
-    if (profileOpen) {
-      setProfileForm({
-        name: user?.name ?? "",
-        handle: user?.handle ?? "",
-        avatar: user?.avatar ?? "🎮",
-        instagram: user?.instagram ?? "",
-        discord: user?.discord ?? "",
-        x: user?.x ?? "",
-        youtube: user?.youtube ?? "",
-        twitch: user?.twitch ?? "",
-        game: (user as any)?.game ?? "",
-        gameUid: (user as any)?.gameUid ?? "",
-      });
-      if (user?.role === "player" && availableGames.length === 0) {
-        customFetch<{ id: number; name: string }[]>("/api/games")
-          .then(setAvailableGames)
-          .catch(() => {});
-      }
-    }
-  }, [profileOpen]);
-
-  useEffect(() => {
-    if (user?.role === "player") {
-      customFetch<typeof referralStats>("/api/referral/stats")
-        .then(setReferralStats)
-        .catch(() => {});
-    }
-  }, [user?.id]);
-
-  const handleCopyCode = () => {
-    if (referralStats?.myCode) {
-      navigator.clipboard.writeText(referralStats.myCode);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    }
-  };
-
-  const handleShareLink = async () => {
-    if (referralStats?.myCode) {
-      const link = `${window.location.origin}/auth?ref=${referralStats.myCode}`;
-      const name = user?.name ?? "A friend";
-      const message =
-        `${name} has invited you to TournaX! 🎮\n\n` +
-        `Join real-money gaming tournaments and win real rewards — ` +
-        `BGMI, Free Fire, Valorant & more!\n\n` +
-        `Use my referral code when signing up:\n` +
-        `🎟️ *${referralStats.myCode}*\n` +
-        `Sign up here 👉 ${link}\n\n` +
-        `Let's compete together! 🏆🔥`;
-
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: "Join TournaX!", text: message });
-          return;
-        } catch {
-          // user cancelled or share failed, fall through to clipboard
-        }
-      }
-      try {
-        await navigator.clipboard.writeText(message);
-      } catch {
-        const ta = document.createElement("textarea");
-        ta.value = message;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2500);
-    }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/auth");
-  };
 
   const handleDeleteMember = async (memberId: number) => {
     try {
@@ -454,17 +218,6 @@ function OwnProfile() {
     }
   };
 
-
-  const handleUpdateProfile = async () => {
-    try {
-      await updateProfile({ data: profileForm });
-      await refreshUser();
-      setProfileOpen(false);
-      toast({ title: "Profile updated!" });
-    } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
-    }
-  };
 
   if (!user) return null;
 
@@ -498,165 +251,11 @@ function OwnProfile() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
-              {(user.role === "player" || user.role === "host") && (
-                <Link href="/store">
-                  <Button variant="outline" size="icon" className="h-8 w-8" title="Cosmetics Store">
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                  </Button>
-                </Link>
-              )}
-              <RaiseComplaintDialog />
-              <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8">
-                    <Settings className="w-3.5 h-3.5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-sm flex flex-col max-h-[90vh]">
-                  <DialogHeader className="shrink-0"><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
-                  <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-                    <div className="space-y-2">
-                      <Label>Avatar</Label>
-
-                      {user.role === "host" ? (
-                        (() => {
-                          const gameAvatars = user.game ? HOST_AVATARS[user.game] : undefined;
-                          return gameAvatars ? (
-                            <div className="space-y-2">
-                              <div className={`grid gap-2 ${gameAvatars.length >= 5 ? "grid-cols-5" : "grid-cols-4"}`}>
-                                {gameAvatars.map((src) => (
-                                  <button
-                                    key={src}
-                                    type="button"
-                                    onClick={() => setProfileForm(f => ({ ...f, avatar: src }))}
-                                    className={`rounded-xl overflow-hidden border-2 transition-all aspect-square ${profileForm.avatar === src ? "border-primary scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}
-                                  >
-                                    <img src={src} alt="avatar" className="w-full h-full object-cover" />
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="flex justify-center">
-                                <AvatarDisplay avatar={profileForm.avatar} className="w-14 h-14 rounded-xl text-2xl" />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-4 gap-2">
-                              {AVATARS.map((avatar) => (
-                                <button
-                                  key={avatar}
-                                  type="button"
-                                  className={`text-2xl p-2.5 rounded-xl border transition-all ${profileForm.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
-                                  onClick={() => setProfileForm(f => ({ ...f, avatar }))}
-                                >
-                                  {avatar}
-                                </button>
-                              ))}
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <div className="grid grid-cols-4 gap-2">
-                          {AVATARS.map((avatar) => (
-                            <button
-                              key={avatar}
-                              type="button"
-                              className={`text-2xl p-2.5 rounded-xl border transition-all ${profileForm.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
-                              onClick={() => setProfileForm(f => ({ ...f, avatar }))}
-                            >
-                              {avatar}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Display Name</Label>
-                      <Input value={profileForm.name} onChange={(e) => setProfileForm(f => ({ ...f, name: e.target.value }))} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Handle</Label>
-                      <Input value={profileForm.handle} onChange={(e) => setProfileForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
-                    </div>
-                    {user.role === "player" && (
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Game Settings</Label>
-                        <div className="space-y-2">
-                          <div className="space-y-1.5">
-                            <Label>Selected Game</Label>
-                            <Select value={profileForm.game} onValueChange={(val) => setProfileForm(f => ({ ...f, game: val }))}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a game" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableGames.map((g) => (
-                                  <SelectItem key={g.id} value={g.name}>🎮 {g.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label>Game UID</Label>
-                            <Input
-                              placeholder="Your in-game UID"
-                              value={profileForm.gameUid}
-                              onChange={(e) => setProfileForm(f => ({ ...f, gameUid: e.target.value }))}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Social Links</Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm w-20 shrink-0 text-muted-foreground">Instagram</span>
-                          <Input
-                            placeholder="username"
-                            value={profileForm.instagram}
-                            onChange={(e) => setProfileForm(f => ({ ...f, instagram: e.target.value }))}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm w-20 shrink-0 text-muted-foreground">Discord</span>
-                          <Input
-                            placeholder="username"
-                            value={profileForm.discord}
-                            onChange={(e) => setProfileForm(f => ({ ...f, discord: e.target.value }))}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm w-20 shrink-0 text-muted-foreground">X</span>
-                          <Input
-                            placeholder="username"
-                            value={profileForm.x}
-                            onChange={(e) => setProfileForm(f => ({ ...f, x: e.target.value }))}
-                          />
-                        </div>
-                        {(user.role === "host" || user.role === "admin") && (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm w-20 shrink-0 text-muted-foreground">YouTube</span>
-                              <Input
-                                placeholder="channel name"
-                                value={profileForm.youtube}
-                                onChange={(e) => setProfileForm(f => ({ ...f, youtube: e.target.value }))}
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <Button className="w-full" onClick={handleUpdateProfile} disabled={isUpdating}>
-                      {isUpdating ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <Button variant="destructive" size="icon" className="h-8 w-8" onClick={handleLogout}>
-                <LogOut className="w-3.5 h-3.5" />
+            <Link href="/settings">
+              <Button variant="outline" size="icon" className="h-8 w-8" title="Settings">
+                <Settings className="w-3.5 h-3.5" />
               </Button>
-            </div>
+            </Link>
           </div>
 
           <div className="grid grid-cols-3 gap-3 mt-4">
@@ -823,81 +422,6 @@ function OwnProfile() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">No squad members for {squadGame}</p>
-            )}
-          </div>
-        )}
-
-        {user.role === "player" && referralStats && (
-          <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <Gift className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold">Referral</h3>
-              {referralStats.bonusActive && (
-                <span className="text-[10px] font-semibold bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5">
-                  +1 bonus active
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground">Your referral code</p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-secondary/60 rounded-xl px-3 py-2 font-mono text-sm font-semibold tracking-wider text-primary">
-                  {referralStats.myCode ?? "Loading..."}
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={handleCopyCode}
-                  disabled={!referralStats.myCode}
-                >
-                  {codeCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-                </Button>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 mt-1"
-                onClick={handleShareLink}
-                disabled={!referralStats.myCode}
-              >
-                {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <LinkIcon className="w-3.5 h-3.5" />}
-                {linkCopied ? "Copied!" : "Share Referral"}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-secondary/50 rounded-xl p-2.5 text-center">
-                <div className="font-bold text-base">{referralStats.totalReferrals}</div>
-                <div className="text-[10px] text-muted-foreground">Total</div>
-              </div>
-              <div className="bg-secondary/50 rounded-xl p-2.5 text-center">
-                <div className="font-bold text-base text-green-400">{referralStats.completedReferrals}</div>
-                <div className="text-[10px] text-muted-foreground">Completed</div>
-              </div>
-              <div className="bg-secondary/50 rounded-xl p-2.5 text-center">
-                <div className="font-bold text-base text-yellow-400">{referralStats.pendingReferrals}</div>
-                <div className="text-[10px] text-muted-foreground">Pending</div>
-              </div>
-            </div>
-
-            {referralStats.bonusActive && referralStats.bonusUntil && (
-              <div className="bg-green-500/10 border border-green-500/25 rounded-xl px-3 py-2 text-xs text-green-400">
-                🎁 +1 Gold Coin bonus on Win 3 Matches task active until {referralStats.bonusUntil}
-              </div>
-            )}
-
-            <div className="bg-secondary/40 rounded-xl px-3 py-2 space-y-1">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
-              <p className="text-xs text-muted-foreground">Share your code → Friend registers → Friend plays 5 paid matches → You get <span className="text-amber-400 font-semibold">3 Gold Coins</span></p>
-              <p className="text-xs text-muted-foreground">After referral completes, your friend gets <span className="text-green-400 font-semibold">+1 Gold Coin bonus</span> on the "Win 3 Matches" daily task for 5 days</p>
-            </div>
-
-            {referralStats.usedCode && !referralStats.myReferralCompleted && (
-              <div className="bg-secondary/40 rounded-xl px-3 py-2 text-xs text-muted-foreground">
-                Referral in progress — play {Math.max(0, 5 - referralStats.paidMatchesPlayed)} more paid match{Math.max(0, 5 - referralStats.paidMatchesPlayed) !== 1 ? "es" : ""} to unlock your bonus.
-              </div>
             )}
           </div>
         )}

@@ -38,6 +38,7 @@ import AdminAuctionsPage from "@/pages/admin/auctions";
 import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
 import AdminEarningsPage from "@/pages/admin/earnings";
 import StorePage from "@/pages/store";
+import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
@@ -149,6 +150,10 @@ function Router() {
 
       <Route path="/profile/:handle">
         <ProtectedRoute><ProfilePage /></ProtectedRoute>
+      </Route>
+
+      <Route path="/settings">
+        <ProtectedRoute><SettingsPage /></ProtectedRoute>
       </Route>
 
       <Route path="/wallet">
