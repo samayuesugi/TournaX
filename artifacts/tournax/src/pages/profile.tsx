@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetUserProfile, useFollowUser, useUnfollowUser,
-  useGetMySquad, useAddSquadMember, useUpdateMyProfile, useGetMe,
+  useGetMySquad, useAddSquadMember, useUpdateMyProfile,
   useGetMyMatches, customFetch
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
@@ -13,12 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck } from "lucide-react";
+import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -28,7 +27,7 @@ function canChat(senderRole: string, recipientRole: string): boolean {
   return true;
 }
 
-const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
+const PLAYER_AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿", "💎"];
 
 export function AvatarDisplay({
   avatar,
@@ -38,19 +37,9 @@ export function AvatarDisplay({
   className?: string;
 }) {
   if (isImageAvatar(avatar)) {
-    return (
-      <img
-        src={resolveAvatarSrc(avatar!)}
-        alt="avatar"
-        className={`${className} object-cover bg-secondary`}
-      />
-    );
+    return <img src={resolveAvatarSrc(avatar!)} alt="avatar" className={`${className} object-cover bg-secondary`} />;
   }
-  return (
-    <div className={`${className} bg-primary/20 flex items-center justify-center`}>
-      {avatar || "🎮"}
-    </div>
-  );
+  return <div className={`${className} bg-primary/20 flex items-center justify-center`}>{avatar || "🎮"}</div>;
 }
 
 const SocialIcons = {
@@ -87,11 +76,8 @@ function extractHandle(value: string): string {
 }
 
 function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
-  instagram?: string | null;
-  discord?: string | null;
-  x?: string | null;
-  youtube?: string | null;
-  twitch?: string | null;
+  instagram?: string | null; discord?: string | null; x?: string | null;
+  youtube?: string | null; twitch?: string | null;
 }) {
   const links = [
     { key: "Instagram" as const, value: instagram, href: (v: string) => `https://instagram.com/${extractHandle(v)}`, color: "text-pink-400 hover:text-pink-300", bg: "bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/20" },
@@ -101,25 +87,17 @@ function SocialLinksDisplay({ instagram, discord, x, youtube, twitch }: {
   ].filter(l => l.value);
 
   if (!links.length) return null;
-
   return (
     <div className="flex gap-2 mt-3">
       {links.map(({ key, value, href, color, bg }) => (
-        <a
-          key={key}
-          href={href(value!)}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={key}
-          className={cn("inline-flex items-center justify-center w-8 h-8 rounded-full border transition-all", bg, color)}
-        >
+        <a key={key} href={href(value!)} target="_blank" rel="noopener noreferrer" title={key}
+          className={cn("inline-flex items-center justify-center w-8 h-8 rounded-full border transition-all", bg, color)}>
           {SocialIcons[key]}
         </a>
       ))}
     </div>
   );
 }
-
 
 function FollowersModal({ handle, count, type, open, onClose }: { handle: string; count: number; type: "followers" | "following"; open: boolean; onClose: () => void }) {
   const [users, setUsers] = useState<{ id: number; name: string | null; handle: string | null; avatar: string; role: string }[]>([]);
@@ -130,35 +108,25 @@ function FollowersModal({ handle, count, type, open, onClose }: { handle: string
     if (!open || !handle) return;
     setLoading(true);
     customFetch<typeof users>(`/api/users/${handle}/${type}`)
-      .then(setUsers)
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false));
+      .then(setUsers).catch(() => setUsers([])).finally(() => setLoading(false));
   }, [open, handle, type]);
-
-  const title = type === "followers" ? `Followers (${count})` : `Following (${count})`;
-  const emptyText = type === "followers" ? "No followers yet" : "Not following anyone yet";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm max-h-[70vh] flex flex-col">
         <DialogHeader className="shrink-0">
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{type === "followers" ? `Followers (${count})` : `Following (${count})`}</DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 -mx-1 px-1">
           {loading ? (
-            <div className="space-y-3 pt-2">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
-            </div>
+            <div className="space-y-3 pt-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}</div>
           ) : users.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">{emptyText}</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{type === "followers" ? "No followers yet" : "Not following anyone yet"}</p>
           ) : (
             <div className="space-y-1 pt-1">
               {users.map(f => (
-                <button
-                  key={f.id}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/60 transition-colors text-left"
-                  onClick={() => { onClose(); navigate(`/profile/${f.handle}`); }}
-                >
+                <button key={f.id} className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/60 transition-colors text-left"
+                  onClick={() => { onClose(); navigate(`/profile/${f.handle}`); }}>
                   <AvatarDisplay avatar={f.avatar} className="w-10 h-10 rounded-xl text-lg shrink-0" />
                   <div className="min-w-0">
                     <p className="font-semibold text-sm truncate">{f.name || `@${f.handle}`}</p>
@@ -167,9 +135,7 @@ function FollowersModal({ handle, count, type, open, onClose }: { handle: string
                   {(f.role === "host" || f.role === "admin") && (
                     <div className="ml-auto shrink-0 flex items-center gap-1">
                       <ShieldCheck className={`w-3.5 h-3.5 ${f.role === "admin" ? "text-primary" : "text-orange-400"}`} />
-                      <span className={`text-[10px] font-semibold uppercase ${f.role === "admin" ? "text-primary" : "text-orange-400"}`}>
-                        {f.role === "admin" ? "Admin" : "Host"}
-                      </span>
+                      <span className={`text-[10px] font-semibold uppercase ${f.role === "admin" ? "text-primary" : "text-orange-400"}`}>{f.role === "admin" ? "Admin" : "Host"}</span>
                     </div>
                   )}
                 </button>
@@ -182,8 +148,171 @@ function FollowersModal({ handle, count, type, open, onClose }: { handle: string
   );
 }
 
+function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean; onClose: () => void; user: any; refreshUser: () => Promise<void> }) {
+  const { toast } = useToast();
+  const { mutateAsync: updateProfile, isPending } = useUpdateMyProfile();
+  const [availableGames, setAvailableGames] = useState<{ id: number; name: string }[]>([]);
+
+  const [form, setForm] = useState({
+    name: user?.name ?? "",
+    handle: user?.handle ?? "",
+    avatar: user?.avatar ?? "🎮",
+    bio: (user as any)?.bio ?? "",
+    instagram: user?.instagram ?? "",
+    discord: user?.discord ?? "",
+    x: user?.x ?? "",
+    youtube: user?.youtube ?? "",
+    twitch: user?.twitch ?? "",
+    game: (user as any)?.game ?? "",
+    gameUid: (user as any)?.gameUid ?? "",
+  });
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        name: user?.name ?? "",
+        handle: user?.handle ?? "",
+        avatar: user?.avatar ?? "🎮",
+        bio: (user as any)?.bio ?? "",
+        instagram: user?.instagram ?? "",
+        discord: user?.discord ?? "",
+        x: user?.x ?? "",
+        youtube: user?.youtube ?? "",
+        twitch: user?.twitch ?? "",
+        game: (user as any)?.game ?? "",
+        gameUid: (user as any)?.gameUid ?? "",
+      });
+      if (user?.role === "player" && availableGames.length === 0) {
+        customFetch<{ id: number; name: string }[]>("/api/games").then(setAvailableGames).catch(() => {});
+      }
+    }
+  }, [open]);
+
+  const handleSave = async () => {
+    try {
+      await updateProfile({ data: form as any });
+      await refreshUser();
+      toast({ title: "Profile updated!" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
+    }
+  };
+
+  const isHost = user?.role === "host" || user?.role === "admin";
+  const isPlayer = user?.role === "player";
+  const gameAvatars = isHost && user?.game ? HOST_AVATARS[user.game] : null;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-sm flex flex-col max-h-[90vh]">
+        <DialogHeader className="shrink-0"><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
+        <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+          {/* Avatar */}
+          <div className="space-y-2">
+            <Label>Avatar</Label>
+            {gameAvatars ? (
+              <div className="space-y-2">
+                <div className={`grid gap-2 ${gameAvatars.length >= 5 ? "grid-cols-5" : "grid-cols-4"}`}>
+                  {gameAvatars.map((src: string) => (
+                    <button key={src} type="button" onClick={() => setForm(f => ({ ...f, avatar: src }))}
+                      className={`rounded-xl overflow-hidden border-2 transition-all aspect-square ${form.avatar === src ? "border-primary scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}>
+                      <img src={src} alt="avatar" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {PLAYER_AVATARS.map((avatar) => (
+                  <button key={avatar} type="button"
+                    className={`text-2xl p-2.5 rounded-xl border transition-all ${form.avatar === avatar ? "border-primary bg-primary/20" : "border-border bg-secondary/50 hover:border-border/80"}`}
+                    onClick={() => setForm(f => ({ ...f, avatar }))}>
+                    {avatar}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Name + Handle */}
+          <div className="space-y-1.5">
+            <Label>Display Name</Label>
+            <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Handle</Label>
+            <Input value={form.handle} onChange={(e) => setForm(f => ({ ...f, handle: e.target.value.toLowerCase().replace(/\s/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
+          </div>
+
+          {/* Bio */}
+          <div className="space-y-1.5">
+            <Label>Bio <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Textarea
+              placeholder="Tell something about yourself..."
+              value={form.bio}
+              onChange={(e) => setForm(f => ({ ...f, bio: e.target.value }))}
+              rows={2}
+              className="resize-none"
+              maxLength={200}
+            />
+            <p className="text-[10px] text-muted-foreground text-right">{form.bio.length}/200</p>
+          </div>
+
+          {/* Game Settings (player only) */}
+          {isPlayer && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Game Settings</Label>
+              <div className="space-y-2">
+                <Select value={form.game} onValueChange={(val) => setForm(f => ({ ...f, game: val }))}>
+                  <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
+                  <SelectContent>
+                    {availableGames.map((g) => (
+                      <SelectItem key={g.id} value={g.name}>🎮 {g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Your in-game UID" value={form.gameUid} onChange={(e) => setForm(f => ({ ...f, gameUid: e.target.value }))} />
+              </div>
+            </div>
+          )}
+
+          {/* Social Links */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wide">Social Links</Label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-20 shrink-0 text-muted-foreground">Instagram</span>
+                <Input placeholder="username" value={form.instagram} onChange={(e) => setForm(f => ({ ...f, instagram: e.target.value }))} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-20 shrink-0 text-muted-foreground">Discord</span>
+                <Input placeholder="username" value={form.discord} onChange={(e) => setForm(f => ({ ...f, discord: e.target.value }))} />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm w-20 shrink-0 text-muted-foreground">X</span>
+                <Input placeholder="username" value={form.x} onChange={(e) => setForm(f => ({ ...f, x: e.target.value }))} />
+              </div>
+              {isHost && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm w-20 shrink-0 text-muted-foreground">YouTube</span>
+                  <Input placeholder="channel name" value={form.youtube} onChange={(e) => setForm(f => ({ ...f, youtube: e.target.value }))} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <Button className="w-full" onClick={handleSave} disabled={isPending}>
+            {isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OwnProfile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const { data: squad, refetch: refetchSquad } = useGetMySquad();
   const { mutateAsync: addSquadMember, isPending: isAdding } = useAddSquadMember();
@@ -195,6 +324,7 @@ function OwnProfile() {
   const [squadOpen, setSquadOpen] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const handleDeleteMember = async (memberId: number) => {
     try {
@@ -218,8 +348,9 @@ function OwnProfile() {
     }
   };
 
-
   if (!user) return null;
+
+  const bio = (user as any)?.bio;
 
   return (
     <AppLayout title="My Profile">
@@ -227,7 +358,16 @@ function OwnProfile() {
         <div className="bg-card border border-card-border rounded-2xl p-5">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <AvatarDisplay avatar={user.avatar} className={cn("w-16 h-16 rounded-2xl text-3xl", getFrameClass((user as any).equippedFrame))} />
+              <div className="relative">
+                <AvatarDisplay avatar={user.avatar} className={cn("w-16 h-16 rounded-2xl text-3xl", getFrameClass((user as any).equippedFrame))} />
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
+                  title="Edit Profile"
+                >
+                  <Pencil className="w-3 h-3 text-primary-foreground" />
+                </button>
+              </div>
               <div>
                 <h2 className="text-lg font-bold flex items-center gap-1.5">
                   {user.name || "Player"}
@@ -235,7 +375,9 @@ function OwnProfile() {
                     <span className="text-base" title="Profile Badge">{getBadgeEmoji((user as any).equippedBadge)}</span>
                   )}
                 </h2>
-                <p className={cn("text-sm", getHandleColorClass((user as any).equippedHandleColor) ?? "text-muted-foreground")}>@{user.handle || user.email}</p>
+                <p className={cn("text-sm", getHandleColorClass((user as any).equippedHandleColor) ?? "text-muted-foreground")}>
+                  @{user.handle || user.email}
+                </p>
                 {user.role === "admin" ? (
                   <div className="flex items-center gap-1.5 mt-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-primary" />
@@ -258,18 +400,16 @@ function OwnProfile() {
             </Link>
           </div>
 
+          {bio && (
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{bio}</p>
+          )}
+
           <div className="grid grid-cols-3 gap-3 mt-4">
-            <button
-              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
-              onClick={() => setFollowersOpen(true)}
-            >
+            <button className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors" onClick={() => setFollowersOpen(true)}>
               <div className="font-bold text-lg">{user.followersCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
             </button>
-            <button
-              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
-              onClick={() => setFollowingOpen(true)}
-            >
+            <button className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors" onClick={() => setFollowingOpen(true)}>
               <div className="font-bold text-lg">{user.followingCount ?? 0}</div>
               <div className="text-xs text-muted-foreground">Following</div>
             </button>
@@ -278,6 +418,7 @@ function OwnProfile() {
               <div className="text-xs text-muted-foreground">Balance</div>
             </div>
           </div>
+
           {user.handle && (
             <>
               <FollowersModal handle={user.handle} count={user.followersCount ?? 0} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
@@ -285,11 +426,16 @@ function OwnProfile() {
             </>
           )}
 
-          {user.game ? (
+          {(user as any).game ? (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <span className="flex items-center gap-1.5 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-3 py-1">
-                🎮 {user.game}
+                🎮 {(user as any).game}
               </span>
+              {(user as any).isEsportsPlayer && (
+                <span className="flex items-center gap-1 text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-1">
+                  🎖️ Esports
+                </span>
+              )}
             </div>
           ) : null}
           <SocialLinksDisplay instagram={user.instagram} discord={user.discord} x={user.x} youtube={user.youtube} twitch={user.twitch} />
@@ -302,49 +448,23 @@ function OwnProfile() {
               <h3 className="font-semibold">My Matches</h3>
             </div>
             {matchesLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-24 rounded-xl" />
-                <Skeleton className="h-24 rounded-xl" />
-              </div>
+              <div className="space-y-2"><Skeleton className="h-24 rounded-xl" /><Skeleton className="h-24 rounded-xl" /></div>
             ) : (
-              <Tabs defaultValue="active">
-                <TabsList className="w-full mb-3">
-                  <TabsTrigger value="active" className="flex-1">
-                    Active ({myMatches?.participated.length ?? 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="history" className="flex-1">
-                    History ({myMatches?.history.length ?? 0})
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="active">
-                  {myMatches?.participated.length ? (
-                    <div className="flex flex-col gap-2">
-                      {myMatches.participated.map((m) => <MatchCard key={m.id} match={m} />)}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <div className="text-3xl mb-2">🎮</div>
-                      <p className="text-sm">No active matches</p>
-                    </div>
-                  )}
-                </TabsContent>
-                <TabsContent value="history">
-                  {myMatches?.history.length ? (
-                    <div className="flex flex-col gap-2">
-                      {myMatches.history.map((m) => <MatchCard key={m.id} match={m} />)}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <div className="text-3xl mb-2">📜</div>
-                      <p className="text-sm">No match history</p>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+              <div>
+                {myMatches?.participated.length ? (
+                  <div className="flex flex-col gap-2">
+                    {myMatches.participated.map((m) => <MatchCard key={m.id} match={m} />)}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-3xl mb-2">🎮</div>
+                    <p className="text-sm">No active matches</p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
-
 
         {user.role === "player" && (
           <div className="bg-card border border-card-border rounded-2xl p-4">
@@ -357,11 +477,9 @@ function OwnProfile() {
               </div>
               {(squad ?? []).filter(m => m.game === squadGame).length < 6 ? (
                 <Dialog open={squadOpen} onOpenChange={setSquadOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-7 gap-1">
-                      <Plus className="w-3.5 h-3.5" /> Add
-                    </Button>
-                  </DialogTrigger>
+                  <Button variant="outline" size="sm" className="h-7 gap-1" onClick={() => setSquadOpen(true)}>
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </Button>
                   <DialogContent className="max-w-sm">
                     <DialogHeader><DialogTitle>Add Squad Member — {squadGame}</DialogTitle></DialogHeader>
                     <div className="space-y-4">
@@ -384,18 +502,10 @@ function OwnProfile() {
               )}
             </div>
 
-            {/* Game selector tabs */}
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3" style={{ scrollbarWidth: "none" }}>
               {SQUAD_GAMES.map(g => (
-                <button
-                  key={g}
-                  onClick={() => setSquadGame(g)}
-                  className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all ${
-                    squadGame === g
-                      ? "border-primary bg-primary/20 text-primary font-semibold"
-                      : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/50"
-                  }`}
-                >
+                <button key={g} onClick={() => setSquadGame(g)}
+                  className={`shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all ${squadGame === g ? "border-primary bg-primary/20 text-primary font-semibold" : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/50"}`}>
                   {g}
                 </button>
               ))}
@@ -409,12 +519,7 @@ function OwnProfile() {
                       <div className="text-sm font-medium">{m.name}</div>
                       <div className="text-xs text-muted-foreground font-mono">{m.uid}</div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteMember(m.id!)}
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(m.id!)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -425,8 +530,9 @@ function OwnProfile() {
             )}
           </div>
         )}
-
       </div>
+
+      <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} user={user} refreshUser={refreshUser} />
     </AppLayout>
   );
 }
@@ -451,11 +557,7 @@ function PublicProfile({ handle }: { handle: string }) {
 
   const handleFollow = async () => {
     try {
-      if (profile?.isFollowing) {
-        await unfollow({ handle });
-      } else {
-        await follow({ handle });
-      }
+      if (profile?.isFollowing) { await unfollow({ handle }); } else { await follow({ handle }); }
       refetch();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
@@ -465,9 +567,7 @@ function PublicProfile({ handle }: { handle: string }) {
   if (isLoading) {
     return (
       <AppLayout showBack backHref="/explore" title="Profile">
-        <div className="space-y-4">
-          <Skeleton className="h-40 rounded-2xl" />
-        </div>
+        <div className="space-y-4"><Skeleton className="h-40 rounded-2xl" /></div>
       </AppLayout>
     );
   }
@@ -481,6 +581,7 @@ function PublicProfile({ handle }: { handle: string }) {
   }
 
   const isOwnProfile = currentUser?.handle === handle;
+  const profileBio = (profile as any)?.bio;
 
   return (
     <AppLayout showBack backHref="/explore" title={`@${handle}`}>
@@ -519,34 +620,27 @@ function PublicProfile({ handle }: { handle: string }) {
                 {canChat(currentUser.role, profile.role ?? "") && (
                   <Link href={`/chat/${profile.id}`}>
                     <Button variant="outline" size="sm" className="gap-1">
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      Message
+                      <MessageCircle className="w-3.5 h-3.5" /> Message
                     </Button>
                   </Link>
                 )}
-                <Button
-                  variant={profile.isFollowing ? "outline" : "default"}
-                  size="sm"
-                  onClick={handleFollow}
-                >
+                <Button variant={profile.isFollowing ? "outline" : "default"} size="sm" onClick={handleFollow}>
                   {profile.isFollowing ? "Unfollow" : "Follow"}
                 </Button>
               </div>
             )}
           </div>
 
+          {profileBio && (
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{profileBio}</p>
+          )}
+
           <div className="grid grid-cols-3 gap-3 mt-4">
-            <button
-              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
-              onClick={() => setFollowersOpen(true)}
-            >
+            <button className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors" onClick={() => setFollowersOpen(true)}>
               <div className="font-bold text-lg">{profile.followersCount}</div>
               <div className="text-xs text-muted-foreground">Followers</div>
             </button>
-            <button
-              className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors"
-              onClick={() => setFollowingOpen(true)}
-            >
+            <button className="bg-secondary/50 rounded-xl p-3 text-center hover:bg-secondary/80 transition-colors" onClick={() => setFollowingOpen(true)}>
               <div className="font-bold text-lg">{profile.followingCount}</div>
               <div className="text-xs text-muted-foreground">Following</div>
             </button>
@@ -565,16 +659,9 @@ function PublicProfile({ handle }: { handle: string }) {
               </span>
             </div>
           )}
-          <SocialLinksDisplay
-            instagram={(profile as any).instagram}
-            discord={(profile as any).discord}
-            x={(profile as any).x}
-            youtube={(profile as any).youtube}
-            twitch={(profile as any).twitch}
-          />
+          <SocialLinksDisplay instagram={(profile as any).instagram} discord={(profile as any).discord} x={(profile as any).x} youtube={(profile as any).youtube} twitch={(profile as any).twitch} />
         </div>
 
-        {/* Host Group Card */}
         {profile.role === "host" && hostGroup && (
           <Link href={`/chat/group/${hostGroup.id}`}>
             <div className={`bg-card border rounded-2xl p-4 cursor-pointer hover:bg-secondary/30 transition-all ${hostGroup.isPublic ? "border-blue-500/20" : "border-border"}`}>
@@ -586,13 +673,9 @@ function PublicProfile({ handle }: { handle: string }) {
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <Crown className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     <p className="text-sm font-semibold truncate">{hostGroup.name}</p>
-                    {!hostGroup.isPublic && (
-                      <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full shrink-0">🔒 Private</span>
-                    )}
+                    {!hostGroup.isPublic && <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full shrink-0">🔒 Private</span>}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {hostGroup.memberCount} member{hostGroup.memberCount !== 1 ? "s" : ""} · {hostGroup.isPublic ? "Public" : "Private"} broadcast group
-                  </p>
+                  <p className="text-xs text-muted-foreground">{hostGroup.memberCount} member{hostGroup.memberCount !== 1 ? "s" : ""} · {hostGroup.isPublic ? "Public" : "Private"} broadcast group</p>
                 </div>
                 <Users className="w-4 h-4 text-muted-foreground shrink-0" />
               </div>
@@ -605,17 +688,13 @@ function PublicProfile({ handle }: { handle: string }) {
             {profile.activeMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Live / Active</h3>
-                <div className="flex flex-col gap-2">
-                  {profile.activeMatches.map((m) => <MatchCard key={m.id} match={m} />)}
-                </div>
+                <div className="flex flex-col gap-2">{profile.activeMatches.map((m) => <MatchCard key={m.id} match={m} />)}</div>
               </div>
             )}
             {profile.upcomingMatches.length > 0 && (
               <div>
                 <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
-                <div className="flex flex-col gap-2">
-                  {profile.upcomingMatches.map((m) => <MatchCard key={m.id} match={m} />)}
-                </div>
+                <div className="flex flex-col gap-2">{profile.upcomingMatches.map((m) => <MatchCard key={m.id} match={m} />)}</div>
               </div>
             )}
           </div>
@@ -630,9 +709,7 @@ export default function ProfilePage() {
   const { user } = useAuth();
 
   if (params?.handle) {
-    if (user?.handle === params.handle) {
-      return <OwnProfile />;
-    }
+    if (user?.handle === params.handle) return <OwnProfile />;
     return <PublicProfile handle={params.handle} />;
   }
 

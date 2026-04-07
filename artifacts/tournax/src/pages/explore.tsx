@@ -14,6 +14,7 @@ import type { UserProfile } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { PostsFeed } from "@/components/posts/PostsFeed";
 
 const GAMES = ["all", "BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC"];
 
@@ -208,7 +209,7 @@ function UserCard({ profile }: { profile: UserProfile }) {
   return <Link href={`/profile/${profile.handle}`}>{card}</Link>;
 }
 
-export default function ExplorePage() {
+export default function DiscoveryPage() {
   const [search, setSearch] = useState("");
   const { data, isLoading } = useExploreUsers(
     { search: search || undefined },
@@ -216,7 +217,7 @@ export default function ExplorePage() {
   );
 
   return (
-    <AppLayout title="Explore">
+    <AppLayout title="Discovery">
       <div className="space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -255,6 +256,10 @@ export default function ExplorePage() {
             <TopPlayersSection />
           </TabsContent>
         </Tabs>
+
+        <div className="pt-2 border-t border-border">
+          <PostsFeed />
+        </div>
       </div>
     </AppLayout>
   );

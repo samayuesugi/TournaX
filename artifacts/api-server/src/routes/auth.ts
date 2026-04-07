@@ -90,6 +90,7 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     equippedBadge: user.equippedBadge ?? null,
     equippedHandleColor: user.equippedHandleColor ?? null,
     isEsportsPlayer: user.isEsportsPlayer ?? false,
+    bio: user.bio ?? null,
   };
 }
 

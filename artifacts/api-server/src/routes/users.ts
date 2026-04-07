@@ -151,7 +151,7 @@ router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res
 
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer } = req.body;
+  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio } = req.body;
   const updateData: any = {};
   if (name) updateData.name = name;
   if (handle) updateData.handle = handle;
@@ -159,6 +159,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
   updateData.instagram = instagram ?? null;
   updateData.discord = discord ?? null;
   updateData.x = x ?? null;
+  updateData.bio = bio ?? null;
   if (user.role === "host" || user.role === "admin") {
     updateData.youtube = youtube ?? null;
     updateData.twitch = twitch ?? null;
@@ -178,6 +179,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     instagram: updated.instagram, discord: updated.discord, x: updated.x,
     youtube: updated.youtube, twitch: updated.twitch,
     isEsportsPlayer: updated.isEsportsPlayer ?? false,
+    bio: updated.bio ?? null,
   });
 });
 

@@ -78,7 +78,7 @@ export function AppLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {isHomePage && (
+      {true && (
         <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border">
           <div className="flex items-center gap-3 h-14 px-4 max-w-lg mx-auto">
             {showBack ? (

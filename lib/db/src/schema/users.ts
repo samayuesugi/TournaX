@@ -42,6 +42,7 @@ export const usersTable = pgTable("users", {
   equippedBadge: text("equipped_badge"),
   equippedHandleColor: text("equipped_handle_color"),
   isEsportsPlayer: boolean("is_esports_player").notNull().default(false),
+  bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

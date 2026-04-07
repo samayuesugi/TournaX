@@ -4,6 +4,7 @@ import { customFetch } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GoldCoin } from "@/components/ui/Coins";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Gavel, Trophy, Clock, Zap, CheckCircle, History, ChevronRight, Medal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,36 +31,116 @@ const statusConfig = {
   cancelled: { label: "Cancelled", icon: CheckCircle, class: "bg-destructive/20 text-destructive border-destructive/30" },
 };
 
+function AuctionHistoryDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [, navigate] = useLocation();
+  const [history, setHistory] = useState<HistoryAuction[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setIsLoading(true);
+    customFetch<HistoryAuction[]>("/api/auctions/my-history")
+      .then(setHistory)
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <History className="w-4 h-4 text-blue-400" /> Auction History
+          </DialogTitle>
+        </DialogHeader>
+        <div className="overflow-y-auto flex-1 px-4 pb-4">
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}
+            </div>
+          ) : history.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <History className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-xs">No auction history yet</p>
+              <p className="text-xs opacity-60 mt-0.5">Participate in auctions to see them here</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {history.map(auction => (
+                <button
+                  key={auction.id}
+                  className="w-full text-left bg-card border border-card-border rounded-2xl p-4 hover:border-primary/40 transition-all active:scale-[0.98]"
+                  onClick={() => { onClose(); navigate(`/auctions/${auction.id}`); }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Medal className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm truncate">{auction.title}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{auction.tournamentName}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">My Bids</p>
+                      <GoldCoin amount={auction.myTotalBid.toFixed(0)} size="sm" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Pool</p>
+                      <GoldCoin amount={auction.totalPool.toFixed(0)} size="sm" />
+                    </div>
+                    <div className="ml-auto">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full px-2 py-0.5">
+                        <CheckCircle className="w-3 h-3" />
+                        Completed
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AuctionsPage() {
   const [, navigate] = useLocation();
   const [auctions, setAuctions] = useState<Auction[]>([]);
-  const [history, setHistory] = useState<HistoryAuction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     customFetch<Auction[]>("/api/auctions")
       .then(data => setAuctions(data.filter(a => a.status !== "cancelled" && a.status !== "completed")))
       .catch(() => {})
       .finally(() => setIsLoading(false));
-
-    customFetch<HistoryAuction[]>("/api/auctions/my-history")
-      .then(setHistory)
-      .catch(() => {})
-      .finally(() => setIsHistoryLoading(false));
   }, []);
 
   return (
-    <AppLayout title="Team Auctions">
+    <AppLayout title="Team Auctions" showBack={false}>
       <div className="space-y-5 pb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
-            <Gavel className="w-5 h-5 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Gavel className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg leading-tight">Team Auctions</h1>
+              <p className="text-muted-foreground text-xs">Bid on teams, win big rewards</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-lg leading-tight">Team Auctions</h1>
-            <p className="text-muted-foreground text-xs">Bid on teams, win big rewards</p>
-          </div>
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-colors"
+          >
+            <History className="w-3.5 h-3.5" />
+            History
+          </button>
         </div>
 
         {isLoading ? (
@@ -118,65 +199,9 @@ export default function AuctionsPage() {
             })}
           </div>
         )}
-
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <History className="w-4 h-4 text-blue-400" />
-            </div>
-            <h2 className="font-bold text-sm">Auction History</h2>
-          </div>
-
-          {isHistoryLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}
-            </div>
-          ) : history.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground bg-card border border-card-border rounded-2xl">
-              <History className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-xs">No auction history yet</p>
-              <p className="text-xs opacity-60 mt-0.5">Participate in auctions to see them here</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {history.map(auction => (
-                <button
-                  key={auction.id}
-                  className="w-full text-left bg-card border border-card-border rounded-2xl p-4 hover:border-primary/40 transition-all active:scale-[0.98]"
-                  onClick={() => navigate(`/auctions/${auction.id}`)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                      <Medal className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm truncate">{auction.title}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{auction.tournamentName}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                  </div>
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">My Bids</p>
-                      <GoldCoin amount={auction.myTotalBid.toFixed(0)} size="sm" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Pool</p>
-                      <GoldCoin amount={auction.totalPool.toFixed(0)} size="sm" />
-                    </div>
-                    <div className="ml-auto">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full px-2 py-0.5">
-                        <CheckCircle className="w-3 h-3" />
-                        Completed
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
+
+      <AuctionHistoryDialog open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </AppLayout>
   );
 }
