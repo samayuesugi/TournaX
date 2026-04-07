@@ -261,6 +261,7 @@ export default function SettingsPage() {
     twitch: user?.twitch ?? "",
     game: (user as any)?.game ?? "",
     gameUid: (user as any)?.gameUid ?? "",
+    isEsportsPlayer: Boolean((user as any)?.isEsportsPlayer),
   });
 
   const [referralStats, setReferralStats] = useState<{
@@ -291,6 +292,7 @@ export default function SettingsPage() {
         twitch: user?.twitch ?? "",
         game: (user as any)?.game ?? "",
         gameUid: (user as any)?.gameUid ?? "",
+        isEsportsPlayer: Boolean((user as any)?.isEsportsPlayer),
       });
       if (user?.role === "player" && availableGames.length === 0) {
         customFetch<{ id: number; name: string }[]>("/api/games")
@@ -491,6 +493,43 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
+                    </div>
+                  )}
+                  {user.role === "player" && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Account Type</Label>
+                      <button
+                        type="button"
+                        onClick={() => setProfileForm(f => ({ ...f, isEsportsPlayer: !f.isEsportsPlayer }))}
+                        className={cn(
+                          "w-full flex items-center justify-between p-3 rounded-xl border transition-all",
+                          profileForm.isEsportsPlayer
+                            ? "bg-yellow-500/10 border-yellow-500/40"
+                            : "bg-secondary/50 border-border"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">🎖️</span>
+                          <div className="text-left">
+                            <p className={cn("text-sm font-semibold", profileForm.isEsportsPlayer ? "text-yellow-400" : "text-foreground")}>
+                              Esports Player
+                            </p>
+                            <p className="text-xs text-muted-foreground">Unlocks Esports category on home page</p>
+                          </div>
+                        </div>
+                        <div className={cn(
+                          "w-11 h-6 rounded-full transition-all relative shrink-0",
+                          profileForm.isEsportsPlayer ? "bg-yellow-500" : "bg-border"
+                        )}>
+                          <div className={cn(
+                            "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                            profileForm.isEsportsPlayer ? "left-6" : "left-1"
+                          )} />
+                        </div>
+                      </button>
+                      <p className="text-xs text-muted-foreground px-1">
+                        Like Instagram's Professional account — switch to Esports Player to access competitive tournament categories.
+                      </p>
                     </div>
                   )}
                   <div className="space-y-2">

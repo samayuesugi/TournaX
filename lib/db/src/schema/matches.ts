@@ -23,6 +23,8 @@ export const matchesTable = pgTable("matches", {
   description: text("description"),
   thumbnailImage: text("thumbnail_image"),
   hostContribution: numeric("host_contribution", { precision: 10, scale: 2 }).notNull().default("0"),
+  category: text("category"),
+  map: text("map"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

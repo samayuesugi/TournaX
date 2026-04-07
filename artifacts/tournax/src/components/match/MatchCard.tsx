@@ -57,6 +57,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
   const hostReviewCount: number = (match as any).hostReviewCount ?? 0;
   const hostAvatar: string = (match as any).hostAvatar ?? "🛡️";
   const hostHandle: string = (match as any).hostHandle ?? "";
+  const matchMap: string | null = (match as any).map ?? null;
+  const teamSizeLabel = match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`;
 
   return (
     <Link href={`/matches/${match.id}`}>
@@ -86,11 +88,17 @@ export function MatchCard({ match, className }: MatchCardProps) {
                 <span className="font-bold text-sm text-foreground truncate">{match.game}</span>
                 <span className="text-muted-foreground text-xs">·</span>
                 <span className="text-muted-foreground text-xs">{match.mode}</span>
+                <span className="text-muted-foreground text-xs">·</span>
+                <span className="text-xs font-medium text-primary/80">{teamSizeLabel}</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="font-mono text-accent">#{match.code}</span>
-                <span>·</span>
-                <span>{match.teamSize}v{match.teamSize}</span>
+                {matchMap && (
+                  <>
+                    <span>·</span>
+                    <span>🗺️ {matchMap}</span>
+                  </>
+                )}
               </div>
             </div>
             {!thumbnail && (

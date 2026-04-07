@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCreateMatch, useGetWallet } from "@workspace/api-client-react";
+import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Wallet } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
@@ -24,9 +25,22 @@ const THUMBNAIL_OPTIONS = [
   { id: "thumb4", src: thumb4, label: "Battle" },
 ];
 
-const GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile", "Other"];
+const FF_CATEGORIES = [
+  { id: "Battle Royale", label: "Battle Royale", emoji: "🔫", allowSquad: true },
+  { id: "Clash Squad", label: "Clash Squad", emoji: "⚔️", allowSquad: true },
+  { id: "Lone Wolf", label: "Lone Wolf", emoji: "🐺", allowSquad: false },
+];
 
-const TEAM_SIZE_PRESETS = [
+const FF_MAPS = ["Bermuda", "Kalahari", "Purgatory", "Alps", "Nextera", "Aden", "Bermuda Remastered"];
+
+const BGMI_CATEGORIES = [
+  { id: "Classic", label: "Classic", emoji: "🏆", allowSquad: true },
+  { id: "TDM", label: "TDM", emoji: "⚡", allowSquad: true },
+];
+
+const BGMI_MAPS = ["Erangel", "Miramar", "Sanhok", "Vikendi", "Livik", "Karakin", "Nusa"];
+
+const TEAM_SIZES = [
   { label: "Solo", value: 1 },
   { label: "Duo", value: 2 },
   { label: "Squad", value: 4 },
@@ -35,14 +49,27 @@ const TEAM_SIZE_PRESETS = [
 export default function CreateMatchPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { mutateAsync: createMatch, isPending } = useCreateMatch();
   const { data: wallet } = useGetWallet();
 
-  const [selectedGame, setSelectedGame] = useState<string>("");
+  const hostGame = (user as any)?.game ?? "";
+  const isFF = hostGame === "Free Fire";
+  const isBGMI = hostGame === "BGMI";
+
+  const categories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
+  const maps = isFF ? FF_MAPS : isBGMI ? BGMI_MAPS : [];
+  const maxSlots = isFF ? 50 : 100;
+
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]?.id ?? "");
+  const activeCat = categories.find(c => c.id === selectedCategory);
+  const allowSquad = activeCat?.allowSquad ?? true;
+  const availableTeamSizes = allowSquad ? TEAM_SIZES : TEAM_SIZES.filter(t => t.value !== 4);
+
   const [teamSize, setTeamSize] = useState<number>(1);
+  const [selectedMap, setSelectedMap] = useState<string>("");
   const [selectedThumbnail, setSelectedThumbnail] = useState<string>("");
   const [form, setForm] = useState({
-    mode: "",
     entryFee: "",
     slots: "",
     startTime: "",
@@ -51,9 +78,17 @@ export default function CreateMatchPage() {
     description: "",
   });
 
+  useEffect(() => {
+    if (!allowSquad && teamSize === 4) setTeamSize(1);
+  }, [selectedCategory, allowSquad]);
+
+  useEffect(() => {
+    if (categories.length > 0) setSelectedCategory(categories[0].id);
+  }, [hostGame]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGame || !form.mode.trim() || !form.startTime || !form.entryFee || !form.slots) {
+    if (!selectedCategory || !form.startTime || !form.entryFee || !form.slots) {
       toast({ title: "Fill in all fields", variant: "destructive" });
       return;
     }
@@ -65,14 +100,21 @@ export default function CreateMatchPage() {
       toast({ title: "Enter the showcase prize pool amount", variant: "destructive" });
       return;
     }
+    const slotsNum = parseInt(form.slots);
+    if (slotsNum > maxSlots) {
+      toast({ title: `Max ${maxSlots} slots for ${hostGame}`, variant: "destructive" });
+      return;
+    }
     try {
       const match = await createMatch({
         data: {
-          game: selectedGame,
-          mode: form.mode.trim(),
+          game: hostGame,
+          mode: selectedCategory,
+          category: selectedCategory,
+          map: selectedMap || undefined,
           teamSize,
           entryFee: parseFloat(form.entryFee),
-          slots: parseInt(form.slots),
+          slots: slotsNum,
           startTime: new Date(form.startTime).toISOString(),
           showcasePrizePool: parseFloat(form.showcasePrizePool),
           hostContribution: form.hostContribution ? parseFloat(form.hostContribution) : 0,
@@ -98,37 +140,69 @@ export default function CreateMatchPage() {
   const previewHost = Math.round(previewEntryPool * (previewIsLarge ? 0.10 : 0.05));
   const previewPlatform = Math.round(previewEntryPool * 0.05);
 
+  if (!hostGame) {
+    return (
+      <AppLayout showBack backHref="/host" title="Create Match">
+        <div className="text-center py-16">
+          <div className="text-4xl mb-3">🎮</div>
+          <h3 className="font-semibold text-base mb-2">No game selected</h3>
+          <p className="text-muted-foreground text-sm">Go to Settings → Edit Profile to set your game first.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout showBack backHref="/host" title="Create Match">
       <form onSubmit={handleSubmit} className="space-y-4 pb-8">
         <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
-          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Match Details</h3>
-
-          <div className="space-y-1.5">
-            <Label>Game</Label>
-            <Select value={selectedGame} onValueChange={setSelectedGame}>
-              <SelectTrigger><SelectValue placeholder="Select game" /></SelectTrigger>
-              <SelectContent>
-                {GAMES.map((g) => (
-                  <SelectItem key={g} value={g}>{g}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Match Details</h3>
+            <span className="text-xs font-semibold bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
+              {hostGame}
+            </span>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Mode</Label>
-            <Input
-              placeholder="e.g. Battle Royale, TDM, Clash Squad..."
-              value={form.mode}
-              onChange={(e) => setForm(f => ({ ...f, mode: e.target.value }))}
-            />
+            <Label>Category</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={cn(
+                    "flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-medium transition-all",
+                    selectedCategory === cat.id
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span className="text-base">{cat.emoji}</span>
+                  <span className="text-center leading-tight">{cat.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {maps.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Map className="w-3.5 h-3.5" /> Map</Label>
+              <Select value={selectedMap} onValueChange={setSelectedMap}>
+                <SelectTrigger><SelectValue placeholder="Select map (optional)" /></SelectTrigger>
+                <SelectContent>
+                  {maps.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Team Size</Label>
             <div className="flex gap-2">
-              {TEAM_SIZE_PRESETS.map((p) => (
+              {availableTeamSizes.map((p) => (
                 <button
                   key={p.value}
                   type="button"
@@ -143,24 +217,10 @@ export default function CreateMatchPage() {
                   {p.label}
                 </button>
               ))}
-              <div className="relative">
-                <Input
-                  type="number"
-                  min={1}
-                  max={20}
-                  placeholder="Custom"
-                  value={TEAM_SIZE_PRESETS.some(p => p.value === teamSize) ? "" : String(teamSize)}
-                  onChange={(e) => {
-                    const v = parseInt(e.target.value);
-                    if (!isNaN(v) && v >= 1) setTeamSize(v);
-                  }}
-                  className="w-24 text-center"
-                />
-              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {teamSize === 1 ? "Solo — 1 player per slot" : teamSize === 2 ? "Duo — 2 players per slot" : `${teamSize} players per slot`}
-            </p>
+            {activeCat && !activeCat.allowSquad && (
+              <p className="text-xs text-yellow-500/80">⚠️ {activeCat.label} only supports Solo and Duo</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -175,14 +235,14 @@ export default function CreateMatchPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Total Slots</Label>
+              <Label>Total Slots <span className="text-muted-foreground font-normal text-xs">(max {maxSlots})</span></Label>
               <Input
                 type="number"
-                placeholder="e.g. 25"
+                placeholder={`e.g. 25`}
                 value={form.slots}
                 onChange={(e) => setForm(f => ({ ...f, slots: e.target.value }))}
                 min={2}
-                max={100}
+                max={maxSlots}
               />
             </div>
           </div>
@@ -221,9 +281,7 @@ export default function CreateMatchPage() {
                 onClick={() => setSelectedThumbnail(selectedThumbnail === t.src ? "" : t.src)}
                 className={cn(
                   "relative rounded-xl overflow-hidden border-2 transition-all aspect-video",
-                  selectedThumbnail === t.src
-                    ? "border-primary scale-[1.02]"
-                    : "border-transparent opacity-70 hover:opacity-100"
+                  selectedThumbnail === t.src ? "border-primary scale-[1.02]" : "border-transparent opacity-70 hover:opacity-100"
                 )}
               >
                 <img src={t.src} alt={t.label} className="w-full h-full object-cover" />
@@ -238,11 +296,7 @@ export default function CreateMatchPage() {
             ))}
           </div>
           {selectedThumbnail && (
-            <button
-              type="button"
-              onClick={() => setSelectedThumbnail("")}
-              className="text-xs text-muted-foreground hover:text-foreground underline"
-            >
+            <button type="button" onClick={() => setSelectedThumbnail("")} className="text-xs text-muted-foreground hover:text-foreground underline">
               Remove thumbnail
             </button>
           )}
@@ -303,9 +357,7 @@ export default function CreateMatchPage() {
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div className="text-sm font-bold text-green-400"><GoldCoin amount={previewWinners} size="sm" /></div>
-                  <div className="text-[10px] text-muted-foreground">
-                    Winners {previewIsLarge ? 85 : 90}%{contributionNum > 0 ? " + Your Boost" : ""}
-                  </div>
+                  <div className="text-[10px] text-muted-foreground">Winners {previewIsLarge ? 85 : 90}%{contributionNum > 0 ? " + Boost" : ""}</div>
                 </div>
                 <div>
                   <div className="text-sm font-bold text-foreground"><GoldCoin amount={previewHost} size="sm" /></div>

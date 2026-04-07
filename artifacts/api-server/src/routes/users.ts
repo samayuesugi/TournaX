@@ -151,7 +151,7 @@ router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res
 
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid } = req.body;
+  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer } = req.body;
   const updateData: any = {};
   if (name) updateData.name = name;
   if (handle) updateData.handle = handle;
@@ -166,6 +166,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
   if (user.role === "player") {
     if (game) updateData.game = game;
     if (gameUid !== undefined) updateData.gameUid = gameUid || null;
+    if (isEsportsPlayer !== undefined) updateData.isEsportsPlayer = Boolean(isEsportsPlayer);
   }
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
   try { getIO().to(`user-${user.id}`).emit("user:updated"); } catch {}
@@ -176,6 +177,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     followersCount: updated.followersCount, followingCount: updated.followingCount,
     instagram: updated.instagram, discord: updated.discord, x: updated.x,
     youtube: updated.youtube, twitch: updated.twitch,
+    isEsportsPlayer: updated.isEsportsPlayer ?? false,
   });
 });
 

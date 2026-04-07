@@ -66,6 +66,8 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     code: match.code,
     game: match.game,
     mode: match.mode,
+    category: match.category ?? null,
+    map: match.map ?? null,
     teamSize: match.teamSize,
     entryFee,
     showcasePrizePool,
@@ -103,16 +105,20 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
 }
 
 router.get("/matches", requireAuth, async (req: Request, res: Response) => {
-  const { search, status } = req.query;
+  const { search, status, game, category, teamSize } = req.query;
   const user = (req as any).user;
 
   const conditions: any[] = [];
   if (status && status !== "all") conditions.push(eq(matchesTable.status, status as any));
+  if (game) conditions.push(ilike(matchesTable.game, game as string));
+  if (category) conditions.push(ilike(matchesTable.category, category as string));
+  if (teamSize) conditions.push(eq(matchesTable.teamSize, Number(teamSize)));
   if (search) {
     conditions.push(or(
       ilike(matchesTable.code, `%${search}%`),
       ilike(matchesTable.game, `%${search}%`),
-      ilike(matchesTable.mode, `%${search}%`)
+      ilike(matchesTable.mode, `%${search}%`),
+      ilike(matchesTable.category, `%${search}%`)
     ));
   }
 
@@ -148,8 +154,9 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution } = req.body;
-  if (!game || !mode || !startTime) {
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, category, map: matchMap } = req.body;
+  const resolvedGame = game || user.game;
+  if (!resolvedGame || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
   }
   const parsedTeamSize = Number(teamSize);
@@ -193,7 +200,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     }
     const [inserted] = await tx.insert(matchesTable).values({
       code,
-      game,
+      game: resolvedGame,
       mode,
       teamSize: parsedTeamSize,
       entryFee: String(parsedEntryFee),
@@ -207,6 +214,8 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       roomReleased: false,
       description: description ? String(description).trim() : null,
       thumbnailImage: thumbnailImage ? String(thumbnailImage).trim() : null,
+      category: category ? String(category).trim() : null,
+      map: matchMap ? String(matchMap).trim() : null,
     }).returning();
     match = inserted;
   });

@@ -285,7 +285,7 @@ export default function MatchDetailPage() {
                 <div className="flex items-end justify-between">
                   <div>
                     <h2 className="text-2xl font-bold text-white drop-shadow">{match.game}</h2>
-                    <p className="text-white/70 text-sm">{match.mode} · {match.teamSize}v{match.teamSize}</p>
+                    <p className="text-white/70 text-sm">{match.mode} · {match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`}{(match as any).map ? ` · 🗺️ ${(match as any).map}` : ""}</p>
                   </div>
                   <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm", statusColors[match.status])}>
                     {match.status === "live" ? "🔴 Live" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
@@ -298,7 +298,7 @@ export default function MatchDetailPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">{match.game}</h2>
-                  <p className="text-muted-foreground text-sm mt-0.5">{match.mode} · {match.teamSize}v{match.teamSize}</p>
+                  <p className="text-muted-foreground text-sm mt-0.5">{match.mode} · {match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`}{(match as any).map ? ` · 🗺️ ${(match as any).map}` : ""}</p>
                 </div>
                 <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border", statusColors[match.status])}>
                   {match.status === "live" ? "🔴 Live" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
@@ -339,9 +339,10 @@ export default function MatchDetailPage() {
             <div className="text-[10px] text-muted-foreground mt-0.5">{slotsLeft === 0 ? "Full" : `${slotsLeft} left`}</div>
           </div>
           <div className="bg-card border border-card-border rounded-2xl p-3 text-center">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Team</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Mode</div>
             <div className="font-bold text-sm flex items-center justify-center gap-1">
-              <Swords className="w-3 h-3 text-muted-foreground" />{match.teamSize}v{match.teamSize}
+              <Swords className="w-3 h-3 text-muted-foreground" />
+              {match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}p`}
             </div>
             <div className="text-[10px] text-muted-foreground mt-0.5">{match.mode}</div>
           </div>

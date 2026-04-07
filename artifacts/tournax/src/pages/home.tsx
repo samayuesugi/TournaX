@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { Search, Users, Camera, X, Heart, MessageCircle, Send } from "lucide-react";
-import { useListMatches, customFetch } from "@workspace/api-client-react";
+import { Search, Users, Camera, X, Heart, MessageCircle, Send, Shield, Trophy } from "lucide-react";
+import { customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MatchCard } from "@/components/match/MatchCard";
@@ -14,9 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { SilverCoinIcon } from "@/components/ui/Coins";
-
-const FILTERS = ["upcoming", "live"] as const;
-type Filter = typeof FILTERS[number];
 
 interface Post {
   id: number;
@@ -164,36 +161,13 @@ function PostCard({ post }: { post: Post }) {
       )}
 
       <div className="flex items-center gap-4 px-4 py-2.5">
-        <button
-          onClick={toggleLike}
-          className="flex items-center gap-1.5 group"
-        >
-          <Heart
-            className={cn(
-              "w-5 h-5 transition-all",
-              liked
-                ? "fill-red-500 text-red-500 scale-110"
-                : "text-muted-foreground group-hover:text-red-400"
-            )}
-          />
-          <span className={cn("text-sm tabular-nums", liked ? "text-red-500" : "text-muted-foreground")}>
-            {likeCount}
-          </span>
+        <button onClick={toggleLike} className="flex items-center gap-1.5 group">
+          <Heart className={cn("w-5 h-5 transition-all", liked ? "fill-red-500 text-red-500 scale-110" : "text-muted-foreground group-hover:text-red-400")} />
+          <span className={cn("text-sm tabular-nums", liked ? "text-red-500" : "text-muted-foreground")}>{likeCount}</span>
         </button>
-
-        <button
-          onClick={handleToggleComments}
-          className="flex items-center gap-1.5 group"
-        >
-          <MessageCircle
-            className={cn(
-              "w-5 h-5 transition-colors",
-              commentsOpen ? "text-primary" : "text-muted-foreground group-hover:text-primary"
-            )}
-          />
-          <span className={cn("text-sm tabular-nums", commentsOpen ? "text-primary" : "text-muted-foreground")}>
-            {commentCount}
-          </span>
+        <button onClick={handleToggleComments} className="flex items-center gap-1.5 group">
+          <MessageCircle className={cn("w-5 h-5 transition-colors", commentsOpen ? "text-primary" : "text-muted-foreground group-hover:text-primary")} />
+          <span className={cn("text-sm tabular-nums", commentsOpen ? "text-primary" : "text-muted-foreground")}>{commentCount}</span>
         </button>
       </div>
 
@@ -214,9 +188,7 @@ function PostCard({ post }: { post: Post }) {
                 <div key={c.id} className="flex items-start gap-2">
                   <UserAvatar avatar={c.userAvatar} name={c.userName} size={6} />
                   <div className="flex-1 min-w-0 bg-secondary/40 rounded-xl px-3 py-1.5">
-                    <span className="text-xs font-semibold text-foreground">
-                      {c.userName || `@${c.userHandle}`}
-                    </span>
+                    <span className="text-xs font-semibold text-foreground">{c.userName || `@${c.userHandle}`}</span>
                     <span className="text-xs text-muted-foreground ml-1.5">{formatRelative(c.createdAt)}</span>
                     <p className="text-sm text-foreground mt-0.5 break-words">{c.content}</p>
                   </div>
@@ -226,7 +198,6 @@ function PostCard({ post }: { post: Post }) {
           ) : (
             <p className="text-xs text-muted-foreground text-center py-1">No comments yet. Be the first!</p>
           )}
-
           <div className="flex items-center gap-2">
             <Input
               ref={inputRef}
@@ -236,11 +207,7 @@ function PostCard({ post }: { post: Post }) {
               className="flex-1 h-8 text-sm"
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
             />
-            <button
-              onClick={submitComment}
-              disabled={!commentInput.trim() || submitting}
-              className="text-primary disabled:opacity-40 transition-opacity"
-            >
+            <button onClick={submitComment} disabled={!commentInput.trim() || submitting} className="text-primary disabled:opacity-40 transition-opacity">
               <Send className="w-4 h-4" />
             </button>
           </div>
@@ -286,10 +253,7 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   };
 
   const handleSubmit = async () => {
-    if (!imageFile) {
-      toast({ title: "Select an image", variant: "destructive" });
-      return;
-    }
+    if (!imageFile) { toast({ title: "Select an image", variant: "destructive" }); return; }
     setIsSubmitting(true);
     try {
       const imageUrl = await new Promise<string>((resolve, reject) => {
@@ -298,10 +262,7 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
         reader.onerror = reject;
         reader.readAsDataURL(imageFile);
       });
-      await customFetch("/api/posts", {
-        method: "POST",
-        body: JSON.stringify({ imageUrl, caption: caption.trim() || null }),
-      });
+      await customFetch("/api/posts", { method: "POST", body: JSON.stringify({ imageUrl, caption: caption.trim() || null }) });
       toast({ title: "Posted!", description: "10 Silver Coins deducted." });
       reset();
       setOpen(false);
@@ -318,15 +279,11 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5" variant="outline">
-          <Camera className="w-3.5 h-3.5" /> Share
-        </Button>
+        <Button size="sm" className="gap-1.5" variant="outline"><Camera className="w-3.5 h-3.5" /> Share</Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Camera className="w-4 h-4 text-primary" /> Share a Moment
-          </DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Camera className="w-4 h-4 text-primary" /> Share a Moment</DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
           {!canPost && (
@@ -338,47 +295,23 @@ function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
             <SilverCoinIcon size="sm" />
             <span>Posting costs <span className="font-bold text-foreground">10 Silver Coins</span></span>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageSelect}
-          />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
           {imagePreview ? (
             <div className="relative rounded-xl overflow-hidden border border-border">
               <img src={imagePreview} alt="Preview" className="w-full aspect-video object-cover" />
-              <button
-                onClick={handleRemoveImage}
-                className="absolute top-2 right-2 bg-black/70 rounded-full p-1"
-              >
-                <X className="w-4 h-4 text-white" />
-              </button>
+              <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-black/70 rounded-full p-1"><X className="w-4 h-4 text-white" /></button>
             </div>
           ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-10 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-            >
+            <button onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-10 hover:border-primary/50 hover:bg-primary/5 transition-colors">
               <Camera className="w-8 h-8 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Tap to select image</span>
             </button>
           )}
           <div className="space-y-1.5">
             <Label>Caption <span className="text-muted-foreground font-normal">(optional)</span></Label>
-            <Textarea
-              placeholder="Say something about this moment..."
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={2}
-              className="resize-none"
-            />
+            <Textarea placeholder="Say something about this moment..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={2} className="resize-none" />
           </div>
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={isSubmitting || !imageFile || !canPost}
-          >
+          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !imageFile || !canPost}>
             {isSubmitting ? "Posting..." : "Post · -10 Silver"}
           </Button>
         </div>
@@ -394,10 +327,7 @@ function PostsFeed() {
 
   useEffect(() => {
     setLoading(true);
-    customFetch<Post[]>("/api/posts?limit=20")
-      .then(setPosts)
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
+    customFetch<Post[]>("/api/posts?limit=20").then(setPosts).catch(() => setPosts([])).finally(() => setLoading(false));
   }, [refreshKey]);
 
   const refresh = () => setRefreshKey(k => k + 1);
@@ -409,13 +339,9 @@ function PostsFeed() {
         <SharePostDialog onSuccess={refresh} />
       </div>
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}
-        </div>
+        <div className="space-y-3">{[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}</div>
       ) : posts.length > 0 ? (
-        <div className="space-y-3">
-          {posts.map(p => <PostCard key={p.id} post={p} />)}
-        </div>
+        <div className="space-y-3">{posts.map(p => <PostCard key={p.id} post={p} />)}</div>
       ) : (
         <div className="text-center py-12">
           <div className="text-4xl mb-3">📸</div>
@@ -427,107 +353,241 @@ function PostsFeed() {
   );
 }
 
-export default function HomePage() {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("upcoming");
-  const { user } = useAuth();
+const FF_CATEGORIES = [
+  { id: "Battle Royale", label: "Battle Royale", emoji: "🔫", modes: ["Solo", "Duo", "Squad"] },
+  { id: "Clash Squad", label: "Clash Squad", emoji: "⚔️", modes: ["Solo", "Duo", "Squad"] },
+  { id: "Lone Wolf", label: "Lone Wolf", emoji: "🐺", modes: ["Solo", "Duo"] },
+];
 
-  const { data: rawMatches, isLoading } = useListMatches(
-    { status: filter, search: search || undefined },
-    { query: { staleTime: 10000 } as any }
+const BGMI_CATEGORIES = [
+  { id: "Classic", label: "Classic", emoji: "🏆", modes: ["Solo", "Duo", "Squad"] },
+  { id: "TDM", label: "TDM", emoji: "⚡", modes: ["Solo", "Duo", "Squad"] },
+];
+
+const ESPORTS_CATEGORY = { id: "Esports", label: "Esports", emoji: "🎖️", modes: ["Solo", "Duo", "Squad"] };
+
+function MatchesList({ game, category, mode }: { game: string; category: string; mode: string }) {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.set("game", game);
+    params.set("category", category);
+    const teamSize = mode === "Solo" ? "1" : mode === "Duo" ? "2" : "4";
+    params.set("teamSize", teamSize);
+    customFetch<any[]>(`/api/matches?${params.toString()}`)
+      .then((data) => setMatches((data ?? []).filter((m: any) => m.status !== "completed")))
+      .catch(() => setMatches([]))
+      .finally(() => setLoading(false));
+  }, [game, category, mode]);
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
+      </div>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-4xl mb-3">🎮</div>
+        <h3 className="font-semibold text-base mb-1">No matches yet</h3>
+        <p className="text-muted-foreground text-sm">No {mode} {category} tournaments available right now</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {matches.map((match) => <MatchCard key={match.id} match={match} />)}
+    </div>
   );
-  const matches = (rawMatches ?? []).filter((m: any) => m.status !== "completed");
+}
 
-  const isPlayer = user?.role === "player";
+function GameHomePage({ game, isEsportsPlayer }: { game: string; isEsportsPlayer: boolean }) {
+  const isFF = game === "Free Fire";
+  const isBGMI = game === "BGMI";
 
-  const followingMatches = isPlayer
-    ? (matches ?? []).filter((m: any) => !m.isRecommended)
-    : (matches ?? []);
-  const recommendedMatches = isPlayer
-    ? (matches ?? []).filter((m: any) => m.isRecommended)
-    : [];
+  const baseCategories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
+  const categories = isEsportsPlayer ? [...baseCategories, ESPORTS_CATEGORY] : baseCategories;
 
-  const matchesContent = isLoading ? (
-    <div className="space-y-5">
-      {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-44 rounded-xl" />
-      ))}
-    </div>
-  ) : isPlayer ? (
-    <div className="space-y-6">
-      {followingMatches.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Following</h2>
-            <span className="text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
-              {followingMatches.length}
-            </span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {followingMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        </div>
-      )}
-      {recommendedMatches.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Recommended</h2>
-            <span className="text-xs font-medium bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
-              For You
-            </span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {recommendedMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        </div>
-      )}
-      {followingMatches.length === 0 && recommendedMatches.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-4xl mb-3">🎮</div>
-          <h3 className="font-semibold text-base mb-1">No matches yet</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {search ? "Try a different search" : "Follow hosts to see their matches here"}
-          </p>
-          {!search && (
-            <Link href="/explore">
-              <Button variant="outline" className="gap-2">
-                <Users className="w-4 h-4" />
-                Find Hosts
-              </Button>
-            </Link>
-          )}
-        </div>
-      )}
-    </div>
-  ) : (
-    matches && matches.length > 0 ? (
-      <div className="flex flex-col gap-2">
-        {matches.map((match) => (
-          <MatchCard key={match.id} match={match} />
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]?.id ?? "");
+  const activeCat = categories.find(c => c.id === selectedCategory) ?? categories[0];
+  const [selectedMode, setSelectedMode] = useState(activeCat?.modes[0] ?? "Solo");
+
+  useEffect(() => {
+    const cat = categories.find(c => c.id === selectedCategory);
+    if (cat && !cat.modes.includes(selectedMode)) {
+      setSelectedMode(cat.modes[0]);
+    }
+  }, [selectedCategory]);
+
+  if (categories.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-4xl mb-3">🎮</div>
+        <h3 className="font-semibold text-base mb-1">Select a game in your profile</h3>
+        <p className="text-muted-foreground text-sm">Go to Settings → Edit Profile → Select Game</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0 border transition-all",
+              selectedCategory === cat.id
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+            )}
+          >
+            <span>{cat.emoji}</span>
+            <span>{cat.label}</span>
+          </button>
         ))}
       </div>
-    ) : (
+
+      {activeCat && (
+        <div className="flex gap-2">
+          {activeCat.modes.map((m) => (
+            <button
+              key={m}
+              onClick={() => setSelectedMode(m)}
+              className={cn(
+                "flex-1 py-1.5 rounded-xl border text-xs font-medium transition-all",
+                selectedMode === m
+                  ? "bg-primary/10 border-primary text-primary"
+                  : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeCat && selectedMode && (
+        <MatchesList game={game} category={activeCat.id} mode={selectedMode} />
+      )}
+    </div>
+  );
+}
+
+function GenericMatchesList({ search }: { search: string }) {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    customFetch<any[]>(`/api/matches?${params.toString()}`)
+      .then((data) => setMatches((data ?? []).filter((m: any) => m.status !== "completed")))
+      .catch(() => setMatches([]))
+      .finally(() => setLoading(false));
+  }, [search]);
+
+  const isPlayer = user?.role === "player";
+  const followingMatches = isPlayer ? matches.filter((m: any) => !m.isRecommended) : matches;
+  const recommendedMatches = isPlayer ? matches.filter((m: any) => m.isRecommended) : [];
+
+  if (loading) {
+    return <div className="space-y-5">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 rounded-xl" />)}</div>;
+  }
+
+  if (isPlayer) {
+    return (
+      <div className="space-y-6">
+        {followingMatches.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground">Following</h2>
+              <span className="text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">{followingMatches.length}</span>
+            </div>
+            <div className="flex flex-col gap-2">{followingMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+          </div>
+        )}
+        {recommendedMatches.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground">Recommended</h2>
+              <span className="text-xs font-medium bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">For You</span>
+            </div>
+            <div className="flex flex-col gap-2">{recommendedMatches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
+          </div>
+        )}
+        {followingMatches.length === 0 && recommendedMatches.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-3">🎮</div>
+            <h3 className="font-semibold text-base mb-1">No matches yet</h3>
+            <p className="text-muted-foreground text-sm mb-4">{search ? "Try a different search" : "Follow hosts to see their matches here"}</p>
+            {!search && (
+              <Link href="/explore">
+                <Button variant="outline" className="gap-2"><Users className="w-4 h-4" />Find Hosts</Button>
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
       <div className="text-center py-16">
         <div className="text-4xl mb-3">🎮</div>
         <h3 className="font-semibold text-base mb-1">No matches found</h3>
-        <p className="text-muted-foreground text-sm">
-          {search ? "Try a different search" : "Check back later for upcoming tournaments"}
-        </p>
+        <p className="text-muted-foreground text-sm">{search ? "Try a different search" : "Check back later for upcoming tournaments"}</p>
       </div>
-    )
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">{matches.map((match) => <MatchCard key={match.id} match={match} />)}</div>
   );
+}
+
+export default function HomePage() {
+  const [search, setSearch] = useState("");
+  const { user } = useAuth();
+
+  const playerGame = user?.role === "player" ? (user as any).game : null;
+  const isEsportsPlayer = user?.role === "player" ? Boolean((user as any).isEsportsPlayer) : false;
+  const isGamePlayer = playerGame === "Free Fire" || playerGame === "BGMI";
+  const showSearch = !isGamePlayer || search.length > 0;
 
   return (
     <AppLayout>
       <div className="space-y-4">
         <div className="space-y-3">
-          <div>
-            <h1 className="text-xl font-bold">Tournaments</h1>
-            <p className="text-muted-foreground text-sm">Join a match and compete</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-xl font-bold">
+                {isGamePlayer ? (
+                  <span className="flex items-center gap-2">
+                    {playerGame === "Free Fire" ? "🔥" : "🎯"} {playerGame}
+                  </span>
+                ) : "Tournaments"}
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                {isGamePlayer ? "Select category and mode" : "Join a match and compete"}
+              </p>
+            </div>
+            {isEsportsPlayer && (
+              <span className="flex items-center gap-1 text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-2 py-1 rounded-full">
+                <Trophy className="w-3 h-3" /> Esports
+              </span>
+            )}
           </div>
 
           <div className="relative">
@@ -542,25 +602,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="mt-3 space-y-4">
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-medium shrink-0 border transition-all capitalize",
-                  filter === f
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                )}
-              >
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+        {search ? (
+          <GenericMatchesList search={search} />
+        ) : isGamePlayer ? (
+          <GameHomePage game={playerGame} isEsportsPlayer={isEsportsPlayer} />
+        ) : (
+          <GenericMatchesList search={search} />
+        )}
+
+        {!search && user?.role === "player" && (
+          <div className="mt-6">
+            <PostsFeed />
           </div>
-          {matchesContent}
-        </div>
+        )}
       </div>
     </AppLayout>
   );
