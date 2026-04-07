@@ -13,8 +13,26 @@ const DEFAULT_ACCOUNTS = [
     password: process.env.DEFAULT_ADMIN_PASSWORD || "SmityXmr@0816",
     name: "Admin",
     handle: "admin",
-    avatar: "/admin-avatar.jpeg",
+    avatar: "👑",
     role: "admin" as const,
+  },
+  {
+    email: "player@test.com",
+    password: "Player@123",
+    name: "Test Player",
+    handle: "testplayer",
+    avatar: "🎮",
+    role: "player" as const,
+    game: "BGMI",
+  },
+  {
+    email: "host@test.com",
+    password: "Host@123",
+    name: "Test Host",
+    handle: "testhost",
+    avatar: "🏆",
+    role: "host" as const,
+    game: "BGMI",
   },
 ];
 
@@ -45,6 +63,7 @@ export async function seedDefaults() {
       .where(eq(usersTable.email, account.email));
 
     if (!existing) {
+      const referralCode = `Tx-${account.handle}${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
       await db.insert(usersTable).values({
         email: account.email,
         password: await hashPassword(account.password),
@@ -52,12 +71,14 @@ export async function seedDefaults() {
         handle: account.handle,
         avatar: account.avatar,
         role: account.role,
+        game: (account as any).game ?? null,
         status: "active",
         profileSetup: true,
         balance: "0",
         followersCount: 0,
         followingCount: 0,
         recommended: false,
+        referralCode,
       });
       console.log(`[seed] Created default ${account.role} account`);
     }
