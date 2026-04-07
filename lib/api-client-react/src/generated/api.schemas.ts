@@ -60,6 +60,11 @@ export interface User {
   followersCount?: number;
   followingCount?: number;
   profileSetup: boolean;
+  instagram?: string | null;
+  discord?: string | null;
+  x?: string | null;
+  youtube?: string | null;
+  twitch?: string | null;
 }
 
 export interface AuthResponse {
@@ -70,15 +75,23 @@ export interface AuthResponse {
 export interface SetupProfileRequest {
   avatar: string;
   game: string;
-  ign: string;
+  ign?: string;
   handle: string;
-  gameUid: string;
+  gameUid?: string;
+  name?: string;
 }
 
 export interface UpdateProfileRequest {
   name?: string;
   handle?: string;
   avatar?: string;
+  instagram?: string;
+  discord?: string;
+  x?: string;
+  youtube?: string;
+  twitch?: string;
+  game?: string;
+  gameUid?: string;
 }
 
 export type MatchStatus = (typeof MatchStatus)[keyof typeof MatchStatus];
@@ -191,11 +204,13 @@ export interface SquadMember {
   id: number;
   name: string;
   uid: string;
+  game?: string | null;
 }
 
 export interface AddSquadMemberRequest {
   name: string;
   uid: string;
+  game?: string;
 }
 
 export type WalletTransactionStatus =

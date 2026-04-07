@@ -104,7 +104,7 @@ function statusColor(status: string) {
 function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const { data: participants, isLoading } = useGetMatchPlayers(match.id, { query: { enabled: open } });
+  const { data: participants, isLoading } = useGetMatchPlayers(match.id, { query: { enabled: open } as any });
   const { mutateAsync: submitResult, isPending } = useSubmitResult();
 
   const [ranks, setRanks] = useState<Record<number, string>>({});

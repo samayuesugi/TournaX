@@ -138,7 +138,7 @@ export default function MatchDetailPage() {
 
   const { data: match, isLoading, refetch } = useGetMatch(matchId);
   const { data: players } = useGetMatchPlayers(matchId);
-  const { data: squadRaw } = useGetMySquad({ query: { enabled: !!user } });
+  const { data: squadRaw } = useGetMySquad({ query: { enabled: !!user } as any });
   // Filter squad to only show members matching the match's game
   const squad = match ? (squadRaw ?? []).filter(m => !m.game || m.game === match.game) : (squadRaw ?? []);
 
@@ -717,7 +717,7 @@ export default function MatchDetailPage() {
               </h3>
               <div className="space-y-2">
                 {sorted.map((team) => {
-                  const rl = rankLabel(team.rank);
+                  const rl = rankLabel(team.rank ?? null);
                   const hasReward = isCompleted && team.reward != null && team.reward > 0;
                   return (
                     <div

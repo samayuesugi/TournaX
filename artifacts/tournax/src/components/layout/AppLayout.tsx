@@ -63,13 +63,13 @@ export function AppLayout({
   };
 
   const { data: wallet } = useGetWallet({
-    query: { enabled: !!user && user.role !== "admin" },
+    query: { enabled: !!user && user.role !== "admin" } as any,
   });
   const { data: notifications } = useGetNotifications({
-    query: { enabled: !!user },
+    query: { enabled: !!user } as any,
   });
   const { data: conversations } = useGetConversations({
-    query: { enabled: !!user && user.role !== "admin", refetchInterval: 10000 },
+    query: { enabled: !!user && user.role !== "admin", refetchInterval: 10000 } as any,
   });
 
   const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;

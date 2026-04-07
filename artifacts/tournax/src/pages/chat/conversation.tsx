@@ -74,7 +74,7 @@ export default function ConversationPage() {
   const socket = useSocket();
 
   const { data: serverMessages, isLoading } = useGetConversation(partnerId, {
-    query: { refetchInterval: socket ? false : 2000 },
+    query: { refetchInterval: socket ? false : 2000 } as any,
   });
 
   useEffect(() => {

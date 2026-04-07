@@ -1087,7 +1087,7 @@ function PublicProfile({ handle }: { handle: string }) {
             </div>
             {!isOwnProfile && currentUser && (
               <div className="flex gap-2">
-                {canChat(currentUser.role, profile.role) && (
+                {canChat(currentUser.role, profile.role ?? "") && (
                   <Link href={`/chat/${profile.id}`}>
                     <Button variant="outline" size="sm" className="gap-1">
                       <MessageCircle className="w-3.5 h-3.5" />

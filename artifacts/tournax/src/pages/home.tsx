@@ -434,7 +434,7 @@ export default function HomePage() {
 
   const { data: rawMatches, isLoading } = useListMatches(
     { status: filter, search: search || undefined },
-    { query: { staleTime: 10000 } }
+    { query: { staleTime: 10000 } as any }
   );
   const matches = (rawMatches ?? []).filter((m: any) => m.status !== "completed");
 

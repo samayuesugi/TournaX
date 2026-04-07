@@ -212,7 +212,7 @@ export default function ExplorePage() {
   const [search, setSearch] = useState("");
   const { data, isLoading } = useExploreUsers(
     { search: search || undefined },
-    { query: { staleTime: 30000 } }
+    { query: { staleTime: 30000 } as any }
   );
 
   return (
