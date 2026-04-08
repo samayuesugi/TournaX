@@ -168,7 +168,7 @@ function FilterSheet({
                     )}
                   >
                     {local.map === map && <Check className="w-3 h-3" />}
-                    🗺️ {map}
+                    {map}
                   </button>
                 ))}
               </div>
@@ -180,8 +180,8 @@ function FilterSheet({
             <div className="flex gap-2">
               {[
                 { val: "" as const, label: "All" },
-                { val: "free" as const, label: "🆓 Free" },
-                { val: "paid" as const, label: "💰 Paid" },
+                { val: "free" as const, label: "Free" },
+                { val: "paid" as const, label: "Paid" },
               ].map(({ val, label }) => (
                 <button
                   key={val || "all"}
@@ -405,13 +405,13 @@ export default function HomePage() {
               )}
               {filters.map && (
                 <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
-                  🗺️ {filters.map}
+                  {filters.map}
                   <button onClick={() => setFilters(f => ({ ...f, map: "" }))}><X className="w-3 h-3" /></button>
                 </span>
               )}
               {filters.paid && (
                 <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
-                  {filters.paid === "free" ? "🆓 Free" : "💰 Paid"}
+                  {filters.paid === "free" ? "Free" : "Paid"}
                   <button onClick={() => setFilters(f => ({ ...f, paid: "" }))}><X className="w-3 h-3" /></button>
                 </span>
               )}
