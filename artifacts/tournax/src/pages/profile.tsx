@@ -1127,20 +1127,44 @@ function PublicProfile({ handle }: { handle: string }) {
 
             {(profile as any).bio && <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{(profile as any).bio}</p>}
 
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              <button className="text-center hover:opacity-80" onClick={() => setFollowersOpen(true)}>
-                <div className="font-black text-lg">{profile.followersCount}</div>
-                <div className="text-xs text-muted-foreground">Followers</div>
-              </button>
-              <button className="text-center hover:opacity-80" onClick={() => setFollowingOpen(true)}>
-                <div className="font-black text-lg">{profile.followingCount}</div>
-                <div className="text-xs text-muted-foreground">Following</div>
-              </button>
-              <div className="text-center">
-                <div className="font-black text-lg">{profile.matchesCount}</div>
-                <div className="text-xs text-muted-foreground">{isHost ? "Matches" : "Played"}</div>
+            {isHost ? (
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <button className="text-center hover:opacity-80 bg-card border border-card-border rounded-xl py-2.5 px-1" onClick={() => setFollowersOpen(true)}>
+                  <div className="font-black text-base">{profile.followersCount}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Followers</div>
+                </button>
+                <button className="text-center hover:opacity-80 bg-card border border-card-border rounded-xl py-2.5 px-1" onClick={() => setFollowingOpen(true)}>
+                  <div className="font-black text-base">{profile.followingCount}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Following</div>
+                </button>
+                <div className="text-center bg-card border border-card-border rounded-xl py-2.5 px-1">
+                  <div className="font-black text-base">{profile.matchesCount ?? 0}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Matches</div>
+                </div>
+                <div className="text-center bg-card border border-card-border rounded-xl py-2.5 px-1">
+                  <div className="font-black text-base flex items-center justify-center gap-0.5 text-yellow-400">
+                    <Star className="w-3.5 h-3.5 fill-yellow-400 shrink-0" />
+                    {(profile as any).rating ? (profile as any).rating.toFixed(1) : "—"}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Rating</div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <button className="text-center hover:opacity-80" onClick={() => setFollowersOpen(true)}>
+                  <div className="font-black text-lg">{profile.followersCount}</div>
+                  <div className="text-xs text-muted-foreground">Followers</div>
+                </button>
+                <button className="text-center hover:opacity-80" onClick={() => setFollowingOpen(true)}>
+                  <div className="font-black text-lg">{profile.followingCount}</div>
+                  <div className="text-xs text-muted-foreground">Following</div>
+                </button>
+                <div className="text-center">
+                  <div className="font-black text-lg">{profile.matchesCount}</div>
+                  <div className="text-xs text-muted-foreground">Played</div>
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-2">
               <SocialLinksDisplay instagram={(profile as any).instagram} discord={(profile as any).discord} x={(profile as any).x} youtube={(profile as any).youtube} />
