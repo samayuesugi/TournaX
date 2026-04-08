@@ -10,9 +10,9 @@ interface CoinProps {
 }
 
 function iconSize(size: "sm" | "md" | "lg") {
-  if (size === "sm") return "w-3.5 h-3.5";
-  if (size === "lg") return "w-5 h-5";
-  return "w-4 h-4";
+  if (size === "sm") return "w-5 h-5";
+  if (size === "lg") return "w-8 h-8";
+  return "w-6 h-6";
 }
 
 export function GoldCoin({ amount, className, size = "md" }: CoinProps) {
