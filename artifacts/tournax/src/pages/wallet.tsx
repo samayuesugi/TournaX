@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useGetWallet, useRequestAddBalance, useRequestWithdrawal, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package, Info, UserPlus, CalendarCheck, Gamepad2, Coins, CheckCircle2 } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package, Info, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon, SilverCoin, SilverCoinIcon } from "@/components/ui/Coins";
 
@@ -38,92 +38,6 @@ const COIN_PACKS = [
   { id: "custom", label: "Custom Pack", coins: 0, price: 0, color: "from-primary/10 to-primary/5 border-primary/30", badge: "" },
 ];
 
-type DailyTasksData = {
-  inviteClaimed: boolean;
-  loginClaimed: boolean;
-  freeMatchesToday: number;
-  freeMatchesClaimed: boolean;
-  paidMatchesToday: number;
-  paidMatchesClaimed: boolean;
-  tournamentWinsToday: number;
-  tournamentWinsClaimed: boolean;
-};
-
-function DailyTask({ icon: Icon, title, desc, reward, progress, total, claimed, color = "primary" }: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  desc: string;
-  reward: string;
-  progress: number;
-  total: number;
-  claimed: boolean;
-  color?: "primary" | "gold" | "silver";
-}) {
-  const pct = Math.min(100, (progress / total) * 100);
-  const barColor = claimed
-    ? "bg-green-500"
-    : color === "gold"
-    ? "bg-amber-400"
-    : color === "silver"
-    ? "bg-slate-400"
-    : "bg-primary";
-
-  return (
-    <div className={cn(
-      "rounded-2xl p-4 border transition-all",
-      claimed
-        ? "bg-green-500/5 border-green-500/20"
-        : pct > 0
-        ? "bg-primary/5 border-primary/20"
-        : "bg-card border-card-border"
-    )}>
-      <div className="flex items-start gap-3">
-        <div className={cn(
-          "w-11 h-11 rounded-xl flex items-center justify-center shrink-0",
-          claimed ? "bg-green-500/15" : pct > 0 ? "bg-primary/15" : "bg-secondary"
-        )}>
-          {claimed
-            ? <CheckCircle2 className="w-6 h-6 text-green-400" />
-            : <Icon className={cn("w-6 h-6", color === "gold" ? "text-amber-400" : color === "silver" ? "text-slate-300" : "text-primary")} />
-          }
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <p className={cn(
-              "text-sm font-semibold leading-tight",
-              claimed ? "text-green-400" : "text-foreground"
-            )}>{title}</p>
-            <span className={cn(
-              "text-xs font-bold shrink-0 px-2 py-0.5 rounded-full",
-              claimed
-                ? "bg-green-500/20 text-green-400"
-                : color === "gold"
-                ? "bg-amber-400/20 text-amber-400"
-                : "bg-slate-400/20 text-slate-300"
-            )}>
-              {claimed ? "Done!" : reward}
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground mb-2">{desc}</p>
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
-            <div
-              className={cn("h-full rounded-full transition-all duration-700", barColor)}
-              style={{ width: `${claimed ? 100 : pct}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[10px] text-muted-foreground">
-              {claimed ? "Completed" : `${progress} / ${total}`}
-            </p>
-            {!claimed && total > 1 && (
-              <p className="text-[10px] text-muted-foreground">{Math.round(pct)}%</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -437,15 +351,6 @@ export default function WalletPage() {
   const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [showSilverInfo, setShowSilverInfo] = useState(false);
-  const [dailyTasks, setDailyTasks] = useState<DailyTasksData | null>(null);
-
-  useEffect(() => {
-    customFetch<DailyTasksData>("/api/auth/daily-tasks")
-      .then(setDailyTasks)
-      .catch((err: any) => {
-        console.error("Failed to load daily tasks:", err?.data?.error || err);
-      });
-  }, []);
 
   const isHost = user?.role === "host";
   const silverCoins = wallet?.silverCoins ?? 0;
@@ -580,76 +485,6 @@ export default function WalletPage() {
             </div>
             )}
 
-            {!isHost && (
-            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-bold text-base">Daily Tasks</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Complete tasks to earn rewards</p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs font-semibold text-primary">
-                    {[dailyTasks?.inviteClaimed, dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed, dailyTasks?.tournamentWinsClaimed].filter(Boolean).length} / 5
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">completed</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <DailyTask
-                  icon={CalendarCheck}
-                  title="Daily Login"
-                  desc="Just open the app every day"
-                  reward="+10 Silver"
-                  progress={dailyTasks?.loginClaimed ? 1 : 0}
-                  total={1}
-                  claimed={dailyTasks?.loginClaimed ?? false}
-                  color="silver"
-                />
-                <DailyTask
-                  icon={Gamepad2}
-                  title="Play 3 Free Matches"
-                  desc="Join any free tournament"
-                  reward="+10 Silver"
-                  progress={dailyTasks?.freeMatchesToday ?? 0}
-                  total={3}
-                  claimed={dailyTasks?.freeMatchesClaimed ?? false}
-                  color="silver"
-                />
-                <DailyTask
-                  icon={Coins}
-                  title="Play 3 Paid Matches"
-                  desc="Join any paid tournament"
-                  reward="+10 Silver"
-                  progress={dailyTasks?.paidMatchesToday ?? 0}
-                  total={3}
-                  claimed={dailyTasks?.paidMatchesClaimed ?? false}
-                  color="silver"
-                />
-                <DailyTask
-                  icon={Trophy}
-                  title="Win 5 Tournaments"
-                  desc="Win 5 paid tournaments today"
-                  reward="+10 Silver"
-                  progress={dailyTasks?.tournamentWinsToday ?? 0}
-                  total={5}
-                  claimed={dailyTasks?.tournamentWinsClaimed ?? false}
-                  color="silver"
-                />
-                <DailyTask
-                  icon={UserPlus}
-                  title="Invite a Friend"
-                  desc="Someone must sign up using your referral code"
-                  reward="+10 Silver"
-                  progress={dailyTasks?.inviteClaimed ? 1 : 0}
-                  total={1}
-                  claimed={dailyTasks?.inviteClaimed ?? false}
-                  color="silver"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">All tasks reset every midnight</p>
-            </div>
-            )}
           </div>
         )}
 
