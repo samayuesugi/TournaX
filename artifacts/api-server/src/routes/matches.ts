@@ -358,7 +358,7 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
         teamNumber,
       }).returning();
 
-      const playerList = players || [{ ign: user.name || user.email, uid: user.gameUid || "0" }];
+      const playerList = players || [{ ign: user.name || user.email, uid: user.gameUid || `user-${user.id}` }];
       for (let i = 0; i < playerList.length; i++) {
         await tx.insert(matchPlayersTable).values({
           participantId: participant.id,
@@ -549,7 +549,7 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
       });
     }
 
-    const platformCut = parseFloat((totalPool * 0.05).toFixed(2));
+    const platformCut = parseFloat((entryFeePool * 0.05).toFixed(2));
     if (platformCut > 0) {
       await tx.insert(platformEarningsTable).values({
         hostId: match.hostId,
@@ -574,7 +574,7 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   for (const p of participants) {
     const reward = p.reward ? parseFloat(p.reward as string) : 0;
     const msg = reward > 0
-      ? `Match ${match.code} results are in! You won ₹${reward} 🏆`
+      ? `Match ${match.code} results are in! You won ${reward} GC 🏆`
       : `Match ${match.code} results are in. Better luck next time! 💪`;
     notify(p.userId, "match_result", msg, `/matches/${match.id}`).catch(() => {});
   }
