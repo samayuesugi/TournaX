@@ -308,3 +308,57 @@
     inset: -1px;
   }
 }
+
+@keyframes profile-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6), 0 0 20px 4px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0), 0 0 35px 10px rgba(139, 92, 246, 0.5); }
+}
+@keyframes profile-neon {
+  0%, 100% { box-shadow: 0 0 8px 2px #7c3aed, 0 0 16px 4px #06b6d4, 0 0 32px 8px #7c3aed; border-color: #7c3aed; }
+  33% { box-shadow: 0 0 8px 2px #06b6d4, 0 0 16px 4px #7c3aed, 0 0 32px 8px #06b6d4; border-color: #06b6d4; }
+  66% { box-shadow: 0 0 8px 2px #ec4899, 0 0 16px 4px #7c3aed, 0 0 32px 8px #ec4899; border-color: #ec4899; }
+}
+@keyframes profile-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes banner-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.profile-anim-pulse .profile-avatar-wrap {
+  animation: profile-pulse 2s ease-in-out infinite;
+  border-radius: 1rem;
+}
+.profile-anim-neon .profile-avatar-wrap {
+  animation: profile-neon 3s ease-in-out infinite;
+  border: 2px solid #7c3aed;
+  border-radius: 1rem;
+}
+.profile-anim-shimmer .profile-banner {
+  background-size: 200% auto;
+  animation: banner-flow 3s ease infinite;
+}
+.profile-banner-pulse {
+  background-size: 200% 200%;
+  animation: banner-flow 4s ease infinite;
+}
+.profile-banner-neon {
+  background-size: 200% 200%;
+  animation: banner-flow 3s ease infinite;
+}
+.profile-banner-shimmer {
+  background-size: 300% 300%;
+  animation: banner-flow 2.5s ease infinite;
+}
+
+.profile-color-blue { --profile-accent: #3b82f6; --profile-accent-light: #60a5fa; }
+.profile-color-red { --profile-accent: #ef4444; --profile-accent-light: #f87171; }
+.profile-color-orange { --profile-accent: #f97316; --profile-accent-light: #fb923c; }
+.profile-color-green { --profile-accent: #22c55e; --profile-accent-light: #4ade80; }
+.profile-color-gold { --profile-accent: #eab308; --profile-accent-light: #facc15; }
+.profile-color-pink { --profile-accent: #ec4899; --profile-accent-light: #f472b6; }
+.profile-color-cyan { --profile-accent: #06b6d4; --profile-accent-light: #22d3ee; }
+.profile-color-purple { --profile-accent: #8b5cf6; --profile-accent-light: #a78bfa; }

@@ -123,7 +123,11 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
 
   const conditions: any[] = [];
   if (status && status !== "all") conditions.push(eq(matchesTable.status, status as any));
-  if (game) conditions.push(ilike(matchesTable.game, game as string));
+  if (game) {
+    conditions.push(ilike(matchesTable.game, game as string));
+  } else if (user.game && user.role === "player") {
+    conditions.push(ilike(matchesTable.game, user.game));
+  }
   if (category) conditions.push(ilike(matchesTable.category, category as string));
   if (teamSize) conditions.push(eq(matchesTable.teamSize, Number(teamSize)));
   if (mapFilter) conditions.push(ilike(matchesTable.map, mapFilter as string));
@@ -605,6 +609,19 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
     };
   }));
   res.json(result);
+});
+
+router.get("/players/:userId/matches", requireAuth, async (req: Request, res: Response) => {
+  const targetUserId = parseInt(req.params.userId);
+  const currentUser = (req as any).user;
+  const participations = await db.select().from(matchParticipantsTable)
+    .where(eq(matchParticipantsTable.userId, targetUserId));
+  const allMatches = await Promise.all(participations.map(async (p) => {
+    const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, p.matchId));
+    if (!match) return null;
+    return serializeMatch(match, currentUser.id);
+  }));
+  res.json(allMatches.filter(Boolean));
 });
 
 router.get("/my-matches", requireAuth, async (req: Request, res: Response) => {

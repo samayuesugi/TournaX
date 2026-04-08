@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable } from "@workspace/db/schema";
-import { eq, and, ilike, or, sql, avg, inArray } from "drizzle-orm";
+import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable, esportsStatsTable } from "@workspace/db/schema";
+import { eq, and, ilike, or, sql, avg, inArray, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { getIO } from "../lib/socket";
 
@@ -41,14 +41,19 @@ const router: IRouter = Router();
 router.get("/users/explore", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { search } = req.query;
+  const userGame = user.game as string | null;
+
+  const hostFilter = userGame
+    ? and(eq(usersTable.role, "host"), eq(usersTable.game, userGame))
+    : eq(usersTable.role, "host");
 
   const [admins, hosts, players, myFollows] = await Promise.all([
     db.select().from(usersTable).where(eq(usersTable.role, "admin")),
     search
       ? db.select().from(usersTable).where(
-          and(eq(usersTable.role, "host"), or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`)))
+          and(hostFilter, or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`)))
         )
-      : db.select().from(usersTable).where(eq(usersTable.role, "host")),
+      : db.select().from(usersTable).where(hostFilter),
     search
       ? db.select().from(usersTable).where(
           and(eq(usersTable.role, "player"), or(ilike(usersTable.handle, `%${search}%`), ilike(usersTable.name, `%${search}%`)))
@@ -122,21 +127,40 @@ router.get("/users/search", requireAuth, async (req: Request, res: Response) => 
 router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const squad = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
-  res.json(squad.map(s => ({ id: s.id, name: s.name, uid: s.uid, game: s.game ?? null })));
+  const linkedIds = squad.map(s => s.linkedUserId).filter(Boolean) as number[];
+  const linkedUsers = linkedIds.length > 0
+    ? await db.select({ id: usersTable.id, avatar: usersTable.avatar, handle: usersTable.handle }).from(usersTable).where(inArray(usersTable.id, linkedIds))
+    : [];
+  const linkedMap = new Map(linkedUsers.map(u => [u.id, u]));
+  res.json(squad.map(s => {
+    const lu = s.linkedUserId ? linkedMap.get(s.linkedUserId) : null;
+    return { id: s.id, name: s.name, uid: s.uid, game: s.game ?? null, role: s.role ?? null, isBackup: s.isBackup, linkedUserId: s.linkedUserId ?? null, linkedAvatar: lu?.avatar ?? null, linkedHandle: lu?.handle ?? null };
+  }));
 });
 
 router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, uid, game } = req.body;
+  const { name, uid, game, role, isBackup, linkedUserId } = req.body;
   const squadGame = game || user.game || null;
   const existing = await db.select().from(squadMembersTable).where(
     and(eq(squadMembersTable.userId, user.id), eq(squadMembersTable.game, squadGame))
   );
-  if (existing.length >= 6) {
-    return res.status(400).json({ error: `Squad limit reached for ${squadGame}. Maximum 6 members per game.` });
+  const mainCount = existing.filter(m => !m.isBackup).length;
+  const backupCount = existing.filter(m => m.isBackup).length;
+  if (isBackup && backupCount >= 2) return res.status(400).json({ error: "Maximum 2 backup members allowed." });
+  if (!isBackup && mainCount >= 4) return res.status(400).json({ error: "Maximum 4 main members allowed." });
+  let linkedUser = null;
+  if (linkedUserId) {
+    [linkedUser] = await db.select().from(usersTable).where(eq(usersTable.id, linkedUserId));
+    if (!linkedUser) return res.status(400).json({ error: "Linked user not found." });
   }
-  const [member] = await db.insert(squadMembersTable).values({ userId: user.id, name, uid, game: squadGame }).returning();
-  res.json({ id: member.id, name: member.name, uid: member.uid, game: member.game ?? null });
+  const [member] = await db.insert(squadMembersTable).values({
+    userId: user.id, name: name || linkedUser?.name || "Player",
+    uid: uid || linkedUser?.gameUid || "—", game: squadGame,
+    role: role ?? null, isBackup: isBackup ?? false,
+    linkedUserId: linkedUserId ?? null,
+  }).returning();
+  res.json({ id: member.id, name: member.name, uid: member.uid, game: member.game ?? null, role: member.role ?? null, isBackup: member.isBackup, linkedUserId: member.linkedUserId ?? null });
 });
 
 router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res: Response) => {
@@ -149,9 +173,31 @@ router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res
   res.json({ success: true });
 });
 
+router.get("/users/me/esports-stats", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const stats = await db.select().from(esportsStatsTable).where(eq(esportsStatsTable.userId, user.id));
+  res.json(stats.map(s => ({ game: s.game, stats: s.stats })));
+});
+
+router.put("/users/me/esports-stats", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { game, stats } = req.body;
+  if (!game) return res.status(400).json({ error: "Game is required" });
+  const [existing] = await db.select().from(esportsStatsTable).where(
+    and(eq(esportsStatsTable.userId, user.id), eq(esportsStatsTable.game, game))
+  );
+  if (existing) {
+    await db.update(esportsStatsTable).set({ stats, updatedAt: new Date() })
+      .where(and(eq(esportsStatsTable.userId, user.id), eq(esportsStatsTable.game, game)));
+  } else {
+    await db.insert(esportsStatsTable).values({ userId: user.id, game, stats });
+  }
+  res.json({ success: true });
+});
+
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio } = req.body;
+  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio, profileAnimation, profileColor } = req.body;
   const updateData: any = {};
   if (name) updateData.name = name;
   if (handle) updateData.handle = handle;
@@ -160,6 +206,8 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
   updateData.discord = discord ?? null;
   updateData.x = x ?? null;
   updateData.bio = bio ?? null;
+  if (profileAnimation !== undefined) updateData.profileAnimation = profileAnimation || null;
+  if (profileColor !== undefined) updateData.profileColor = profileColor || null;
   if (user.role === "host" || user.role === "admin") {
     updateData.youtube = youtube ?? null;
     updateData.twitch = twitch ?? null;
@@ -180,6 +228,8 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     youtube: updated.youtube, twitch: updated.twitch,
     isEsportsPlayer: updated.isEsportsPlayer ?? false,
     bio: updated.bio ?? null,
+    profileAnimation: updated.profileAnimation ?? null,
+    profileColor: updated.profileColor ?? null,
   });
 });
 
@@ -376,6 +426,12 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
   const activeMatches = hostedMatches.filter(m => m.status === "live");
   const ratingMap = await getHostRatings([user.id]);
 
+  let playedMatchIds: number[] = [];
+  if (user.role === "player") {
+    const participations = await db.select({ matchId: matchParticipantsTable.matchId }).from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, user.id));
+    playedMatchIds = participations.map(p => p.matchId);
+  }
+
   res.json({
     id: user.id,
     name: user.name,
@@ -386,13 +442,17 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     followersCount: user.followersCount,
     followingCount: user.followingCount,
     rating: ratingMap.get(user.id) ?? null,
-    matchesCount: hostedMatches.length,
+    matchesCount: user.role === "player" ? playedMatchIds.length : hostedMatches.length,
     isFollowing: !!follow,
     instagram: user.instagram,
     discord: user.discord,
     x: user.x,
     youtube: user.youtube,
     twitch: user.twitch,
+    bio: user.bio ?? null,
+    isEsportsPlayer: user.isEsportsPlayer ?? false,
+    profileAnimation: user.profileAnimation ?? null,
+    profileColor: user.profileColor ?? null,
     equippedFrame: user.equippedFrame ?? null,
     equippedBadge: user.equippedBadge ?? null,
     equippedHandleColor: user.equippedHandleColor ?? null,
@@ -409,6 +469,70 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
       hostId: m.hostId, thumbnailImage: m.thumbnailImage,
     })),
   });
+});
+
+router.get("/users/:handle/reviews", requireAuth, async (req: Request, res: Response) => {
+  const { handle } = req.params;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const reviews = await db.select({
+    id: hostReviewsTable.id, rating: hostReviewsTable.rating, comment: hostReviewsTable.comment,
+    createdAt: hostReviewsTable.createdAt, reviewerId: hostReviewsTable.reviewerId,
+    reviewerName: usersTable.name, reviewerHandle: usersTable.handle, reviewerAvatar: usersTable.avatar,
+  }).from(hostReviewsTable)
+    .leftJoin(usersTable, eq(hostReviewsTable.reviewerId, usersTable.id))
+    .where(eq(hostReviewsTable.hostId, user.id))
+    .orderBy(desc(hostReviewsTable.createdAt))
+    .limit(50);
+  const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null;
+  res.json({ reviews: reviews.map(r => ({ id: r.id, rating: r.rating, comment: r.comment, createdAt: r.createdAt?.toISOString(), reviewerName: r.reviewerName, reviewerHandle: r.reviewerHandle, reviewerAvatar: r.reviewerAvatar })), avgRating, count: reviews.length });
+});
+
+router.post("/users/:handle/reviews", requireAuth, async (req: Request, res: Response) => {
+  const currentUser = (req as any).user;
+  const { handle } = req.params;
+  const { rating, comment, matchId } = req.body;
+  if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: "Rating must be 1-5" });
+  const [host] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!host) return res.status(404).json({ error: "Host not found" });
+  if (host.id === currentUser.id) return res.status(400).json({ error: "Cannot review yourself" });
+  const existing = await db.select().from(hostReviewsTable).where(
+    and(eq(hostReviewsTable.reviewerId, currentUser.id), eq(hostReviewsTable.hostId, host.id),
+      matchId ? eq(hostReviewsTable.matchId, matchId) : sql`true`)
+  );
+  if (existing.length > 0) return res.status(400).json({ error: "Already reviewed this host for this match" });
+  await db.insert(hostReviewsTable).values({ matchId: matchId ?? 0, reviewerId: currentUser.id, hostId: host.id, rating, comment: comment || null });
+  res.json({ success: true });
+});
+
+router.get("/users/:handle/squad", requireAuth, async (req: Request, res: Response) => {
+  const { handle } = req.params;
+  const isId = /^\d+$/.test(handle);
+  const [user] = isId
+    ? await db.select().from(usersTable).where(eq(usersTable.id, parseInt(handle)))
+    : await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const squad = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));
+  const linkedIds = squad.map(s => s.linkedUserId).filter(Boolean) as number[];
+  const linkedUsers = linkedIds.length > 0
+    ? await db.select({ id: usersTable.id, avatar: usersTable.avatar, handle: usersTable.handle, name: usersTable.name }).from(usersTable).where(inArray(usersTable.id, linkedIds))
+    : [];
+  const linkedMap = new Map(linkedUsers.map(u => [u.id, u]));
+  res.json(squad.map(s => {
+    const lu = s.linkedUserId ? linkedMap.get(s.linkedUserId) : null;
+    return { id: s.id, name: s.name, uid: s.uid, game: s.game ?? null, role: s.role ?? null, isBackup: s.isBackup, linkedUserId: s.linkedUserId ?? null, linkedAvatar: lu?.avatar ?? null, linkedHandle: lu?.handle ?? null, linkedName: lu?.name ?? null };
+  }));
+});
+
+router.get("/users/:handle/esports-stats", requireAuth, async (req: Request, res: Response) => {
+  const { handle } = req.params;
+  const isId = /^\d+$/.test(handle);
+  const [user] = isId
+    ? await db.select().from(usersTable).where(eq(usersTable.id, parseInt(handle)))
+    : await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  const stats = await db.select().from(esportsStatsTable).where(eq(esportsStatsTable.userId, user.id));
+  res.json(stats.map(s => ({ game: s.game, stats: s.stats })));
 });
 
 router.get("/users/:handle/followers", requireAuth, async (req: Request, res: Response) => {

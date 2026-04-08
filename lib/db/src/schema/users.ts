@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, numeric, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, numeric, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -43,6 +43,8 @@ export const usersTable = pgTable("users", {
   equippedHandleColor: text("equipped_handle_color"),
   isEsportsPlayer: boolean("is_esports_player").notNull().default(false),
   bio: text("bio"),
+  profileAnimation: text("profile_animation"),
+  profileColor: text("profile_color"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -68,7 +70,18 @@ export const squadMembersTable = pgTable("squad_members", {
   name: text("name").notNull(),
   uid: text("uid").notNull(),
   game: text("game"),
+  linkedUserId: integer("linked_user_id"),
+  role: text("role"),
+  isBackup: boolean("is_backup").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const esportsStatsTable = pgTable("esports_stats", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  game: text("game").notNull(),
+  stats: jsonb("stats").notNull().default({}),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const complaintsTable = pgTable("complaints", {

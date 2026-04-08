@@ -11,6 +11,7 @@ const POST_COST_SILVER = 10;
 router.get("/posts", requireAuth, async (req: Request, res: Response) => {
   const limit = Math.min(parseInt((req.query.limit as string) || "20"), 50);
   const offset = parseInt((req.query.offset as string) || "0");
+  const filterUserId = req.query.userId ? parseInt(req.query.userId as string) : null;
   const currentUser = (req as any).user;
 
   const posts = await db.select({
@@ -24,6 +25,7 @@ router.get("/posts", requireAuth, async (req: Request, res: Response) => {
     userAvatar: usersTable.avatar,
   }).from(postsTable)
     .leftJoin(usersTable, eq(postsTable.userId, usersTable.id))
+    .where(filterUserId ? eq(postsTable.userId, filterUserId) : undefined)
     .orderBy(desc(postsTable.createdAt))
     .limit(limit)
     .offset(offset);
