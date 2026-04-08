@@ -414,6 +414,7 @@ export default function AuthPage() {
                   onChange={(e) => setForgotEmail(e.target.value)}
                   required
                   autoComplete="email"
+                  className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -499,6 +500,7 @@ export default function AuthPage() {
                     required
                     minLength={6}
                     autoComplete="new-password"
+                    className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                   />
                   <button
                     type="button"
@@ -520,6 +522,7 @@ export default function AuthPage() {
                   required
                   minLength={6}
                   autoComplete="new-password"
+                  className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -569,6 +572,7 @@ export default function AuthPage() {
                     value={loginForm.email}
                     onChange={(e) => setLoginForm((f) => ({ ...f, email: e.target.value }))}
                     required
+                    className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -594,6 +598,7 @@ export default function AuthPage() {
                       value={loginForm.password}
                       onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
                       required
+                      className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                     />
                     <button
                       type="button"
@@ -636,6 +641,7 @@ export default function AuthPage() {
                     value={registerForm.email}
                     onChange={(e) => setRegisterForm((f) => ({ ...f, email: e.target.value }))}
                     required
+                    className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -650,6 +656,7 @@ export default function AuthPage() {
                       onChange={(e) => setRegisterForm((f) => ({ ...f, password: e.target.value }))}
                       required
                       minLength={6}
+                      className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                     />
                     <button
                       type="button"
@@ -671,6 +678,7 @@ export default function AuthPage() {
                     onChange={(e) => setRegisterForm((f) => ({ ...f, confirmPassword: e.target.value }))}
                     required
                     minLength={6}
+                    className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -684,6 +692,7 @@ export default function AuthPage() {
                     value={registerForm.referralCode}
                     onChange={(e) => setRegisterForm((f) => ({ ...f, referralCode: e.target.value }))}
                     autoCapitalize="characters"
+                    className="border-primary/40 focus-visible:ring-primary/50 focus-visible:border-primary bg-primary/5"
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
