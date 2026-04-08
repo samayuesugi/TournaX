@@ -425,16 +425,20 @@ export default function WalletPage() {
           <Skeleton className="h-32 rounded-2xl" />
         ) : (
           <div className="space-y-3">
-            <div className="bg-gradient-to-br from-amber-500/20 to-yellow-400/10 border border-amber-500/20 rounded-2xl p-5">
-              <div className="flex items-center gap-2 mb-1">
-                <GoldCoinIcon size="md" />
-                <p className="text-sm text-muted-foreground">Gold Coins</p>
-              </div>
-              <h2 className="text-4xl font-bold mb-1">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
-              <p className="text-xs text-muted-foreground mb-4">1₹ = 1 Gold Coin</p>
-              <div className="flex gap-2">
-                <CoinsPackDialog />
-                {withdrawDialog}
+            <div className="relative overflow-hidden rounded-2xl p-5 border border-amber-400/30 bg-gradient-to-br from-amber-950/60 via-yellow-900/30 to-amber-950/60">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-yellow-400/5 to-transparent pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-1">
+                  <GoldCoinIcon size="md" />
+                  <p className="text-sm text-amber-200/70 font-medium tracking-wide">Gold Coins</p>
+                </div>
+                <h2 className="text-4xl font-bold mb-1 text-amber-50">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
+                <p className="text-xs text-amber-200/50 mb-4">1₹ = 1 Gold Coin</p>
+                <div className="flex gap-2">
+                  <CoinsPackDialog />
+                  {withdrawDialog}
+                </div>
               </div>
             </div>
 
