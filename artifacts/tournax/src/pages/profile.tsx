@@ -896,7 +896,7 @@ function ProfileBanner({ profileAnimation, profileColor }: { profileAnimation?: 
   const gradient = getBannerGradient(profileColor, profileAnimation);
   if (!hasStyle) return <div className="h-20 w-full bg-secondary/30" />;
   return (
-    <div className={cn("profile-banner h-28 w-full relative overflow-hidden", animClass)} style={{ background: gradient }}>
+    <div className={cn("profile-banner h-28 w-full relative overflow-hidden", animClass)} style={{ backgroundImage: gradient }}>
       <div className="absolute inset-0 bg-black/20" />
     </div>
   );
