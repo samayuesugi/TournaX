@@ -62,7 +62,7 @@ function FilterSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-card border-t border-card-border rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <div className="sticky top-0 bg-card border-b border-card-border px-4 py-3 flex items-center justify-between z-10">
