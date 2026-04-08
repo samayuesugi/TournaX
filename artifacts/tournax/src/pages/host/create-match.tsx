@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Map, Wallet } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
@@ -40,11 +40,218 @@ const BGMI_CATEGORIES = [
 
 const BGMI_MAPS = ["Erangel", "Miramar", "Sanhok", "Vikendi", "Livik", "Karakin", "Nusa"];
 
+const ESPORTS_CATEGORY = { id: "Esports", label: "Esports", emoji: "🏅", allowSquad: true };
+
 const TEAM_SIZES = [
   { label: "Solo", value: 1 },
   { label: "Duo", value: 2 },
   { label: "Squad", value: 4 },
 ];
+
+type RewardRow = { id: string; label: string; pct: number; locked: boolean };
+
+function getDefaultRewardRows(categoryId: string): { rows: RewardRow[]; hostPct: number; platformPct: number; locked: boolean } {
+  const isBR = categoryId === "Battle Royale" || categoryId === "Esports" || categoryId === "Classic";
+  if (isBR) {
+    return {
+      rows: [
+        { id: "booyah", label: "Booyah / 1st Place", pct: 30, locked: false },
+        { id: "2nd", label: "2nd Place", pct: 25, locked: false },
+        { id: "3rd", label: "3rd Place", pct: 15, locked: false },
+        { id: "mvp", label: "MVP (Highest Kills)", pct: 10, locked: false },
+      ],
+      hostPct: 10,
+      platformPct: 10,
+      locked: false,
+    };
+  }
+  return {
+    rows: [
+      { id: "winner", label: "Winner", pct: 90, locked: true },
+    ],
+    hostPct: 5,
+    platformPct: 5,
+    locked: true,
+  };
+}
+
+function RewardDistributionTable({
+  categoryId,
+  showcasePrize,
+  distribution,
+  onChange,
+}: {
+  categoryId: string;
+  showcasePrize: number;
+  distribution: { rows: RewardRow[]; hostPct: number; platformPct: number; locked: boolean };
+  onChange: (d: { rows: RewardRow[]; hostPct: number; platformPct: number; locked: boolean }) => void;
+}) {
+  const { rows, hostPct, platformPct, locked } = distribution;
+  const nonLockedTotal = rows.filter(r => !r.locked).reduce((s, r) => s + r.pct, 0);
+  const lockedTotal = rows.filter(r => r.locked).reduce((s, r) => s + r.pct, 0);
+  const winnerPoolPct = lockedTotal || nonLockedTotal;
+  const targetNonLocked = 100 - hostPct - platformPct;
+  const isValid = Math.abs(nonLockedTotal - targetNonLocked) < 0.1;
+
+  const updateRowPct = (id: string, rawVal: string) => {
+    const val = parseFloat(rawVal);
+    if (isNaN(val) || val < 0) return;
+    onChange({
+      ...distribution,
+      rows: rows.map(r => r.id === id ? { ...r, pct: val } : r),
+    });
+  };
+
+  const updateRowCoins = (id: string, rawVal: string) => {
+    if (!showcasePrize) return;
+    const coins = parseFloat(rawVal);
+    if (isNaN(coins) || coins < 0) return;
+    const pct = (coins / showcasePrize) * 100;
+    onChange({
+      ...distribution,
+      rows: rows.map(r => r.id === id ? { ...r, pct: Math.round(pct * 10) / 10 } : r),
+    });
+  };
+
+  const isBR = !locked;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reward Distribution</p>
+        {locked && (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
+            <Lock className="w-3 h-3" /> Fixed
+          </span>
+        )}
+      </div>
+
+      {!locked && (
+        <div className="text-xs text-muted-foreground bg-secondary/40 rounded-lg px-3 py-2 flex items-start gap-2">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
+          <span>Enter % for each position. Host (10%) and Platform (10%) are fixed. Winners pool must total {targetNonLocked}%.</span>
+        </div>
+      )}
+
+      <div className="bg-card border border-card-border rounded-xl overflow-hidden">
+        <div className="grid grid-cols-[1fr_70px_80px] bg-secondary/60 text-[10px] text-muted-foreground font-semibold uppercase tracking-wide px-3 py-2">
+          <span>Position</span>
+          <span className="text-center">%</span>
+          <span className="text-center">Coins</span>
+        </div>
+
+        {rows.map((row, i) => {
+          const coins = showcasePrize > 0 ? Math.round((row.pct / 100) * showcasePrize) : null;
+          return (
+            <div
+              key={row.id}
+              className={cn(
+                "grid grid-cols-[1fr_70px_80px] items-center px-3 py-2.5 gap-2",
+                i !== 0 ? "border-t border-border/50" : "",
+                row.locked ? "opacity-70" : ""
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">
+                  {row.id === "booyah" ? "🏆" : row.id === "2nd" ? "🥈" : row.id === "3rd" ? "🥉" : row.id === "mvp" ? "💀" : "🥇"}
+                </span>
+                <span className="text-xs font-medium leading-tight">{row.label}</span>
+                {row.locked && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+              </div>
+
+              <div className="text-center">
+                {row.locked ? (
+                  <span className="text-xs font-bold text-muted-foreground">{row.pct}%</span>
+                ) : (
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      value={row.pct}
+                      onChange={(e) => updateRowPct(row.id, e.target.value)}
+                      className="h-7 text-xs text-center pr-4 pl-1"
+                    />
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-center">
+                {row.locked || !isBR ? (
+                  <span className="text-xs font-semibold text-amber-400">
+                    {coins != null ? <GoldCoin amount={coins} size="sm" /> : "—"}
+                  </span>
+                ) : (
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder={coins != null ? String(coins) : "0"}
+                    className="h-7 text-xs text-center px-1"
+                    onBlur={(e) => { if (e.target.value) updateRowCoins(row.id, e.target.value); }}
+                    onFocus={(e) => e.target.select()}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="border-t border-border/50 bg-secondary/20">
+          <div className="grid grid-cols-[1fr_70px_80px] items-center px-3 py-2.5 gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">🛡️</span>
+              <span className="text-xs font-medium text-muted-foreground">Host</span>
+              <Lock className="w-3 h-3 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <span className="text-xs font-bold text-muted-foreground">{hostPct}%</span>
+            </div>
+            <div className="text-center">
+              <span className="text-xs font-semibold text-muted-foreground">
+                {showcasePrize > 0 ? <GoldCoin amount={Math.round((hostPct / 100) * showcasePrize)} size="sm" /> : "—"}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[1fr_70px_80px] items-center px-3 py-2.5 gap-2 border-t border-border/50">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm">⚙️</span>
+              <span className="text-xs font-medium text-muted-foreground">Platform</span>
+              <Lock className="w-3 h-3 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <span className="text-xs font-bold text-muted-foreground">{platformPct}%</span>
+            </div>
+            <div className="text-center">
+              <span className="text-xs font-semibold text-muted-foreground">
+                {showcasePrize > 0 ? <GoldCoin amount={Math.round((platformPct / 100) * showcasePrize)} size="sm" /> : "—"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isBR && !isValid && nonLockedTotal > 0 && (
+        <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          <Info className="w-3.5 h-3.5 shrink-0" />
+          <span>
+            Winner positions total {nonLockedTotal.toFixed(1)}% (should be {targetNonLocked}%).
+            {nonLockedTotal < targetNonLocked ? ` Add ${(targetNonLocked - nonLockedTotal).toFixed(1)}% more.` : ` Remove ${(nonLockedTotal - targetNonLocked).toFixed(1)}%.`}
+          </span>
+        </div>
+      )}
+
+      {isBR && isValid && (
+        <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+          <Trophy className="w-3.5 h-3.5 shrink-0" />
+          <span>Distribution is balanced! Total: 100%</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CreateMatchPage() {
   const [, navigate] = useLocation();
@@ -56,13 +263,15 @@ export default function CreateMatchPage() {
   const hostGame = (user as any)?.game ?? "";
   const isFF = hostGame === "Free Fire";
   const isBGMI = hostGame === "BGMI";
+  const isEsportsHost = Boolean((user as any)?.isEsportsPlayer);
 
-  const categories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
+  const baseCategories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
+  const categories = isEsportsHost ? [...baseCategories, ESPORTS_CATEGORY] : baseCategories;
   const maps = isFF ? FF_MAPS : isBGMI ? BGMI_MAPS : [];
   const maxSlots = isFF ? 50 : 100;
 
   const [selectedCategory, setSelectedCategory] = useState(categories[0]?.id ?? "");
-  const activeCat = categories.find(c => c.id === selectedCategory);
+  const activeCat = categories.find(c => c.id === selectedCategory) ?? categories[0];
   const allowSquad = activeCat?.allowSquad ?? true;
   const availableTeamSizes = allowSquad ? TEAM_SIZES : TEAM_SIZES.filter(t => t.value !== 4);
 
@@ -73,10 +282,11 @@ export default function CreateMatchPage() {
     entryFee: "",
     slots: "",
     startTime: "",
-    showcasePrizePool: "",
     hostContribution: "",
     description: "",
   });
+
+  const [distribution, setDistribution] = useState(() => getDefaultRewardRows(categories[0]?.id ?? ""));
 
   useEffect(() => {
     if (!allowSquad && teamSize === 4) setTeamSize(1);
@@ -86,25 +296,45 @@ export default function CreateMatchPage() {
     if (categories.length > 0) setSelectedCategory(categories[0].id);
   }, [hostGame]);
 
+  useEffect(() => {
+    setDistribution(getDefaultRewardRows(selectedCategory));
+  }, [selectedCategory]);
+
+  const entryFeeNum = parseFloat(form.entryFee) || 0;
+  const slotsNum = parseInt(form.slots) || 0;
+  const contributionNum = parseFloat(form.hostContribution) || 0;
+  const hostBalance = wallet?.balance ?? 0;
+  const basePool = entryFeeNum * slotsNum;
+  const showcasePrize = basePool + contributionNum;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCategory || !form.startTime || !form.entryFee || !form.slots) {
-      toast({ title: "Fill in all fields", variant: "destructive" });
+      toast({ title: "Fill in all required fields", variant: "destructive" });
       return;
     }
     if (!selectedThumbnail) {
       toast({ title: "Select a match thumbnail", variant: "destructive" });
       return;
     }
-    if (!form.showcasePrizePool) {
-      toast({ title: "Enter the showcase prize pool amount", variant: "destructive" });
-      return;
-    }
-    const slotsNum = parseInt(form.slots);
     if (slotsNum > maxSlots) {
       toast({ title: `Max ${maxSlots} slots for ${hostGame}`, variant: "destructive" });
       return;
     }
+    if (contributionNum > hostBalance) {
+      toast({ title: "Insufficient wallet balance for contribution", variant: "destructive" });
+      return;
+    }
+
+    if (!distribution.locked) {
+      const nonLockedTotal = distribution.rows.filter(r => !r.locked).reduce((s, r) => s + r.pct, 0);
+      const targetNonLocked = 100 - distribution.hostPct - distribution.platformPct;
+      if (Math.abs(nonLockedTotal - targetNonLocked) > 1) {
+        toast({ title: `Reward percentages must total ${targetNonLocked}% for winner positions`, variant: "destructive" });
+        return;
+      }
+    }
+
     try {
       const match = await createMatch({
         data: {
@@ -113,13 +343,14 @@ export default function CreateMatchPage() {
           category: selectedCategory,
           map: selectedMap || undefined,
           teamSize,
-          entryFee: parseFloat(form.entryFee),
+          entryFee: entryFeeNum,
           slots: slotsNum,
           startTime: new Date(form.startTime).toISOString(),
-          showcasePrizePool: parseFloat(form.showcasePrizePool),
-          hostContribution: form.hostContribution ? parseFloat(form.hostContribution) : 0,
+          showcasePrizePool: showcasePrize,
+          hostContribution: contributionNum,
           description: form.description.trim() || undefined,
           thumbnailImage: selectedThumbnail || undefined,
+          rewardDistribution: distribution,
         } as any,
       });
       toast({ title: "Match created!" });
@@ -128,17 +359,6 @@ export default function CreateMatchPage() {
       toast({ title: "Failed to create match", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
   };
-
-  const entryFeeNum = parseFloat(form.entryFee) || 0;
-  const slotsNum = parseInt(form.slots) || 0;
-  const contributionNum = parseFloat(form.hostContribution) || 0;
-  const hostBalance = wallet?.balance ?? 0;
-  const previewPlayers = Math.min(slotsNum, 4);
-  const previewEntryPool = previewPlayers * entryFeeNum;
-  const previewIsLarge = slotsNum >= 8;
-  const previewWinners = Math.round(previewEntryPool * (previewIsLarge ? 0.85 : 0.90) + contributionNum);
-  const previewHost = Math.round(previewEntryPool * (previewIsLarge ? 0.10 : 0.05));
-  const previewPlatform = Math.round(previewEntryPool * 0.05);
 
   if (!hostGame) {
     return (
@@ -165,7 +385,7 @@ export default function CreateMatchPage() {
 
           <div className="space-y-1.5">
             <Label>Category</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className={cn("grid gap-2", categories.length <= 3 ? "grid-cols-3" : "grid-cols-2")}>
               {categories.map((cat) => (
                 <button
                   key={cat.id}
@@ -183,9 +403,15 @@ export default function CreateMatchPage() {
                 </button>
               ))}
             </div>
+            {selectedCategory === "Esports" && (
+              <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                <Trophy className="w-3.5 h-3.5 shrink-0" />
+                <span>Esports matches are only visible to esports-verified players</span>
+              </div>
+            )}
           </div>
 
-          {maps.length > 0 && (
+          {maps.length > 0 && selectedCategory !== "Esports" && (
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5"><Map className="w-3.5 h-3.5" /> Map</Label>
               <Select value={selectedMap} onValueChange={setSelectedMap}>
@@ -238,7 +464,7 @@ export default function CreateMatchPage() {
               <Label>Total Slots <span className="text-muted-foreground font-normal text-xs">(max {maxSlots})</span></Label>
               <Input
                 type="number"
-                placeholder={`e.g. 25`}
+                placeholder="e.g. 48"
                 value={form.slots}
                 onChange={(e) => setForm(f => ({ ...f, slots: e.target.value }))}
                 min={2}
@@ -308,20 +534,6 @@ export default function CreateMatchPage() {
           </h3>
 
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1">Showcase Prize Pool (<GoldCoinIcon size="sm" />)</Label>
-            <Input
-              type="number"
-              placeholder="e.g. 5000"
-              value={form.showcasePrizePool}
-              onChange={(e) => setForm(f => ({ ...f, showcasePrizePool: e.target.value }))}
-              min={0}
-            />
-            <p className="text-xs text-muted-foreground">
-              This is the guaranteed prize pool shown on the match card. The live pool grows as players join.
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <Wallet className="w-3.5 h-3.5" />
               Your Contribution <span className="text-muted-foreground font-normal">(optional)</span>
@@ -339,7 +551,7 @@ export default function CreateMatchPage() {
             </div>
             <div className="flex items-center justify-between text-xs">
               <p className="text-muted-foreground">
-                This amount will be deducted from your wallet and added entirely to the winners prize pool.
+                Deducted from your wallet and added to the showcase prize.
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs">
@@ -351,33 +563,59 @@ export default function CreateMatchPage() {
             </div>
           </div>
 
-          {entryFeeNum > 0 && (
-            <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
-              <p className="text-xs text-muted-foreground font-medium">Live pool preview (at {previewPlayers} players)</p>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-sm font-bold text-green-400"><GoldCoin amount={previewWinners} size="sm" /></div>
-                  <div className="text-[10px] text-muted-foreground">Winners {previewIsLarge ? 85 : 90}%{contributionNum > 0 ? " + Boost" : ""}</div>
+          <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">Showcase Prize Pool (auto-calculated)</p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>{slotsNum || "?"} slots × <GoldCoin amount={entryFeeNum || 0} size="sm" /> entry fee</span>
+                  {contributionNum > 0 && <span className="text-green-400">+ <GoldCoin amount={contributionNum} size="sm" /> boost</span>}
                 </div>
-                <div>
-                  <div className="text-sm font-bold text-foreground"><GoldCoin amount={previewHost} size="sm" /></div>
-                  <div className="text-[10px] text-muted-foreground">Host {previewIsLarge ? 10 : 5}%</div>
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-foreground"><GoldCoin amount={previewPlatform} size="sm" /></div>
-                  <div className="text-[10px] text-muted-foreground">Platform 5%</div>
+                <div className="text-xl font-bold text-amber-300">
+                  <GoldCoin amount={showcasePrize} />
                 </div>
               </div>
-              {contributionNum > 0 && (
-                <div className="mt-1 text-center text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg py-1.5">
-                  🏆 You're boosting the prize pool by <GoldCoin amount={contributionNum.toFixed(0)} size="sm" />
+              <div className="text-right">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Shown on card</div>
+                <div className="w-16 h-8 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-center">
+                  <span className="text-xs font-bold text-amber-400">🏆 Auto</span>
                 </div>
-              )}
+              </div>
+            </div>
+            {(entryFeeNum === 0 || slotsNum === 0) && (
+              <p className="text-xs text-muted-foreground">Enter entry fee and slots to see the prize pool.</p>
+            )}
+          </div>
+
+          {contributionNum > 0 && (
+            <div className="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+              <Gift className="w-3.5 h-3.5 shrink-0" />
+              You're boosting the prize pool by <GoldCoin amount={contributionNum.toFixed(0)} size="sm" />
             </div>
           )}
         </div>
 
-        <Button type="submit" className="w-full" size="lg" disabled={isPending}>
+        <div className="bg-card border border-card-border rounded-2xl p-4 space-y-3">
+          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <Trophy className="w-3.5 h-3.5" /> Reward Distribution
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Define how the prize pool is split. Coins are calculated live based on the showcase prize.
+          </p>
+          <RewardDistributionTable
+            categoryId={selectedCategory}
+            showcasePrize={showcasePrize}
+            distribution={distribution}
+            onChange={setDistribution}
+          />
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full"
+          size="lg"
+          disabled={isPending || contributionNum > hostBalance}
+        >
           {isPending ? "Creating..." : "Create Tournament"}
         </Button>
       </form>

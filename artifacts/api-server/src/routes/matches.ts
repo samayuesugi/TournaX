@@ -61,6 +61,16 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
   const hostRating = ratingRow?.avgRating ? parseFloat(ratingRow.avgRating as string) : null;
   const hostReviewCount = Number(ratingRow?.totalReviews ?? 0);
 
+  let rewardDistribution: any = null;
+  if ((match as any).rewardDistribution) {
+    try { rewardDistribution = JSON.parse((match as any).rewardDistribution); } catch {}
+  }
+
+  let resultScreenshotUrls: string[] = [];
+  if ((match as any).resultScreenshotUrls) {
+    try { resultScreenshotUrls = JSON.parse((match as any).resultScreenshotUrls); } catch {}
+  }
+
   const result: any = {
     id: match.id,
     code: match.code,
@@ -96,6 +106,9 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     description: match.description ?? null,
     thumbnailImage: match.thumbnailImage ?? null,
     hasReviewed,
+    rewardDistribution,
+    resultScreenshotUrls,
+    screenshotUploadedAt: (match as any).screenshotUploadedAt ? (match as any).screenshotUploadedAt.toISOString() : null,
   };
   if (isJoined && match.roomReleased) {
     result.roomId = match.roomId;
@@ -105,7 +118,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
 }
 
 router.get("/matches", requireAuth, async (req: Request, res: Response) => {
-  const { search, status, game, category, teamSize } = req.query;
+  const { search, status, game, category, teamSize, map: mapFilter, paid } = req.query;
   const user = (req as any).user;
 
   const conditions: any[] = [];
@@ -113,6 +126,9 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
   if (game) conditions.push(ilike(matchesTable.game, game as string));
   if (category) conditions.push(ilike(matchesTable.category, category as string));
   if (teamSize) conditions.push(eq(matchesTable.teamSize, Number(teamSize)));
+  if (mapFilter) conditions.push(ilike(matchesTable.map, mapFilter as string));
+  if (paid === "free") conditions.push(eq(matchesTable.entryFee, "0"));
+  if (paid === "paid") conditions.push(sql`CAST(${matchesTable.entryFee} AS NUMERIC) > 0`);
   if (search) {
     conditions.push(or(
       ilike(matchesTable.code, `%${search}%`),
@@ -154,7 +170,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, category, map: matchMap } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, category, map: matchMap, rewardDistribution } = req.body;
   const resolvedGame = game || user.game;
   if (!resolvedGame || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
@@ -216,7 +232,8 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       thumbnailImage: thumbnailImage ? String(thumbnailImage).trim() : null,
       category: category ? String(category).trim() : null,
       map: matchMap ? String(matchMap).trim() : null,
-    }).returning();
+      rewardDistribution: rewardDistribution ? JSON.stringify(rewardDistribution) : null,
+    } as any).returning();
     match = inserted;
   });
 
@@ -465,11 +482,15 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
     res.status(400).json({ error: "Result already submitted" }); return;
   }
 
-  const { results } = req.body as {
+  const { results, screenshotUrls } = req.body as {
     results: { participantId: number; rank: number; reward: number }[];
+    screenshotUrls?: string[];
   };
   if (!Array.isArray(results) || results.length === 0) {
     res.status(400).json({ error: "Results are required" }); return;
+  }
+  if (!Array.isArray(screenshotUrls) || screenshotUrls.length === 0) {
+    res.status(400).json({ error: "At least 1 in-game result screenshot is required" }); return;
   }
   if (results.some(r => typeof r.reward !== "number" || r.reward < 0)) {
     res.status(400).json({ error: "All reward values must be non-negative numbers" }); return;
@@ -534,7 +555,13 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
       });
     }
 
-    await tx.update(matchesTable).set({ status: "completed" }).where(eq(matchesTable.id, match.id));
+    const screenshotExpiry = new Date();
+    screenshotExpiry.setDate(screenshotExpiry.getDate() + 3);
+    await tx.update(matchesTable).set({
+      status: "completed",
+      resultScreenshotUrls: JSON.stringify(screenshotUrls),
+      screenshotUploadedAt: new Date(),
+    } as any).where(eq(matchesTable.id, match.id));
   });
 
   res.json({ success: true, message: "Result submitted and rewards distributed!" });

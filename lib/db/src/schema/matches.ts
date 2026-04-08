@@ -26,8 +26,10 @@ export const matchesTable = pgTable("matches", {
   category: text("category"),
   map: text("map"),
   resultScreenshotUrl: text("result_screenshot_url"),
+  resultScreenshotUrls: text("result_screenshot_urls"),
   screenshotUploadedAt: timestamp("screenshot_uploaded_at"),
   resultSkipReason: text("result_skip_reason"),
+  rewardDistribution: text("reward_distribution"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

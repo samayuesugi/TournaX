@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
@@ -12,10 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock } from "lucide-react";
 
 function EarningsBreakdownDialog({ matches }: { matches: any[] }) {
   const completedMatches = matches.filter((m) => m.status === "completed" && parseFloat(String(m.hostCut || 0)) > 0);
@@ -106,9 +105,13 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
   const [open, setOpen] = useState(false);
   const { data: participants, isLoading } = useGetMatchPlayers(match.id, { query: { enabled: open } as any });
   const { mutateAsync: submitResult, isPending } = useSubmitResult();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [ranks, setRanks] = useState<Record<number, string>>({});
   const [rewards, setRewards] = useState<Record<number, string>>({});
+  const [screenshots, setScreenshots] = useState<string[]>([]);
+  const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const prizePool = parseFloat(String(match.livePrizePool || 0));
   const totalRewarded = (participants || []).reduce((sum, p) => {
@@ -118,8 +121,51 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
   const remaining = prizePool - totalRewarded;
   const isOverBudget = totalRewarded > prizePool + 0.01;
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const canAdd = Math.min(files.length, 5 - screenshots.length);
+    if (canAdd <= 0) {
+      toast({ title: "Maximum 5 screenshots allowed", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const newPaths: string[] = [];
+      const newPreviews: string[] = [];
+      for (let i = 0; i < canAdd; i++) {
+        const file = files[i];
+        const preview = URL.createObjectURL(file);
+        newPreviews.push(preview);
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/storage/uploads/file", { method: "POST", body: formData });
+        if (!res.ok) throw new Error("Upload failed");
+        const data = await res.json();
+        newPaths.push(data.objectPath || "uploaded");
+      }
+      setScreenshots(prev => [...prev, ...newPaths]);
+      setScreenshotPreviews(prev => [...prev, ...newPreviews]);
+      toast({ title: `${canAdd} screenshot${canAdd > 1 ? "s" : ""} uploaded!` });
+    } catch {
+      toast({ title: "Screenshot upload failed", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeScreenshot = (idx: number) => {
+    setScreenshots(prev => prev.filter((_, i) => i !== idx));
+    setScreenshotPreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async () => {
     if (!participants || participants.length === 0) return;
+    if (screenshots.length === 0) {
+      toast({ title: "Upload at least 1 in-game result screenshot", description: "Screenshots are mandatory to verify results.", variant: "destructive" });
+      return;
+    }
     const results = participants.map((p) => ({
       participantId: p.id,
       rank: parseInt(ranks[p.id] || "0"),
@@ -135,7 +181,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       return;
     }
     try {
-      await submitResult({ id: match.id, data: { results } });
+      await submitResult({ id: match.id, data: { results, screenshotUrls: screenshots } as any });
       toast({ title: "Result submitted!", description: "Rewards have been distributed to winners." });
       setOpen(false);
       onAction();
@@ -144,14 +190,24 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
     }
   };
 
+  const handleOpenChange = (o: boolean) => {
+    setOpen(o);
+    if (!o) {
+      setRanks({});
+      setRewards({});
+      setScreenshots([]);
+      setScreenshotPreviews([]);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm" className="flex-1 h-8 text-xs gap-1 bg-accent hover:bg-accent/90 text-accent-foreground">
           <Medal className="w-3.5 h-3.5" /> Result
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-accent" /> Submit Match Result
@@ -172,6 +228,80 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
               <span className="text-muted-foreground">Remaining</span>
               <GoldCoin amount={remaining.toFixed(0)} className={cn("font-bold", remaining < 0 ? "text-red-400" : "text-foreground")} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-1.5 text-sm">
+                <Camera className="w-3.5 h-3.5 text-primary" />
+                Result Screenshots
+                <span className="text-destructive">*</span>
+              </Label>
+              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", screenshots.length > 0 ? "bg-green-500/20 text-green-400" : "bg-destructive/20 text-destructive")}>
+                {screenshots.length}/5
+              </span>
+            </div>
+
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5 flex items-start gap-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+              <div className="text-xs text-amber-300 space-y-0.5">
+                <p className="font-medium">Screenshots are mandatory</p>
+                <p className="text-amber-400/80">Upload 1–5 in-game result screenshots. These will be auto-deleted after 3 days.</p>
+              </div>
+            </div>
+
+            {screenshotPreviews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {screenshotPreviews.map((src, i) => (
+                  <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-border">
+                    <img src={src} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeScreenshot(i)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-destructive/90 rounded-full flex items-center justify-center text-white"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <div className="absolute bottom-1 left-1 bg-black/60 rounded text-[10px] text-white px-1">
+                      {i + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {screenshots.length < 5 && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-medium transition-all",
+                  uploading ? "border-border text-muted-foreground cursor-wait" :
+                  screenshots.length === 0 ? "border-primary/50 text-primary hover:border-primary hover:bg-primary/5" :
+                  "border-border text-muted-foreground hover:border-border/80 hover:bg-secondary/40"
+                )}
+              >
+                <ImagePlus className="w-4 h-4" />
+                {uploading ? "Uploading..." : screenshots.length === 0 ? "Upload Screenshots (required)" : "Add More Screenshots"}
+              </button>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            {screenshots.length > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>Screenshots will be auto-deleted after 3 days</span>
+              </div>
+            )}
           </div>
 
           {isOverBudget && (
@@ -242,9 +372,9 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={isPending || isLoading || !participants || participants.length === 0 || isOverBudget}
+            disabled={isPending || isLoading || !participants || participants.length === 0 || isOverBudget || screenshots.length === 0}
           >
-            {isPending ? "Submitting..." : "Submit Result & Distribute Rewards"}
+            {isPending ? "Submitting..." : screenshots.length === 0 ? "Upload Screenshots First" : "Submit Result & Distribute Rewards"}
           </Button>
         </div>
       </DialogContent>

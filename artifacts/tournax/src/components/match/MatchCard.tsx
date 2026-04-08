@@ -36,11 +36,15 @@ function useCountdown(targetIso: string) {
   return remaining;
 }
 
-function Countdown({ startTimeIso }: { startTimeIso: string }) {
+function Countdown({ startTimeIso, large }: { startTimeIso: string; large?: boolean }) {
   const ms = useCountdown(startTimeIso);
 
   if (ms <= 0) {
-    return <span className="text-blue-400 text-xs font-semibold">Starting soon</span>;
+    return large ? (
+      <span className="text-blue-400 font-bold tabular-nums">Starting soon</span>
+    ) : (
+      <span className="text-blue-400 text-xs font-semibold">Starting soon</span>
+    );
   }
 
   const totalSecs = Math.floor(ms / 1000);
@@ -48,6 +52,34 @@ function Countdown({ startTimeIso }: { startTimeIso: string }) {
   const hrs = Math.floor((totalSecs % 86400) / 3600);
   const mins = Math.floor((totalSecs % 3600) / 60);
   const secs = totalSecs % 60;
+
+  if (large) {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    if (days > 0) {
+      return (
+        <div className="flex items-center gap-1 tabular-nums">
+          <span className="text-blue-300 font-bold text-base">{days}d</span>
+          <span className="text-blue-400/60 text-xs">:</span>
+          <span className="text-blue-300 font-bold text-base">{pad(hrs)}h</span>
+          <span className="text-blue-400/60 text-xs">:</span>
+          <span className="text-blue-300 font-bold text-base">{pad(mins)}m</span>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-0.5 tabular-nums">
+        {hrs > 0 && (
+          <>
+            <span className="text-blue-300 font-bold text-lg leading-none">{pad(hrs)}</span>
+            <span className="text-blue-400/60 text-xs mx-0.5">:</span>
+          </>
+        )}
+        <span className="text-blue-300 font-bold text-lg leading-none">{pad(mins)}</span>
+        <span className="text-blue-400/60 text-xs mx-0.5">:</span>
+        <span className={cn("font-bold text-lg leading-none tabular-nums", secs < 60 && mins === 0 && hrs === 0 ? "text-red-400" : "text-blue-300")}>{pad(secs)}</span>
+      </div>
+    );
+  }
 
   let label: string;
   if (days > 0) {
@@ -190,6 +222,16 @@ export function MatchCard({ match, className }: MatchCardProps) {
               </div>
             </div>
           </div>
+
+          {isUpcoming && (
+            <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 rounded-xl px-3 py-2 mb-2">
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="text-xs text-blue-400/70 font-medium">Starts in</span>
+              </div>
+              <Countdown startTimeIso={match.startTime} large />
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-1 min-w-0">
