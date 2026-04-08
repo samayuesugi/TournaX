@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { User } from "lucide-react";
+import { useLocation, Redirect } from "wouter";
 import { useAuth } from "@/contexts/useAuth";
 import { useSetupProfile } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ const GAMES = ["BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC", "Other"
 const AVATARS = ["🎮", "🏆", "⚔️", "🔥", "💀", "👑", "🎯", "🦾", "🤑", "🤒", "😴", "🧔", "👩‍🦰", "🐲", "⚡️", "🗿"];
 
 export default function SetupProfilePage() {
-  const { setUser } = useAuth();
+  const { user, isLoading, setUser } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { mutateAsync: setupProfile, isPending } = useSetupProfile();
@@ -24,6 +23,10 @@ export default function SetupProfilePage() {
     handle: "",
     game: "",
   });
+
+  if (!isLoading && !user) {
+    return <Redirect to="/auth" />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

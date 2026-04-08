@@ -1,4 +1,5 @@
 import { useEffect, useState, ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter, customFetch } from "@workspace/api-client-react";
 import { getToken, setToken, clearToken } from "@/lib/auth";
 import { getMe, login as apiLogin, register as apiRegister, logout as apiLogout } from "@workspace/api-client-react";
@@ -20,6 +21,7 @@ async function callDailyCheckin(): Promise<DailyBonus | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<import("@workspace/api-client-react").User | null>(null);
   const [token, setTokenState] = useState<string | null>(getToken());
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokenState(null);
     setUser(null);
     setPendingDailyBonus(null);
+    queryClient.clear();
   };
 
   const refreshUser = async () => {
