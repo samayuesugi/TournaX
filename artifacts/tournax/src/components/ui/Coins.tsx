@@ -25,7 +25,7 @@ export function GoldCoin({ amount, className, size = "md" }: CoinProps) {
   return (
     <span className={cn("inline-flex items-center gap-1", className)}>
       <span>{amount}</span>
-      <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain mix-blend-lighten", goldIconSize(size))} />
+      <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain", goldIconSize(size))} />
     </span>
   );
 }
@@ -41,7 +41,7 @@ export function SilverCoin({ amount, className, size = "md" }: CoinProps) {
 
 export function GoldCoinIcon({ className, size = "md" }: { className?: string; size?: "sm" | "md" | "lg" }) {
   return (
-    <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain mix-blend-lighten", goldIconSize(size), className)} />
+    <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain", goldIconSize(size), className)} />
   );
 }
 
