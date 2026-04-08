@@ -362,7 +362,7 @@ function InlinHostCard({ profile }: { profile: UserProfile }) {
   return <Link href={`/profile/${profile.handle}`}><div className="relative">{inner}</div></Link>;
 }
 
-export function PostsFeed({ recommendedHosts = [], isLoadingHosts = false }: { recommendedHosts?: UserProfile[]; isLoadingHosts?: boolean }) {
+export function PostsFeed({ recommendedHosts = [], isLoadingHosts = false, refreshSignal = 0 }: { recommendedHosts?: UserProfile[]; isLoadingHosts?: boolean; refreshSignal?: number }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -370,9 +370,7 @@ export function PostsFeed({ recommendedHosts = [], isLoadingHosts = false }: { r
   useEffect(() => {
     setLoading(true);
     customFetch<Post[]>("/api/posts?limit=20").then(setPosts).catch(() => setPosts([])).finally(() => setLoading(false));
-  }, [refreshKey]);
-
-  const refresh = () => setRefreshKey(k => k + 1);
+  }, [refreshKey, refreshSignal]);
 
   const feedItems: Array<{ type: "post"; data: Post } | { type: "host"; data: UserProfile }> = [];
   let hostIdx = 0;
@@ -388,10 +386,7 @@ export function PostsFeed({ recommendedHosts = [], isLoadingHosts = false }: { r
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground font-medium">Highlights & Clips</p>
-        <SharePostDialog onSuccess={refresh} />
-      </div>
+      <p className="text-xs text-muted-foreground font-medium">Highlights & Clips</p>
       {loading || isLoadingHosts ? (
         <div className="space-y-3">{[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}</div>
       ) : feedItems.length > 0 ? (

@@ -904,7 +904,8 @@ function ProfileBanner({ profileAnimation, profileColor }: { profileAnimation?: 
 
 function OwnProfile() {
   const { user, refreshUser } = useAuth();
-  const [tab, setTab] = useState<"posts" | "squad" | "stats">("posts");
+  const isHostInit = user?.role === "host" || user?.role === "admin";
+  const [tab, setTab] = useState<string>(isHostInit ? "matches" : "posts");
   const [editOpen, setEditOpen] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
@@ -918,10 +919,10 @@ function OwnProfile() {
   const animContainerClass = animation === "pulse" ? "profile-anim-pulse" : animation === "neon" ? "profile-anim-neon" : animation === "shimmer" ? "profile-anim-shimmer" : "";
   const colorClass = color ? `profile-color-${color}` : "";
   const tabs = isHost
-    ? [{ id: "posts" as const, icon: <Swords className="w-4 h-4" />, label: "Matches" }]
+    ? [{ id: "matches", icon: <Swords className="w-4 h-4" />, label: "Matches" }, { id: "ratings", icon: <Star className="w-4 h-4" />, label: "Ratings" }]
     : isEsports
-      ? [{ id: "posts" as const, icon: <Grid3X3 className="w-4 h-4" />, label: "Posts" }, { id: "squad" as const, icon: <Users className="w-4 h-4" />, label: "Squad" }, { id: "stats" as const, icon: <BarChart2 className="w-4 h-4" />, label: "Stats" }]
-      : [{ id: "posts" as const, icon: <Grid3X3 className="w-4 h-4" />, label: "Posts" }, { id: "squad" as const, icon: <Users className="w-4 h-4" />, label: "Squad" }];
+      ? [{ id: "posts", icon: <Grid3X3 className="w-4 h-4" />, label: "Posts" }, { id: "squad", icon: <Users className="w-4 h-4" />, label: "Squad" }, { id: "stats", icon: <BarChart2 className="w-4 h-4" />, label: "Stats" }]
+      : [{ id: "posts", icon: <Grid3X3 className="w-4 h-4" />, label: "Posts" }, { id: "squad", icon: <Users className="w-4 h-4" />, label: "Squad" }];
 
   return (
     <AppLayout title="My Profile">
@@ -995,7 +996,7 @@ function OwnProfile() {
           </div>
         </div>
 
-        {isHost && tab === "posts" && (
+        {isHost && tab === "matches" && (
           <div className="p-4">
             {matchesLoading ? (
               <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
@@ -1006,6 +1007,7 @@ function OwnProfile() {
             )}
           </div>
         )}
+        {isHost && tab === "ratings" && user.handle && <HostRatingsSection handle={user.handle} />}
 
         {isPlayer && tab === "posts" && user.id && <PostGrid userId={user.id} isOwn />}
         {isPlayer && tab === "squad" && <SquadSection userId={user.id!} isOwn userGame={(user as any).game} isEsports={isEsports} />}
@@ -1040,6 +1042,12 @@ function PublicProfile({ handle }: { handle: string }) {
     }
   }, [profile?.id, profile?.role]);
 
+  useEffect(() => {
+    if (profile?.role === "host" || profile?.role === "admin") {
+      setTab("matches");
+    }
+  }, [profile?.role]);
+
   const handleFollow = async () => {
     try {
       if (profile?.isFollowing) { await unfollow({ handle }); } else { await follow({ handle }); }
@@ -1072,7 +1080,7 @@ function PublicProfile({ handle }: { handle: string }) {
   const hasPlayed = hasPlayedData?.hasPlayed ?? false;
 
   const tabs = isHost
-    ? [{ id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }]
+    ? [{ id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "ratings", label: "Ratings", icon: <Star className="w-4 h-4" /> }]
     : isEsports
       ? [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "squad", label: "Squad", icon: <Users className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }]
       : [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }];
@@ -1196,52 +1204,43 @@ function PublicProfile({ handle }: { handle: string }) {
           </div>
         )}
 
-        {!isHost && (
-          <div className="mt-4 border-t border-border">
-            <div className="flex">
-              {tabs.map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)}
-                  className={cn("flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition-colors border-b-2",
-                    activeTab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
-                  {t.icon} {t.label}
-                </button>
-              ))}
-            </div>
+        <div className="mt-4 border-t border-border">
+          <div className="flex">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={cn("flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition-colors border-b-2",
+                  activeTab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                {t.icon} {t.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         {isPlayer && activeTab === "posts" && <PostGrid userId={profile.id} isOwn={false} />}
         {isPlayer && activeTab === "matches" && <PlayerMatchHistory userId={profile.id} />}
         {isEsports && activeTab === "squad" && <SquadSection userId={profile.id} isOwn={false} userGame={(profile as any).game} isEsports />}
         {isEsports && activeTab === "stats" && <EsportsStatsDisplay handle={handle} game={(profile as any).game} />}
 
-        {isHost && (
-          <div className="p-4 space-y-6">
-            <div className="space-y-4">
-              {profile.activeMatches.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-sm mb-2 text-green-400">● Live</h3>
-                  <div className="flex flex-col gap-2">{profile.activeMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
-                </div>
-              )}
-              {profile.upcomingMatches.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
-                  <div className="flex flex-col gap-2">{profile.upcomingMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
-                </div>
-              )}
-              {profile.activeMatches.length === 0 && profile.upcomingMatches.length === 0 && (
-                <div className="text-center py-6 text-muted-foreground"><div className="text-3xl mb-2">🎮</div><p className="text-sm">No active matches</p></div>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-sm flex items-center gap-2"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /> Ratings & Reviews</h3>
+        {isHost && activeTab === "matches" && (
+          <div className="p-4 space-y-4">
+            {profile.activeMatches.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-sm mb-2 text-green-400">● Live</h3>
+                <div className="flex flex-col gap-2">{profile.activeMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
               </div>
-              <HostRatingsSection handle={handle} />
-            </div>
+            )}
+            {profile.upcomingMatches.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
+                <div className="flex flex-col gap-2">{profile.upcomingMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
+              </div>
+            )}
+            {profile.activeMatches.length === 0 && profile.upcomingMatches.length === 0 && (
+              <div className="text-center py-6 text-muted-foreground"><div className="text-3xl mb-2">🎮</div><p className="text-sm">No active matches</p></div>
+            )}
           </div>
         )}
+        {isHost && activeTab === "ratings" && <HostRatingsSection handle={handle} />}
       </div>
 
       {isHost && (

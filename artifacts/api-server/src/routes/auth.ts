@@ -91,6 +91,8 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     equippedHandleColor: user.equippedHandleColor ?? null,
     isEsportsPlayer: user.isEsportsPlayer ?? false,
     bio: user.bio ?? null,
+    profileAnimation: user.profileAnimation ?? null,
+    profileColor: user.profileColor ?? null,
   };
 }
 

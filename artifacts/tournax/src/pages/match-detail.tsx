@@ -48,8 +48,12 @@ function LivePrizePool({ match }: LivePrizePoolProps) {
           <span className="font-semibold text-amber-400 text-sm">Live Prize Pool</span>
         </div>
         {status === "live" && (
-          <span className="text-[10px] font-bold text-green-400 border border-green-400/40 rounded-full px-2 py-0.5 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" /> LIVE
+          <span className="text-[10px] font-bold text-red-400 border border-red-400/40 rounded-full px-2 py-0.5 flex items-center gap-1.5">
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+            </span>
+            LIVE
           </span>
         )}
       </div>
@@ -264,7 +268,7 @@ export default function MatchDetailPage() {
 
   const statusColors = {
     upcoming: "bg-primary/20 text-primary border-primary/30",
-    live: "bg-green-500/20 text-green-400 border-green-500/30",
+    live: "bg-red-500/10 text-red-400 border-red-500/20",
     completed: "bg-muted text-muted-foreground border-border",
   };
 
@@ -287,8 +291,16 @@ export default function MatchDetailPage() {
                     <h2 className="text-2xl font-bold text-white drop-shadow">{match.game}</h2>
                     <p className="text-white/70 text-sm">{match.mode} · {match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`}{(match as any).map ? ` · 🗺️ ${(match as any).map}` : ""}</p>
                   </div>
-                  <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm", statusColors[match.status])}>
-                    {match.status === "live" ? "🔴 Live" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                  <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm flex items-center gap-1.5", statusColors[match.status])}>
+                    {match.status === "live" ? (
+                      <>
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                        </span>
+                        LIVE
+                      </>
+                    ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
                   </span>
                 </div>
               </div>
@@ -300,8 +312,16 @@ export default function MatchDetailPage() {
                   <h2 className="text-2xl font-bold">{match.game}</h2>
                   <p className="text-muted-foreground text-sm mt-0.5">{match.mode} · {match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`}{(match as any).map ? ` · 🗺️ ${(match as any).map}` : ""}</p>
                 </div>
-                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border", statusColors[match.status])}>
-                  {match.status === "live" ? "🔴 Live" : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5", statusColors[match.status])}>
+                  {match.status === "live" ? (
+                    <>
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                      </span>
+                      LIVE
+                    </>
+                  ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
                 </span>
               </div>
             </div>

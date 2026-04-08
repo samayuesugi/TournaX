@@ -12,9 +12,21 @@ interface MatchCardProps {
 
 const statusColors = {
   upcoming: "bg-primary/20 text-primary border-primary/30",
-  live: "bg-green-500/20 text-green-400 border-green-500/30",
+  live: "bg-red-500/10 text-red-400 border-red-500/20",
   completed: "bg-muted text-muted-foreground border-border",
 };
+
+function LiveBadge() {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+      </span>
+      LIVE
+    </span>
+  );
+}
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -141,8 +153,8 @@ export function MatchCard({ match, className }: MatchCardProps) {
       <Countdown startTimeIso={match.startTime} />
     </span>
   ) : (
-    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
-      {match.status === "live" ? "🔴 Live" : "Completed"}
+    <span className={cn("text-xs font-bold px-2.5 py-0.5 rounded-full border shrink-0 flex items-center", statusColors[match.status])}>
+      {match.status === "live" ? <LiveBadge /> : "Completed"}
     </span>
   );
 
@@ -162,13 +174,13 @@ export function MatchCard({ match, className }: MatchCardProps) {
               className="w-full h-full object-cover [object-position:center_20%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
-            <span className={cn("absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full border backdrop-blur-sm flex items-center gap-1", statusColors[match.status])}>
+            <span className={cn("absolute top-2 right-2 text-xs font-bold px-2.5 py-0.5 rounded-full border backdrop-blur-sm flex items-center gap-1", statusColors[match.status])}>
               {isUpcoming ? (
                 <>
                   <Clock className="w-2.5 h-2.5" />
                   <Countdown startTimeIso={match.startTime} />
                 </>
-              ) : match.status === "live" ? "🔴 Live" : "Completed"}
+              ) : match.status === "live" ? <LiveBadge /> : "Completed"}
             </span>
           </div>
         )}

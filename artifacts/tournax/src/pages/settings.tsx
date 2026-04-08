@@ -443,11 +443,9 @@ export default function SettingsPage() {
             <div className="px-4 pt-4 pb-2">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Player</p>
             </div>
-            <SettingRow icon={Trophy} iconBg="bg-primary/15" iconColor="text-primary" label="Quest & Daily Tasks" onClick={() => setQuestOpen(true)} />
-            <div className="border-t border-border">
+            <div className="divide-y divide-border">
+              <SettingRow icon={Trophy} iconBg="bg-primary/15" iconColor="text-primary" label="Quest & Daily Tasks" onClick={() => setQuestOpen(true)} />
               <SettingRow icon={Gift} iconBg="bg-emerald-500/15" iconColor="text-emerald-400" label="Referral Program" onClick={() => setReferralOpen(true)} />
-            </div>
-            <div className="border-t border-border">
               <SettingRow icon={Medal} iconBg="bg-yellow-500/15" iconColor="text-yellow-400" label="Esports Player" onClick={() => setEsportsOpen(true)} />
             </div>
           </div>
@@ -458,23 +456,21 @@ export default function SettingsPage() {
           <div className="px-4 pt-4 pb-2">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">More</p>
           </div>
-          {(user.role === "player" || user.role === "host") && (
-            <Link href="/store">
-              <button className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center">
-                    <ShoppingBag className="w-4 h-4 text-violet-400" />
+          <div className="divide-y divide-border">
+            {(user.role === "player" || user.role === "host") && (
+              <Link href="/store">
+                <button className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                      <ShoppingBag className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <span className="text-sm font-medium">Cosmetics Store</span>
                   </div>
-                  <span className="text-sm font-medium">Cosmetics Store</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </Link>
-          )}
-          <div className="border-t border-border">
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </Link>
+            )}
             <SettingRow icon={Flag} iconBg="bg-red-500/15" iconColor="text-red-400" label="Raise a Complaint" onClick={() => setComplaintOpen(true)} />
-          </div>
-          <div className="border-t border-border">
             <SettingRow icon={FileText} iconBg="bg-primary/15" iconColor="text-primary" label="Terms & Policies" onClick={() => setTermsOpen(true)} />
           </div>
         </div>
