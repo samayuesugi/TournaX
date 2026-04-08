@@ -84,6 +84,17 @@ export const esportsStatsTable = pgTable("esports_stats", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const squadRequestsTable = pgTable("squad_requests", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId: integer("to_user_id").notNull(),
+  game: text("game").notNull(),
+  role: text("role"),
+  isBackup: boolean("is_backup").notNull().default(false),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const complaintsTable = pgTable("complaints", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),

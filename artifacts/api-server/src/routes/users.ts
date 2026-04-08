@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable, esportsStatsTable } from "@workspace/db/schema";
+import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable, esportsStatsTable, squadRequestsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, avg, inArray, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { getIO } from "../lib/socket";
@@ -104,12 +104,14 @@ router.get("/users/search", requireAuth, async (req: Request, res: Response) => 
   const currentUser = (req as any).user;
   const q = String(req.query.q ?? "").trim();
   if (!q) { res.json([]); return; }
-  const results = await db.select().from(usersTable).where(
-    or(
-      ilike(usersTable.handle, `%${q}%`),
-      ilike(usersTable.name, `%${q}%`)
-    )
+  const searchFilter = or(
+    ilike(usersTable.handle, `%${q}%`),
+    ilike(usersTable.name, `%${q}%`)
   );
+  const gameFilter = currentUser.game
+    ? and(searchFilter, eq(usersTable.game, currentUser.game))
+    : searchFilter;
+  const results = await db.select().from(usersTable).where(gameFilter);
   res.json(
     results
       .filter((u) => u.id !== currentUser.id)
@@ -120,6 +122,8 @@ router.get("/users/search", requireAuth, async (req: Request, res: Response) => 
         handle: u.handle,
         avatar: u.avatar,
         role: u.role,
+        game: u.game,
+        gameUid: u.gameUid,
       }))
   );
 });
@@ -171,6 +175,79 @@ router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res
   if (!member) { res.status(404).json({ error: "Squad member not found" }); return; }
   await db.delete(squadMembersTable).where(eq(squadMembersTable.id, memberId));
   res.json({ success: true });
+});
+
+router.get("/users/me/squad-requests", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const requests = await db.select().from(squadRequestsTable)
+    .where(and(eq(squadRequestsTable.toUserId, user.id), eq(squadRequestsTable.status, "pending")));
+  const fromIds = requests.map(r => r.fromUserId);
+  const fromUsers = fromIds.length > 0
+    ? await db.select({ id: usersTable.id, name: usersTable.name, handle: usersTable.handle, avatar: usersTable.avatar }).from(usersTable).where(inArray(usersTable.id, fromIds))
+    : [];
+  const fromMap = new Map(fromUsers.map(u => [u.id, u]));
+  res.json(requests.map(r => {
+    const from = fromMap.get(r.fromUserId);
+    return { id: r.id, game: r.game, role: r.role, isBackup: r.isBackup, status: r.status, createdAt: r.createdAt?.toISOString(), fromUserId: r.fromUserId, fromName: from?.name ?? null, fromHandle: from?.handle ?? null, fromAvatar: from?.avatar ?? null };
+  }));
+});
+
+router.post("/users/:handle/squad-request", requireAuth, async (req: Request, res: Response) => {
+  const currentUser = (req as any).user;
+  const { handle } = req.params;
+  const { game, role, isBackup } = req.body;
+  if (!game) { res.status(400).json({ error: "Game is required" }); return; }
+  const [target] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!target) { res.status(404).json({ error: "User not found" }); return; }
+  if (target.id === currentUser.id) { res.status(400).json({ error: "Cannot invite yourself" }); return; }
+  const existing = await db.select().from(squadRequestsTable).where(
+    and(eq(squadRequestsTable.fromUserId, currentUser.id), eq(squadRequestsTable.toUserId, target.id), eq(squadRequestsTable.status, "pending"))
+  );
+  if (existing.length > 0) { res.status(400).json({ error: "Already sent a pending invite to this player" }); return; }
+  await db.insert(squadRequestsTable).values({ fromUserId: currentUser.id, toUserId: target.id, game, role: role ?? null, isBackup: isBackup ?? false, status: "pending" });
+  await db.insert(notificationsTable).values({ userId: target.id, type: "squad_invite", message: `${currentUser.name || currentUser.handle} invited you to join their squad for ${game}!` });
+  try { getIO().to(`user-${target.id}`).emit("notification"); } catch {}
+  res.json({ success: true });
+});
+
+router.put("/users/me/squad-requests/:requestId", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const requestId = parseInt(req.params.requestId);
+  const { action } = req.body;
+  if (!["accept", "reject"].includes(action)) { res.status(400).json({ error: "Action must be accept or reject" }); return; }
+  const [request] = await db.select().from(squadRequestsTable)
+    .where(and(eq(squadRequestsTable.id, requestId), eq(squadRequestsTable.toUserId, user.id)));
+  if (!request) { res.status(404).json({ error: "Request not found" }); return; }
+  await db.update(squadRequestsTable).set({ status: action === "accept" ? "accepted" : "rejected" }).where(eq(squadRequestsTable.id, requestId));
+  if (action === "accept") {
+    await db.update(usersTable).set({ isEsportsPlayer: true }).where(eq(usersTable.id, user.id));
+    const existing = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, request.fromUserId));
+    const mainCount = existing.filter((m: any) => !m.isBackup && m.game === request.game).length;
+    const backupCount = existing.filter((m: any) => m.isBackup && m.game === request.game).length;
+    if ((request.isBackup && backupCount < 2) || (!request.isBackup && mainCount < 4)) {
+      await db.insert(squadMembersTable).values({
+        userId: request.fromUserId, name: user.name || user.handle || "Player",
+        uid: user.gameUid || "—", game: request.game, role: request.role ?? null,
+        isBackup: request.isBackup, linkedUserId: user.id,
+      });
+    }
+    await db.insert(notificationsTable).values({ userId: request.fromUserId, type: "squad_accepted", message: `${user.name || user.handle} accepted your squad invite for ${request.game}!` });
+    try { getIO().to(`user-${request.fromUserId}`).emit("notification"); } catch {}
+  }
+  res.json({ success: true });
+});
+
+router.get("/users/:handle/has-played-with", requireAuth, async (req: Request, res: Response) => {
+  const currentUser = (req as any).user;
+  const { handle } = req.params;
+  const [host] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!host) { res.json({ hasPlayed: false }); return; }
+  const hostedMatchIds = (await db.select({ id: matchesTable.id }).from(matchesTable).where(eq(matchesTable.hostId, host.id))).map(m => m.id);
+  if (hostedMatchIds.length === 0) { res.json({ hasPlayed: false }); return; }
+  const participated = await db.select().from(matchParticipantsTable)
+    .where(and(eq(matchParticipantsTable.userId, currentUser.id), inArray(matchParticipantsTable.matchId, hostedMatchIds)))
+    .limit(1);
+  res.json({ hasPlayed: participated.length > 0 });
 });
 
 router.get("/users/me/esports-stats", requireAuth, async (req: Request, res: Response) => {

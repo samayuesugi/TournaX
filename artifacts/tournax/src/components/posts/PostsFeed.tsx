@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, X, Heart, MessageCircle, Send } from "lucide-react";
-import { customFetch } from "@workspace/api-client-react";
+import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star } from "lucide-react";
+import { Link } from "wouter";
+import { customFetch, useFollowUser, useUnfollowUser } from "@workspace/api-client-react";
+import type { UserProfile } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { SilverCoinIcon } from "@/components/ui/Coins";
 import { useAuth } from "@/contexts/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface Post {
   id: number;
@@ -317,7 +320,59 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-export function PostsFeed() {
+function InlinHostCard({ profile }: { profile: UserProfile }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast: showToast } = useToast();
+  const [following, setFollowing] = useState(profile.isFollowing ?? false);
+  const { mutateAsync: follow, isPending: isFollowing } = useFollowUser();
+  const { mutateAsync: unfollow, isPending: isUnfollowing } = useUnfollowUser();
+  const isSelf = user?.id === profile.id;
+
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    const was = following; setFollowing(!was);
+    try {
+      was ? await unfollow({ handle: profile.handle! }) : await follow({ handle: profile.handle! });
+      queryClient.invalidateQueries({ queryKey: ["exploreUsers"] });
+    } catch {
+      setFollowing(was);
+      showToast({ title: "Failed to update", variant: "destructive" });
+    }
+  };
+
+  const inner = (
+    <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3 my-3 hover:border-primary/40 transition-all cursor-pointer">
+      <div className="text-xs font-semibold text-primary/60 absolute -top-2 left-3 bg-background px-1">Recommended Host</div>
+      {(profile.avatar?.startsWith("/") || profile.avatar?.startsWith("http")) ? (
+        <img src={profile.avatar.startsWith("/objects/") ? `/api/storage${profile.avatar}` : profile.avatar} alt="avatar" className="w-11 h-11 rounded-2xl object-cover bg-secondary shrink-0" />
+      ) : (
+        <div className="w-11 h-11 rounded-2xl bg-primary/20 flex items-center justify-center text-xl shrink-0">{profile.avatar || "🎮"}</div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-sm truncate">{profile.name || `@${profile.handle}`}</span>
+          <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${profile.role === "admin" ? "text-primary" : "text-orange-400"}`} />
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>@{profile.handle}</span>
+          {profile.matchesCount ? <span>· {profile.matchesCount} matches</span> : null}
+          {profile.rating && <span className="flex items-center gap-0.5 text-yellow-400"><Star className="w-3 h-3 fill-yellow-400" />{profile.rating.toFixed(1)}</span>}
+        </div>
+      </div>
+      {user && !isSelf && profile.handle && (
+        <Button size="sm" variant={following ? "secondary" : "default"} className="h-7 px-2.5 text-xs gap-1 shrink-0" onClick={handleToggle} disabled={isFollowing || isUnfollowing}>
+          {following ? <><UserCheck className="w-3 h-3" />Following</> : <><UserPlus className="w-3 h-3" />Follow</>}
+        </Button>
+      )}
+    </div>
+  );
+
+  if (!profile.handle) return <div className="relative">{inner}</div>;
+  return <Link href={`/profile/${profile.handle}`}><div className="relative">{inner}</div></Link>;
+}
+
+export function PostsFeed({ recommendedHosts = [], isLoadingHosts = false }: { recommendedHosts?: UserProfile[]; isLoadingHosts?: boolean }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -329,16 +384,34 @@ export function PostsFeed() {
 
   const refresh = () => setRefreshKey(k => k + 1);
 
+  const feedItems: Array<{ type: "post"; data: Post } | { type: "host"; data: UserProfile }> = [];
+  let hostIdx = 0;
+  posts.forEach((post, i) => {
+    feedItems.push({ type: "post", data: post });
+    if ((i + 1) % 3 === 0 && hostIdx < recommendedHosts.length) {
+      feedItems.push({ type: "host", data: recommendedHosts[hostIdx++] });
+    }
+  });
+  while (hostIdx < recommendedHosts.length) {
+    feedItems.push({ type: "host", data: recommendedHosts[hostIdx++] });
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground font-medium">Player posts & highlights</p>
+        <p className="text-xs text-muted-foreground font-medium">Highlights & Clips</p>
         <SharePostDialog onSuccess={refresh} />
       </div>
-      {loading ? (
+      {loading || isLoadingHosts ? (
         <div className="space-y-3">{[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-2xl" />)}</div>
-      ) : posts.length > 0 ? (
-        <div className="space-y-3">{posts.map(p => <PostCard key={p.id} post={p} />)}</div>
+      ) : feedItems.length > 0 ? (
+        <div className="space-y-3">
+          {feedItems.map((item, i) =>
+            item.type === "post"
+              ? <PostCard key={`post-${item.data.id}`} post={item.data as Post} />
+              : <InlinHostCard key={`host-${item.data.id}-${i}`} profile={item.data} />
+          )}
+        </div>
       ) : (
         <div className="text-center py-12">
           <div className="text-4xl mb-3">📸</div>

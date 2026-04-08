@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetUserProfile, useFollowUser, useUnfollowUser,
-  useGetMySquad, useAddSquadMember, useUpdateMyProfile,
+  useGetMySquad, useUpdateMyProfile,
   useGetMyMatches, customFetch
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
@@ -495,7 +495,6 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: squad, refetch: refetchSquad } = useGetMySquad();
-  const { mutateAsync: addSquadMember, isPending: isAdding } = useAddSquadMember();
   const SQUAD_GAMES = ["BGMI", "Free Fire", "PUBG Mobile", "Call of Duty Mobile", "Valorant Mobile"];
   const [squadGame, setSquadGame] = useState<string>(userGame ?? SQUAD_GAMES[0]);
   const [addOpen, setAddOpen] = useState(false);
@@ -526,13 +525,19 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   };
 
   const handleAddMember = async () => {
+    if (!selectedPlayer?.handle) {
+      toast({ title: "Player must have a valid handle", variant: "destructive" });
+      return;
+    }
     try {
-      await addSquadMember({ data: { game: squadGame, role: role || null, isBackup, linkedUserId: selectedPlayer?.id ?? null, name: selectedPlayer?.name || "Player", uid: selectedPlayer?.gameUid || "—" } as any });
-      refetchSquad();
+      await customFetch(`/api/users/${selectedPlayer.handle}/squad-request`, {
+        method: "POST",
+        body: JSON.stringify({ game: squadGame, role: role || null, isBackup }),
+      });
       setAddOpen(false);
       setSelectedPlayer(null);
       setSearchQ(""); setRole(""); setIsBackup(false);
-      toast({ title: "Squad member added!" });
+      toast({ title: "Squad invite sent!", description: `${selectedPlayer.name || selectedPlayer.handle} will receive an invite notification.` });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
@@ -546,8 +551,10 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
     } catch { toast({ title: "Failed to remove member", variant: "destructive" }); }
   };
 
+  const [memberStatsOpen, setMemberStatsOpen] = useState<any>(null);
+
   const renderMember = (m: any) => (
-    <div key={m.id} className="flex items-center gap-2.5 bg-secondary/40 rounded-xl px-3 py-2.5">
+    <div key={m.id} className="flex items-center gap-2.5 bg-secondary/40 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-secondary/60 transition-colors" onClick={() => m.linkedHandle && setMemberStatsOpen(m)}>
       <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-base shrink-0 overflow-hidden">
         {m.linkedAvatar ? (
           isImageAvatar(m.linkedAvatar) ? <img src={resolveAvatarSrc(m.linkedAvatar)} alt="" className="w-full h-full object-cover" /> : m.linkedAvatar
@@ -562,11 +569,14 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
           <span className="text-[10px] text-muted-foreground font-mono">{m.uid}</span>
         </div>
       </div>
-      {isOwn && (
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0" onClick={() => handleDelete(m.id)}>
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
-      )}
+      <div className="flex items-center gap-1 shrink-0">
+        {m.linkedHandle && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+        {isOwn && (
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }}>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 
@@ -688,9 +698,31 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
               </Select>
             </div>
           </div>
-          <Button className="mt-4 shrink-0" onClick={handleAddMember} disabled={isAdding || !selectedPlayer}>{isAdding ? "Adding..." : "Add to Squad"}</Button>
+          <div className="shrink-0 space-y-2 mt-4">
+            <p className="text-xs text-muted-foreground text-center">Player must have an in-app account. They'll receive an invite notification.</p>
+            <Button className="w-full" onClick={handleAddMember} disabled={!selectedPlayer}>Send Squad Invite</Button>
+          </div>
         </DialogContent>
       </Dialog>
+
+      {memberStatsOpen && (
+        <Dialog open={!!memberStatsOpen} onOpenChange={() => setMemberStatsOpen(null)}>
+          <DialogContent className="max-w-sm max-h-[80vh] flex flex-col">
+            <DialogHeader className="shrink-0">
+              <DialogTitle className="flex items-center gap-2">
+                <AvatarDisplay avatar={memberStatsOpen.linkedAvatar} className="w-8 h-8 rounded-lg text-base" />
+                <div>
+                  <div>{memberStatsOpen.name}</div>
+                  {memberStatsOpen.linkedHandle && <div className="text-xs text-primary font-normal">@{memberStatsOpen.linkedHandle}</div>}
+                </div>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1">
+              <EsportsStatsDisplay handle={memberStatsOpen.linkedHandle} game={null} />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -993,6 +1025,12 @@ function PublicProfile({ handle }: { handle: string }) {
   const [followingOpen, setFollowingOpen] = useState(false);
   const [hostGroup, setHostGroup] = useState<{ id: number; name: string; avatar: string; memberCount: number; isPublic: boolean } | null>(null);
 
+  const { data: hasPlayedData } = useQuery({
+    queryKey: ["hasPlayedWith", handle],
+    queryFn: () => customFetch<{ hasPlayed: boolean }>(`/api/users/${handle}/has-played-with`),
+    enabled: !!(currentUser?.role === "player" && profile?.role === "host"),
+  });
+
   useEffect(() => {
     if (profile?.role === "host" && profile.id) {
       customFetch<any>(`/api/groups/by-host/${profile.id}`).then(setHostGroup).catch(() => {});
@@ -1028,15 +1066,15 @@ function PublicProfile({ handle }: { handle: string }) {
   const color = (profile as any).profileColor;
   const animContainerClass = animation === "pulse" ? "profile-anim-pulse" : animation === "neon" ? "profile-anim-neon" : animation === "shimmer" ? "profile-anim-shimmer" : "";
   const colorClass = color ? `profile-color-${color}` : "";
+  const hasPlayed = hasPlayedData?.hasPlayed ?? false;
 
   const tabs = isHost
-    ? [{ id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "ratings", label: "Ratings", icon: <Star className="w-4 h-4" /> }]
+    ? [{ id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }]
     : isEsports
-      ? [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "squad", label: "Squad", icon: <Users className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }]
+      ? [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "squad", label: "Squad", icon: <Users className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }]
       : [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }];
 
-  const defaultTab = isHost ? "matches" : "posts";
-  const activeTab = tab === "posts" && isHost ? "matches" : tab;
+  const activeTab = tab;
 
   return (
     <AppLayout showBack backHref="/explore" title={`@${handle}`}>
@@ -1103,7 +1141,7 @@ function PublicProfile({ handle }: { handle: string }) {
 
             <div className="flex flex-wrap items-center gap-2">
               <SocialLinksDisplay instagram={(profile as any).instagram} discord={(profile as any).discord} x={(profile as any).x} youtube={(profile as any).youtube} />
-              {isHost && !isOwnProfile && currentUser?.role === "player" && (
+              {isHost && !isOwnProfile && currentUser?.role === "player" && hasPlayed && (
                 <button onClick={() => setRateOpen(true)}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-3 py-1.5 transition-colors">
                   <Star className="w-3.5 h-3.5" /> Rate Host
@@ -1131,44 +1169,52 @@ function PublicProfile({ handle }: { handle: string }) {
           </div>
         )}
 
-        <div className="mt-4 border-t border-border">
-          <div className="flex">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={cn("flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition-colors border-b-2",
-                  activeTab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
-                {t.icon} {t.label}
-              </button>
-            ))}
+        {!isHost && (
+          <div className="mt-4 border-t border-border">
+            <div className="flex">
+              {tabs.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={cn("flex-1 flex flex-col items-center gap-1 py-3 text-xs font-semibold transition-colors border-b-2",
+                    activeTab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                  {t.icon} {t.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {isPlayer && activeTab === "posts" && <PostGrid userId={profile.id} isOwn={false} />}
         {isPlayer && activeTab === "matches" && <PlayerMatchHistory userId={profile.id} />}
         {isEsports && activeTab === "squad" && <SquadSection userId={profile.id} isOwn={false} userGame={(profile as any).game} isEsports />}
         {isEsports && activeTab === "stats" && <EsportsStatsDisplay handle={handle} game={(profile as any).game} />}
 
-        {isHost && activeTab === "matches" && (
-          <div className="p-4 space-y-4">
-            {profile.activeMatches.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-sm mb-2 text-green-400">● Live</h3>
-                <div className="flex flex-col gap-2">{profile.activeMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
+        {isHost && (
+          <div className="p-4 space-y-6">
+            <div className="space-y-4">
+              {profile.activeMatches.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-sm mb-2 text-green-400">● Live</h3>
+                  <div className="flex flex-col gap-2">{profile.activeMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
+                </div>
+              )}
+              {profile.upcomingMatches.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
+                  <div className="flex flex-col gap-2">{profile.upcomingMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
+                </div>
+              )}
+              {profile.activeMatches.length === 0 && profile.upcomingMatches.length === 0 && (
+                <div className="text-center py-6 text-muted-foreground"><div className="text-3xl mb-2">🎮</div><p className="text-sm">No active matches</p></div>
+              )}
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm flex items-center gap-2"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400" /> Ratings & Reviews</h3>
               </div>
-            )}
-            {profile.upcomingMatches.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-sm mb-2">Upcoming</h3>
-                <div className="flex flex-col gap-2">{profile.upcomingMatches.map(m => <MatchCard key={m.id} match={m} />)}</div>
-              </div>
-            )}
-            {profile.activeMatches.length === 0 && profile.upcomingMatches.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground"><div className="text-3xl mb-2">🎮</div><p className="text-sm">No active matches</p></div>
-            )}
+              <HostRatingsSection handle={handle} />
+            </div>
           </div>
         )}
-
-        {isHost && activeTab === "ratings" && <HostRatingsSection handle={handle} />}
       </div>
 
       {isHost && (
