@@ -25,6 +25,9 @@ export const matchesTable = pgTable("matches", {
   hostContribution: numeric("host_contribution", { precision: 10, scale: 2 }).notNull().default("0"),
   category: text("category"),
   map: text("map"),
+  resultScreenshotUrl: text("result_screenshot_url"),
+  screenshotUploadedAt: timestamp("screenshot_uploaded_at"),
+  resultSkipReason: text("result_skip_reason"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

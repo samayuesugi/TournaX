@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Clock, Users, Trophy, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,15 +16,55 @@ const statusColors = {
   completed: "bg-muted text-muted-foreground border-border",
 };
 
-const statusLabels = {
-  upcoming: "Upcoming",
-  live: "🔴 Live",
-  completed: "Completed",
-};
-
 function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" });
+}
+
+function useCountdown(targetIso: string) {
+  const getRemaining = () => {
+    const diff = new Date(targetIso).getTime() - Date.now();
+    return diff;
+  };
+  const [remaining, setRemaining] = useState(getRemaining);
+
+  useEffect(() => {
+    const id = setInterval(() => setRemaining(getRemaining()), 1000);
+    return () => clearInterval(id);
+  }, [targetIso]);
+
+  return remaining;
+}
+
+function Countdown({ startTimeIso }: { startTimeIso: string }) {
+  const ms = useCountdown(startTimeIso);
+
+  if (ms <= 0) {
+    return <span className="text-blue-400 text-xs font-semibold">Starting soon</span>;
+  }
+
+  const totalSecs = Math.floor(ms / 1000);
+  const days = Math.floor(totalSecs / 86400);
+  const hrs = Math.floor((totalSecs % 86400) / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+
+  let label: string;
+  if (days > 0) {
+    label = `${days}d ${hrs}h`;
+  } else if (hrs > 0) {
+    label = `${hrs}h ${mins}m`;
+  } else if (mins > 0) {
+    label = `${mins}m ${secs}s`;
+  } else {
+    label = `${secs}s`;
+  }
+
+  return (
+    <span className="text-blue-400 text-xs font-semibold tabular-nums">
+      {label}
+    </span>
+  );
 }
 
 function StarRating({ rating, count }: { rating: number; count: number }) {
@@ -60,6 +101,19 @@ export function MatchCard({ match, className }: MatchCardProps) {
   const matchMap: string | null = (match as any).map ?? null;
   const teamSizeLabel = match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`;
 
+  const isUpcoming = match.status === "upcoming";
+
+  const statusBadge = isUpcoming ? (
+    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 flex items-center gap-1", statusColors.upcoming)}>
+      <Clock className="w-2.5 h-2.5" />
+      <Countdown startTimeIso={match.startTime} />
+    </span>
+  ) : (
+    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
+      {match.status === "live" ? "🔴 Live" : "Completed"}
+    </span>
+  );
+
   return (
     <Link href={`/matches/${match.id}`}>
       <div
@@ -76,8 +130,13 @@ export function MatchCard({ match, className }: MatchCardProps) {
               className="w-full h-full object-cover [object-position:center_20%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
-            <span className={cn("absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full border backdrop-blur-sm", statusColors[match.status])}>
-              {statusLabels[match.status]}
+            <span className={cn("absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full border backdrop-blur-sm flex items-center gap-1", statusColors[match.status])}>
+              {isUpcoming ? (
+                <>
+                  <Clock className="w-2.5 h-2.5" />
+                  <Countdown startTimeIso={match.startTime} />
+                </>
+              ) : match.status === "live" ? "🔴 Live" : "Completed"}
             </span>
           </div>
         )}
@@ -101,11 +160,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
                 )}
               </div>
             </div>
-            {!thumbnail && (
-              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full border shrink-0", statusColors[match.status])}>
-                {statusLabels[match.status]}
-              </span>
-            )}
+            {!thumbnail && statusBadge}
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-3">
