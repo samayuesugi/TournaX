@@ -119,9 +119,10 @@ function getBannerGradient(color: string | null | undefined, animation: string |
     pink: "linear-gradient(135deg, #831843, #db2777, #ec4899, #831843)",
     cyan: "linear-gradient(135deg, #164e63, #0891b2, #06b6d4, #164e63)",
     purple: "linear-gradient(135deg, #3b0764, #7c3aed, #8b5cf6, #3b0764)",
-    "": "linear-gradient(135deg, #1e1030, #3b0764, #7c3aed, #1e1030)",
   };
-  return gradients[c] ?? gradients[""];
+  if (c && gradients[c]) return gradients[c];
+  if (animation) return "linear-gradient(135deg, #1e1030, #3b0764, #7c3aed, #1e1030)";
+  return "transparent";
 }
 
 const SocialIcons = {
@@ -890,8 +891,10 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
 }
 
 function ProfileBanner({ profileAnimation, profileColor }: { profileAnimation?: string | null; profileColor?: string | null }) {
+  const hasStyle = !!(profileColor || profileAnimation);
   const animClass = profileAnimation === "pulse" ? "profile-banner-pulse" : profileAnimation === "neon" ? "profile-banner-neon" : profileAnimation === "shimmer" ? "profile-banner-shimmer" : "";
   const gradient = getBannerGradient(profileColor, profileAnimation);
+  if (!hasStyle) return <div className="h-20 w-full bg-secondary/30" />;
   return (
     <div className={cn("profile-banner h-28 w-full relative overflow-hidden", animClass)} style={{ background: gradient }}>
       <div className="absolute inset-0 bg-black/20" />
