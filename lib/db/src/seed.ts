@@ -71,6 +71,16 @@ const DEFAULT_ACCOUNTS = [
     game: "BGMI",
     allStoreUnlocked: true,
   },
+  {
+    email: "ffesport@tournax.gg",
+    password: "FFEsport@123",
+    name: "FF Esport",
+    handle: "ffesport",
+    avatar: "🔥",
+    role: "player" as const,
+    game: "Free Fire",
+    isEsportsPlayer: true,
+  },
 ];
 
 const DEFAULT_GAMES = [
@@ -109,6 +119,7 @@ export async function seedDefaults() {
         avatar: account.avatar,
         role: account.role,
         game: (account as any).game ?? null,
+        isEsportsPlayer: (account as any).isEsportsPlayer ?? false,
         status: "active",
         profileSetup: true,
         balance: "0",
