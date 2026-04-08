@@ -9,9 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package, Info, CalendarCheck } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GoldCoin, GoldCoinIcon, SilverCoin, SilverCoinIcon } from "@/components/ui/Coins";
+import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 
 function statusBadgeClass(status: string) {
   if (status === "approved") return "bg-green-500/20 text-green-400 border-green-500/30";
@@ -350,10 +350,8 @@ export default function WalletPage() {
 
   const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [showSilverInfo, setShowSilverInfo] = useState(false);
 
   const isHost = user?.role === "host";
-  const silverCoins = wallet?.silverCoins ?? 0;
 
   const handleWithdraw = async () => {
     const parsedWithdrawAmount = parseFloat(withdrawForm.amount);
@@ -440,50 +438,6 @@ export default function WalletPage() {
               </div>
             </div>
 
-            {!isHost && (
-            <div className="bg-gradient-to-br from-slate-500/20 to-slate-400/10 border border-slate-500/20 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <SilverCoinIcon size="md" />
-                  <p className="text-sm text-muted-foreground">Silver Coins</p>
-                </div>
-                <button
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setShowSilverInfo(v => !v)}
-                >
-                  <Info className="w-4 h-4" />
-                </button>
-              </div>
-              <h3 className="text-3xl font-bold mb-1">{silverCoins}</h3>
-              <p className="text-xs text-muted-foreground">Earn by daily login & completing tasks</p>
-              {showSilverInfo && (
-                <div className="mt-3 pt-3 border-t border-slate-500/20 space-y-2.5">
-                  <p className="text-xs font-semibold mb-2">Where are Silver Coins used?</p>
-                  <div className="flex items-start gap-2">
-                    <ImagePlus className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <p className="text-[11px] font-medium">Community Posts</p>
-                      <p className="text-[10px] text-muted-foreground">Posting an image to the home feed costs 5 Silver Coins</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Package className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <p className="text-[11px] font-medium">Future Rewards</p>
-                      <p className="text-[10px] text-muted-foreground">More ways to spend Silver Coins are coming — keep earning!</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CalendarCheck className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <p className="text-[11px] font-medium">Earned via Daily Login</p>
-                      <p className="text-[10px] text-muted-foreground">Open the app every day — get +10 Silver Coins automatically</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
 
           </div>
         )}
