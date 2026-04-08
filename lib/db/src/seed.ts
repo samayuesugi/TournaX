@@ -1,11 +1,29 @@
 import bcrypt from "bcryptjs";
 import { db } from "./index";
-import { usersTable, gamesTable, gameModesTable } from "./schema";
+import { usersTable, gamesTable, gameModesTable, userCosmeticsTable } from "./schema";
 import { eq } from "drizzle-orm";
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
+
+const ALL_STORE_ITEM_IDS = [
+  { id: "frame-fire",    category: "frame" },
+  { id: "frame-galaxy",  category: "frame" },
+  { id: "frame-gold",    category: "frame" },
+  { id: "frame-neon",    category: "frame" },
+  { id: "frame-legend",  category: "frame" },
+  { id: "badge-warrior",  category: "badge" },
+  { id: "badge-ghost",    category: "badge" },
+  { id: "badge-champion", category: "badge" },
+  { id: "badge-dragon",   category: "badge" },
+  { id: "badge-legend",   category: "badge" },
+  { id: "color-purple", category: "handle_color" },
+  { id: "color-red",    category: "handle_color" },
+  { id: "color-green",  category: "handle_color" },
+  { id: "color-cyan",   category: "handle_color" },
+  { id: "color-gold",   category: "handle_color" },
+];
 
 const DEFAULT_ACCOUNTS = [
   {
@@ -43,6 +61,16 @@ const DEFAULT_ACCOUNTS = [
     role: "host" as const,
     game: "Free Fire",
   },
+  {
+    email: "ikesport@tournax.gg",
+    password: "IkEsport@123",
+    name: "Ik Esport",
+    handle: "ikesport",
+    avatar: "🎯",
+    role: "player" as const,
+    game: "BGMI",
+    allStoreUnlocked: true,
+  },
 ];
 
 const DEFAULT_GAMES = [
@@ -73,7 +101,7 @@ export async function seedDefaults() {
 
     if (!existing) {
       const referralCode = `Tx-${account.handle}${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
-      await db.insert(usersTable).values({
+      const [inserted] = await db.insert(usersTable).values({
         email: account.email,
         password: await hashPassword(account.password),
         name: account.name,
@@ -88,8 +116,19 @@ export async function seedDefaults() {
         followingCount: 0,
         recommended: false,
         referralCode,
-      });
+      }).returning();
       console.log(`[seed] Created default ${account.role} account`);
+
+      if ((account as any).allStoreUnlocked && inserted) {
+        for (const item of ALL_STORE_ITEM_IDS) {
+          await db.insert(userCosmeticsTable).values({
+            userId: inserted.id,
+            itemId: item.id,
+            category: item.category,
+          });
+        }
+        console.log(`[seed] Unlocked all store items for ${account.handle}`);
+      }
     }
   }
 }
