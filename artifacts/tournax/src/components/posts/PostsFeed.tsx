@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { SilverCoinIcon } from "@/components/ui/Coins";
 import { useAuth } from "@/contexts/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -230,9 +229,6 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const silverCoins = user?.silverCoins ?? 0;
-  const canPost = silverCoins >= 10;
-
   const reset = () => {
     setCaption("");
     setImageFile(null);
@@ -289,15 +285,6 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
           <DialogTitle className="flex items-center gap-2"><Camera className="w-4 h-4 text-primary" /> Share a Moment</DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
-          {!canPost && (
-            <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-3 py-2 text-xs text-yellow-400">
-              You need 10 Silver Coins to post. You have {silverCoins}.
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <SilverCoinIcon size="sm" />
-            <span>Posting costs <span className="font-bold text-foreground">10 Silver Coins</span></span>
-          </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
           {imagePreview ? (
             <div className="relative rounded-xl overflow-hidden border border-border">
@@ -314,8 +301,8 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
             <Label>Caption <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Textarea placeholder="Say something about this moment..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={2} className="resize-none" />
           </div>
-          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !imageFile || !canPost}>
-            {isSubmitting ? "Posting..." : "Post · -10 Silver"}
+          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !imageFile}>
+            {isSubmitting ? "Posting..." : "Post"}
           </Button>
         </div>
       </DialogContent>
