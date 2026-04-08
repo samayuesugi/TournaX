@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star } from "lucide-react";
+import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star, Lock } from "lucide-react";
 import { Link } from "wouter";
 import { customFetch, useFollowUser, useUnfollowUser } from "@workspace/api-client-react";
 import type { UserProfile } from "@workspace/api-client-react";
@@ -150,8 +150,11 @@ export function PostCard({ post }: { post: Post }) {
         </div>
       </div>
 
-      <div className="w-full aspect-video overflow-hidden">
+      <div className="w-full aspect-video overflow-hidden relative">
         <img src={imageSrc} alt="Post" className="w-full h-full object-cover" />
+        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-full p-1.5">
+          <Lock className="w-3 h-3 text-yellow-400" />
+        </div>
       </div>
 
       {post.caption && (

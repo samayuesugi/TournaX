@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Search, Upload, Lock, UserPlus, UserCheck } from "lucide-react";
+import { Search, Lock, UserPlus, UserCheck, Share2, Image, Film, FileText, X } from "lucide-react";
 import { useExploreUsers, customFetch, useFollowUser, useUnfollowUser } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Input } from "@/components/ui/input";
@@ -86,19 +86,77 @@ function UserRecommendCard({ profile }: { profile: UserProfile }) {
   return <Link href={`/profile/${profile.handle}`}>{card}</Link>;
 }
 
+function ShareSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-card border-t border-border rounded-t-2xl">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Share2 className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">Share</span>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3 pb-8">
+          <p className="text-xs text-muted-foreground">Choose what you want to share</p>
+
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              className="relative flex flex-col items-center gap-2 bg-secondary/60 border border-border rounded-2xl px-3 py-5 opacity-60 cursor-not-allowed"
+              disabled
+            >
+              <div className="absolute -top-1.5 -right-1.5 bg-yellow-500/20 border border-yellow-500/40 rounded-full p-0.5">
+                <Lock className="w-3 h-3 text-yellow-400" />
+              </div>
+              <Image className="w-7 h-7 text-primary" />
+              <span className="text-xs font-semibold">Images</span>
+              <span className="text-[10px] text-muted-foreground">Coming Soon</span>
+            </button>
+
+            <button
+              className="relative flex flex-col items-center gap-2 bg-secondary/60 border border-border rounded-2xl px-3 py-5 opacity-60 cursor-not-allowed"
+              disabled
+            >
+              <div className="absolute -top-1.5 -right-1.5 bg-yellow-500/20 border border-yellow-500/40 rounded-full p-0.5">
+                <Lock className="w-3 h-3 text-yellow-400" />
+              </div>
+              <Film className="w-7 h-7 text-primary" />
+              <span className="text-xs font-semibold">Clips</span>
+              <span className="text-[10px] text-muted-foreground">Coming Soon</span>
+            </button>
+
+            <button
+              className="relative flex flex-col items-center gap-2 bg-secondary/60 border border-border rounded-2xl px-3 py-5 opacity-60 cursor-not-allowed"
+              disabled
+            >
+              <div className="absolute -top-1.5 -right-1.5 bg-yellow-500/20 border border-yellow-500/40 rounded-full p-0.5">
+                <Lock className="w-3 h-3 text-yellow-400" />
+              </div>
+              <FileText className="w-7 h-7 text-primary" />
+              <span className="text-xs font-semibold">Post</span>
+              <span className="text-[10px] text-muted-foreground">Coming Soon</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DiscoveryPage() {
   const [search, setSearch] = useState("");
-  const { toast } = useToast();
+  const [shareOpen, setShareOpen] = useState(false);
   const { data, isLoading } = useExploreUsers(
     { search: search || undefined },
     { query: { staleTime: 30000 } as any }
   );
 
   const recommendedHosts = data?.recommendedHosts ?? [];
-
-  const handleUploadClick = () => {
-    toast({ title: "Coming Soon", description: "Uploads feature will be available soon!" });
-  };
 
   return (
     <AppLayout title="Explore">
@@ -115,11 +173,11 @@ export default function DiscoveryPage() {
             />
           </div>
           <button
-            onClick={handleUploadClick}
-            className="flex items-center gap-1.5 px-3 h-10 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground relative"
+            onClick={() => setShareOpen(true)}
+            className="relative flex items-center gap-1.5 px-3 h-10 rounded-xl border border-border bg-card text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
           >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Upload</span>
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Share</span>
             <Lock className="w-2.5 h-2.5 absolute -top-0.5 -right-0.5 text-yellow-400" />
           </button>
         </div>
@@ -143,6 +201,8 @@ export default function DiscoveryPage() {
           <PostsFeed recommendedHosts={recommendedHosts} isLoadingHosts={isLoading} />
         )}
       </div>
+
+      <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} />
     </AppLayout>
   );
 }
