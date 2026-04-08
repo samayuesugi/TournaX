@@ -32,10 +32,10 @@ const ADD_BALANCE_RULES = [
 ];
 
 const COIN_PACKS = [
-  { id: "starter", label: "Starter Pack", coins: 10, price: 10, color: "from-slate-500/20 to-slate-600/10 border-slate-500/30", badge: "" },
-  { id: "pro", label: "Pro Pack", coins: 50, price: 50, color: "from-blue-500/20 to-blue-600/10 border-blue-500/30", badge: "Popular" },
-  { id: "elite", label: "Elite Pack", coins: 100, price: 100, color: "from-amber-500/20 to-yellow-400/10 border-amber-500/30", badge: "Best Value" },
-  { id: "custom", label: "Custom Pack", coins: 0, price: 0, color: "from-primary/10 to-primary/5 border-primary/30", badge: "" },
+  { id: "starter", label: "Starter", coins: 10, price: 10, color: "from-slate-700/60 to-slate-800/50 border-slate-400/25", accent: "bg-slate-400/20", badge: "" },
+  { id: "pro", label: "Popular", coins: 50, price: 50, color: "from-blue-800/60 to-blue-900/50 border-blue-400/30", accent: "bg-blue-400/20", badge: "Most Popular" },
+  { id: "elite", label: "Best Value", coins: 100, price: 100, color: "from-amber-800/60 to-yellow-900/50 border-amber-400/35", accent: "bg-amber-400/20", badge: "Best Value" },
+  { id: "custom", label: "Custom", coins: 0, price: 0, color: "from-violet-800/60 to-purple-900/50 border-violet-400/25", accent: "bg-violet-400/20", badge: "" },
 ];
 
 
@@ -167,31 +167,33 @@ function CoinsPackDialog() {
           {step === "select" && (
             <div className="space-y-3 pt-1">
               <p className="text-xs text-muted-foreground">Select a coins pack to buy. 1₹ = 1 Gold Coin.</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 {COIN_PACKS.map((pack) => (
                   <button
                     key={pack.id}
                     type="button"
                     onClick={() => handlePackSelect(pack)}
                     className={cn(
-                      "relative flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border bg-gradient-to-br text-center transition-all hover:scale-[1.02] active:scale-[0.98]",
+                      "relative overflow-hidden flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border bg-gradient-to-br text-center transition-all hover:scale-[1.02] active:scale-[0.98]",
                       pack.color
                     )}
                   >
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     {pack.badge && (
-                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full whitespace-nowrap">
+                      <span className="absolute top-2 right-2 text-[8px] font-bold bg-white/15 text-white/90 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                         {pack.badge}
                       </span>
                     )}
-                    <GoldCoinIcon size="md" />
-                    <div className="font-bold text-lg">{pack.id === "custom" ? "Custom" : pack.coins}</div>
-                    <div className="text-xs text-muted-foreground font-medium">
-                      {pack.id === "custom" ? "Any amount" : `₹${pack.price}`}
+                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", pack.accent)}>
+                      <GoldCoinIcon size="md" />
                     </div>
-                    <div className="text-xs text-foreground font-semibold">{pack.label}</div>
-                    {pack.id !== "custom" && (
-                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
-                    )}
+                    <div className="font-bold text-xl leading-none">
+                      {pack.id === "custom" ? "∞" : pack.coins}
+                    </div>
+                    <div className="text-[10px] text-white/50 font-medium -mt-0.5">Gold Coins</div>
+                    <div className="text-xs font-semibold text-white/80 mt-0.5">
+                      {pack.id === "custom" ? "Any Amount" : `₹${pack.price}`}
+                    </div>
                   </button>
                 ))}
               </div>
