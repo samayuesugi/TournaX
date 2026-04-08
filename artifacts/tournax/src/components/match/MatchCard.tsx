@@ -11,7 +11,7 @@ interface MatchCardProps {
 }
 
 const statusColors = {
-  upcoming: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  upcoming: "bg-primary/20 text-primary border-primary/30",
   live: "bg-green-500/20 text-green-400 border-green-500/30",
   completed: "bg-muted text-muted-foreground border-border",
 };
@@ -41,9 +41,9 @@ function Countdown({ startTimeIso, large }: { startTimeIso: string; large?: bool
 
   if (ms <= 0) {
     return large ? (
-      <span className="text-blue-400 font-bold tabular-nums">Starting soon</span>
+      <span className="text-primary font-bold tabular-nums">Starting soon</span>
     ) : (
-      <span className="text-blue-400 text-xs font-semibold">Starting soon</span>
+      <span className="text-primary text-xs font-semibold">Starting soon</span>
     );
   }
 
@@ -58,11 +58,11 @@ function Countdown({ startTimeIso, large }: { startTimeIso: string; large?: bool
     if (days > 0) {
       return (
         <div className="flex items-center gap-1 tabular-nums">
-          <span className="text-blue-300 font-bold text-base">{days}d</span>
-          <span className="text-blue-400/60 text-xs">:</span>
-          <span className="text-blue-300 font-bold text-base">{pad(hrs)}h</span>
-          <span className="text-blue-400/60 text-xs">:</span>
-          <span className="text-blue-300 font-bold text-base">{pad(mins)}m</span>
+          <span className="text-violet-300 font-bold text-base">{days}d</span>
+          <span className="text-primary/60 text-xs">:</span>
+          <span className="text-violet-300 font-bold text-base">{pad(hrs)}h</span>
+          <span className="text-primary/60 text-xs">:</span>
+          <span className="text-violet-300 font-bold text-base">{pad(mins)}m</span>
         </div>
       );
     }
@@ -70,13 +70,13 @@ function Countdown({ startTimeIso, large }: { startTimeIso: string; large?: bool
       <div className="flex items-center gap-0.5 tabular-nums">
         {hrs > 0 && (
           <>
-            <span className="text-blue-300 font-bold text-lg leading-none">{pad(hrs)}</span>
-            <span className="text-blue-400/60 text-xs mx-0.5">:</span>
+            <span className="text-violet-300 font-bold text-lg leading-none">{pad(hrs)}</span>
+            <span className="text-primary/60 text-xs mx-0.5">:</span>
           </>
         )}
-        <span className="text-blue-300 font-bold text-lg leading-none">{pad(mins)}</span>
-        <span className="text-blue-400/60 text-xs mx-0.5">:</span>
-        <span className={cn("font-bold text-lg leading-none tabular-nums", secs < 60 && mins === 0 && hrs === 0 ? "text-red-400" : "text-blue-300")}>{pad(secs)}</span>
+        <span className="text-violet-300 font-bold text-lg leading-none">{pad(mins)}</span>
+        <span className="text-primary/60 text-xs mx-0.5">:</span>
+        <span className={cn("font-bold text-lg leading-none tabular-nums", secs < 60 && mins === 0 && hrs === 0 ? "text-red-400" : "text-violet-300")}>{pad(secs)}</span>
       </div>
     );
   }
@@ -93,7 +93,7 @@ function Countdown({ startTimeIso, large }: { startTimeIso: string; large?: bool
   }
 
   return (
-    <span className="text-blue-400 text-xs font-semibold tabular-nums">
+    <span className="text-primary text-xs font-semibold tabular-nums">
       {label}
     </span>
   );
@@ -224,10 +224,10 @@ export function MatchCard({ match, className }: MatchCardProps) {
           </div>
 
           {isUpcoming && (
-            <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 rounded-xl px-3 py-2 mb-2">
+            <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl px-3 py-2 mb-2">
               <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span className="text-xs text-blue-400/70 font-medium">Starts in</span>
+                <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-xs text-primary/70 font-medium">Starts in</span>
               </div>
               <Countdown startTimeIso={match.startTime} large />
             </div>

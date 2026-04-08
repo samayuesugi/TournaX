@@ -31,7 +31,7 @@ type AuctionDetail = {
 const statusConfig = {
   upcoming: { label: "Upcoming", icon: Clock, class: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   live: { label: "LIVE — Bidding Open", icon: Zap, class: "bg-green-500/20 text-green-400 border-green-500/30" },
-  completed: { label: "Completed", icon: CheckCircle, class: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  completed: { label: "Completed", icon: CheckCircle, class: "bg-primary/20 text-primary border-primary/30" },
   cancelled: { label: "Cancelled", icon: XCircle, class: "bg-destructive/20 text-destructive border-destructive/30" },
 };
 

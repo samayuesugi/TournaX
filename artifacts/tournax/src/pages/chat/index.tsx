@@ -63,7 +63,7 @@ function timeAgo(iso: string) {
 }
 
 function roleBadge(role: string) {
-  if (role === "host") return <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Host</span>;
+  if (role === "host") return <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Host</span>;
   if (role === "admin") return <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">Admin</span>;
   return null;
 }
@@ -222,7 +222,7 @@ export default function ChatListPage() {
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="font-semibold text-sm truncate">{g.name}</span>
                       {g.type === "host" && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium flex items-center gap-0.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium flex items-center gap-0.5">
                           <Crown className="w-2.5 h-2.5" /> Host
                         </span>
                       )}
@@ -304,9 +304,9 @@ export default function ChatListPage() {
           <DialogHeader><DialogTitle>Create Group</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {user?.role === "host" && (
-              <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
-                <Crown className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-blue-400">As a host, you can create one group with unlimited players. Only you can broadcast messages.</p>
+              <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 rounded-xl p-3">
+                <Crown className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-xs text-primary">As a host, you can create one group with unlimited players. Only you can broadcast messages.</p>
               </div>
             )}
             {user?.role === "player" && (

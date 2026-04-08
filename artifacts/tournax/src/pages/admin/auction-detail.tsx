@@ -466,7 +466,7 @@ export default function AdminAuctionDetailPage() {
               <span className={cn("font-semibold capitalize",
                 auction.status === "live" && "text-green-400",
                 auction.status === "upcoming" && "text-yellow-400",
-                auction.status === "completed" && "text-blue-400",
+                auction.status === "completed" && "text-primary",
                 auction.status === "cancelled" && "text-destructive",
               )}>{auction.status}</span>
             </div>
@@ -485,7 +485,7 @@ export default function AdminAuctionDetailPage() {
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={handleStop} disabled={isActionLoading}>
                   <Square className="w-3.5 h-3.5" /> Stop Bidding
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setResultOpen(true)}>
+                <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/80 text-white" onClick={() => setResultOpen(true)}>
                   <Trophy className="w-3.5 h-3.5" /> Submit Result
                 </Button>
               </>
@@ -496,7 +496,7 @@ export default function AdminAuctionDetailPage() {
               </Button>
             )}
             {auction.status === "completed" && (
-              <div className="flex items-center gap-1.5 text-blue-400 text-sm font-medium">
+              <div className="flex items-center gap-1.5 text-primary text-sm font-medium">
                 <CheckCircle className="w-4 h-4" /> Completed — rewards distributed
               </div>
             )}

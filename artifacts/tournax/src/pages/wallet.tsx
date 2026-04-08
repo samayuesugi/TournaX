@@ -33,7 +33,7 @@ const ADD_BALANCE_RULES = [
 
 const COIN_PACKS = [
   { id: "starter", label: "Starter", coins: 10, price: 10, color: "from-slate-700/60 to-slate-800/50 border-slate-400/25", accent: "bg-slate-400/20", badge: "" },
-  { id: "pro", label: "Popular", coins: 50, price: 50, color: "from-blue-800/60 to-blue-900/50 border-blue-400/30", accent: "bg-blue-400/20", badge: "Most Popular" },
+  { id: "pro", label: "Popular", coins: 50, price: 50, color: "from-violet-800/60 to-violet-900/50 border-violet-400/30", accent: "bg-primary/20", badge: "Most Popular" },
   { id: "elite", label: "Best Value", coins: 100, price: 100, color: "from-amber-800/60 to-yellow-900/50 border-amber-400/35", accent: "bg-amber-400/20", badge: "Best Value" },
   { id: "custom", label: "Custom", coins: 0, price: 0, color: "from-violet-800/60 to-purple-900/50 border-violet-400/25", accent: "bg-violet-400/20", badge: "" },
 ];

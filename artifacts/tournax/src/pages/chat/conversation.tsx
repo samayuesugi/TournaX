@@ -44,7 +44,7 @@ interface OptimisticMessage {
 
 function MessageTick({ optimistic, read }: { optimistic?: boolean; read: boolean }) {
   if (optimistic) return <Check className="w-3 h-3 inline-block ml-1 opacity-60 shrink-0" />;
-  if (read) return <CheckCheck className="w-3 h-3 inline-block ml-1 text-blue-300 shrink-0" />;
+  if (read) return <CheckCheck className="w-3 h-3 inline-block ml-1 text-violet-300 shrink-0" />;
   return <CheckCheck className="w-3 h-3 inline-block ml-1 opacity-60 shrink-0" />;
 }
 

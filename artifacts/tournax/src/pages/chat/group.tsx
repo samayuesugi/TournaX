@@ -426,7 +426,7 @@ export default function GroupChatPage() {
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-semibold">{group?.name}</p>
               {group?.isPublic
-                ? <Globe className="w-3 h-3 text-blue-400" />
+                ? <Globe className="w-3 h-3 text-primary" />
                 : <Lock className="w-3 h-3 text-muted-foreground" />
               }
             </div>
@@ -694,7 +694,7 @@ export default function GroupChatPage() {
                       className={cn(
                         "flex flex-col items-center gap-1 rounded-xl border py-2.5 text-xs font-medium transition-all",
                         group?.isPublic
-                          ? "bg-blue-500/15 border-blue-500/50 text-blue-400"
+                          ? "bg-primary/15 border-primary/50 text-primary"
                           : "bg-secondary/50 border-border text-muted-foreground hover:text-foreground"
                       )}
                     >

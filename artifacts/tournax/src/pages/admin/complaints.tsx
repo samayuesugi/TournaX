@@ -27,7 +27,7 @@ function ComplaintCard({ c }: { c: any }) {
 
   const topicColor: Record<string, string> = {
     "Withdrawal Issue": "text-orange-400 bg-orange-500/10 border-orange-500/30",
-    "Add Balance Issue": "text-blue-400 bg-blue-500/10 border-blue-500/30",
+    "Add Balance Issue": "text-primary bg-primary/10 border-primary/30",
     "Bugs": "text-yellow-400 bg-yellow-500/10 border-yellow-500/30",
     "Host Issues": "text-red-400 bg-red-500/10 border-red-500/30",
     "Other": "text-muted-foreground bg-secondary/60 border-border",
@@ -72,7 +72,7 @@ function ComplaintCard({ c }: { c: any }) {
                 {c.subject}
               </span>
               {c.hostHandle && (
-                <span className="inline-flex items-center gap-1 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/30 rounded-full px-2.5 py-1 font-medium">
+                <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 border border-primary/30 rounded-full px-2.5 py-1 font-medium">
                   🛡️ @{c.hostHandle}
                 </span>
               )}
@@ -146,7 +146,7 @@ function ComplaintCard({ c }: { c: any }) {
               <p className="text-xs text-muted-foreground">Wallet</p>
             </div>
             <div className="bg-card border border-border rounded-xl p-2.5 text-center">
-              <div className="flex items-center justify-center gap-1 text-blue-400 mb-1">
+              <div className="flex items-center justify-center gap-1 text-primary mb-1">
                 <Swords className="w-3.5 h-3.5" />
               </div>
               <p className="font-bold text-sm">{c.userMatchCount ?? 0}</p>

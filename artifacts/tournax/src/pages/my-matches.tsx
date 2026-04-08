@@ -240,7 +240,7 @@ function HistoryDialog({ open, onClose, history, isPlayer, onReviewDone }: {
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <History className="w-4 h-4 text-blue-400" /> Match History
+            <History className="w-4 h-4 text-primary" /> Match History
           </DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 px-4 pb-4">
@@ -291,7 +291,7 @@ export default function MyMatchesPage() {
             </button>
             <button
               onClick={() => setHistoryOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/25 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
             >
               <History className="w-3.5 h-3.5" />
               History

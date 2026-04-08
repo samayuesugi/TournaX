@@ -106,7 +106,7 @@ export default function AdminEarningsPage() {
                 icon={Clock}
                 label="Last 7 Days"
                 value={data.totalLast7}
-                color="bg-blue-500/20 text-blue-400"
+                color="bg-primary/20 text-primary"
               />
               <StatCard
                 icon={BarChart2}

@@ -475,7 +475,7 @@ export default function SettingsPage() {
             <SettingRow icon={Flag} iconBg="bg-red-500/15" iconColor="text-red-400" label="Raise a Complaint" onClick={() => setComplaintOpen(true)} />
           </div>
           <div className="border-t border-border">
-            <SettingRow icon={FileText} iconBg="bg-blue-500/15" iconColor="text-blue-400" label="Terms & Policies" onClick={() => setTermsOpen(true)} />
+            <SettingRow icon={FileText} iconBg="bg-primary/15" iconColor="text-primary" label="Terms & Policies" onClick={() => setTermsOpen(true)} />
           </div>
         </div>
 

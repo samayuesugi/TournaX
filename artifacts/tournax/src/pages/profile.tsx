@@ -164,7 +164,7 @@ function SocialLinksDisplay({ instagram, discord, x, youtube }: {
   const links = [
     { key: "Instagram" as const, value: instagram, href: (v: string) => `https://instagram.com/${extractHandle(v)}`, color: "text-pink-400 hover:text-pink-300", bg: "bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/20" },
     { key: "Discord" as const, value: discord, href: (v: string) => `https://discord.com/users/${extractHandle(v)}`, color: "text-indigo-400 hover:text-indigo-300", bg: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/20" },
-    { key: "X" as const, value: x, href: (v: string) => `https://x.com/${extractHandle(v)}`, color: "text-sky-400 hover:text-sky-300", bg: "bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/20" },
+    { key: "X" as const, value: x, href: (v: string) => `https://x.com/${extractHandle(v)}`, color: "text-primary hover:text-primary/80", bg: "bg-primary/10 hover:bg-primary/20 border-primary/20" },
     { key: "YouTube" as const, value: youtube, href: (v: string) => `https://youtube.com/@${extractHandle(v)}`, color: "text-red-400 hover:text-red-300", bg: "bg-red-500/10 hover:bg-red-500/20 border-red-500/20" },
   ].filter(l => l.value);
   if (!links.length) return null;
@@ -1161,9 +1161,9 @@ function PublicProfile({ handle }: { handle: string }) {
           <div className="px-4 mt-3">
             <Link href={`/chat/group/${hostGroup.id}`}>
               <div className="bg-card border border-card-border rounded-2xl p-3 cursor-pointer hover:bg-secondary/30 transition-all flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl shrink-0">{hostGroup.avatar}</div>
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-xl shrink-0">{hostGroup.avatar}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5"><Crown className="w-3.5 h-3.5 text-blue-400 shrink-0" /><p className="text-sm font-semibold truncate">{hostGroup.name}</p></div>
+                  <div className="flex items-center gap-1.5"><Crown className="w-3.5 h-3.5 text-primary shrink-0" /><p className="text-sm font-semibold truncate">{hostGroup.name}</p></div>
                   <p className="text-xs text-muted-foreground">{hostGroup.memberCount} members · {hostGroup.isPublic ? "Public" : "Private"}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
