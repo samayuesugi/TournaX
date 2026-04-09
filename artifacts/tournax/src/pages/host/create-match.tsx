@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
@@ -50,25 +50,28 @@ const TEAM_SIZES = [
 
 type RewardRow = { id: string; label: string; pct: number; locked: boolean };
 
-function getDefaultRewardRows(categoryId: string): { rows: RewardRow[]; hostPct: number; platformPct: number; locked: boolean } {
+function getOrdinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function getDefaultRewardRows(categoryId: string, numSlots: number = 4): { rows: RewardRow[]; hostPct: number; platformPct: number; locked: boolean } {
   const isBR = categoryId === "Battle Royale" || categoryId === "Esports" || categoryId === "Classic";
+  const n = Math.max(1, Math.min(numSlots || 4, 100));
   if (isBR) {
-    return {
-      rows: [
-        { id: "booyah", label: "Booyah / 1st Place", pct: 30, locked: false },
-        { id: "2nd", label: "2nd Place", pct: 25, locked: false },
-        { id: "3rd", label: "3rd Place", pct: 15, locked: false },
-        { id: "mvp", label: "MVP (Highest Kills)", pct: 10, locked: false },
-      ],
-      hostPct: 10,
-      platformPct: 10,
-      locked: false,
-    };
+    const rows: RewardRow[] = Array.from({ length: n }, (_, i) => {
+      const pos = i + 1;
+      let pct = 0;
+      if (pos === 1) pct = 30;
+      else if (pos === 2) pct = 20;
+      else if (pos === 3) pct = 10;
+      return { id: String(pos), label: `${getOrdinal(pos)} Place`, pct, locked: false };
+    });
+    return { rows, hostPct: 10, platformPct: 10, locked: false };
   }
   return {
-    rows: [
-      { id: "winner", label: "Winner", pct: 90, locked: true },
-    ],
+    rows: [{ id: "1", label: "Winner", pct: 90, locked: true }],
     hostPct: 5,
     platformPct: 5,
     locked: true,
@@ -142,6 +145,7 @@ function RewardDistributionTable({
 
         {rows.map((row, i) => {
           const coins = showcasePrize > 0 ? Math.round((row.pct / 100) * showcasePrize) : null;
+          const pos = parseInt(row.id);
           return (
             <div
               key={row.id}
@@ -152,9 +156,17 @@ function RewardDistributionTable({
               )}
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-sm">
-                  {row.id === "booyah" ? "🏆" : row.id === "2nd" ? "🥈" : row.id === "3rd" ? "🥉" : row.id === "mvp" ? "💀" : "🥇"}
-                </span>
+                {pos === 1 ? (
+                  <Trophy className="w-4 h-4 text-yellow-400 shrink-0" />
+                ) : pos === 2 ? (
+                  <Medal className="w-4 h-4 text-slate-300 shrink-0" />
+                ) : pos === 3 ? (
+                  <Award className="w-4 h-4 text-amber-600 shrink-0" />
+                ) : (
+                  <span className="w-4 h-4 text-[10px] font-bold text-muted-foreground flex items-center justify-center shrink-0 rounded-full bg-secondary/80">
+                    {pos || "—"}
+                  </span>
+                )}
                 <span className="text-xs font-medium leading-tight">{row.label}</span>
                 {row.locked && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
               </div>
@@ -201,7 +213,7 @@ function RewardDistributionTable({
         <div className="border-t border-border/50 bg-secondary/20">
           <div className="grid grid-cols-[1fr_70px_80px] items-center px-3 py-2.5 gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm">🛡️</span>
+              <Shield className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-xs font-medium text-muted-foreground">Host</span>
               <Lock className="w-3 h-3 text-muted-foreground" />
             </div>
@@ -217,7 +229,7 @@ function RewardDistributionTable({
 
           <div className="grid grid-cols-[1fr_70px_80px] items-center px-3 py-2.5 gap-2 border-t border-border/50">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm">⚙️</span>
+              <SettingsIcon className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-xs font-medium text-muted-foreground">Platform</span>
               <Lock className="w-3 h-3 text-muted-foreground" />
             </div>
@@ -263,10 +275,8 @@ export default function CreateMatchPage() {
   const hostGame = (user as any)?.game ?? "";
   const isFF = hostGame === "Free Fire";
   const isBGMI = hostGame === "BGMI";
-  const isEsportsHost = Boolean((user as any)?.isEsportsPlayer);
-
   const baseCategories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
-  const categories = isEsportsHost ? [...baseCategories, ESPORTS_CATEGORY] : baseCategories;
+  const categories = [...baseCategories, ESPORTS_CATEGORY];
   const maps = isFF ? FF_MAPS : isBGMI ? BGMI_MAPS : [];
   const maxSlots = isFF ? 50 : 100;
 
@@ -296,12 +306,12 @@ export default function CreateMatchPage() {
     if (categories.length > 0) setSelectedCategory(categories[0].id);
   }, [hostGame]);
 
-  useEffect(() => {
-    setDistribution(getDefaultRewardRows(selectedCategory));
-  }, [selectedCategory]);
-
   const entryFeeNum = parseFloat(form.entryFee) || 0;
   const slotsNum = parseInt(form.slots) || 0;
+
+  useEffect(() => {
+    setDistribution(getDefaultRewardRows(selectedCategory, slotsNum || 4));
+  }, [selectedCategory, slotsNum]);
   const contributionNum = parseFloat(form.hostContribution) || 0;
   const hostBalance = wallet?.balance ?? 0;
   const basePool = entryFeeNum * slotsNum;
@@ -461,10 +471,10 @@ export default function CreateMatchPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Total Slots <span className="text-muted-foreground font-normal text-xs">(max {maxSlots})</span></Label>
+              <Label>{teamSize > 1 ? "Team Slots" : "Player Slots"} <span className="text-muted-foreground font-normal text-xs">(max {maxSlots})</span></Label>
               <Input
                 type="number"
-                placeholder="e.g. 48"
+                placeholder="e.g. 12"
                 value={form.slots}
                 onChange={(e) => setForm(f => ({ ...f, slots: e.target.value }))}
                 min={2}

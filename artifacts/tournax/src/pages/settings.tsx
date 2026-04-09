@@ -412,12 +412,10 @@ export default function SettingsPage() {
     <AppLayout showBack backHref="/profile" title="Settings">
       <div className="space-y-4 pb-6">
 
-        {/* Account Info */}
+        {/* Single unified settings card */}
         <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Account</p>
-          </div>
-          <div className="flex items-center gap-3 px-4 pb-4">
+          {/* Account Info */}
+          <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
             <AvatarDisplay
               avatar={user.avatar}
               className={cn("w-14 h-14 rounded-2xl text-2xl shrink-0", getFrameClass((user as any).equippedFrame))}
@@ -435,28 +433,18 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground truncate mt-0.5">{user.email}</p>
             </div>
           </div>
-        </div>
 
-        {/* Player-only settings */}
-        {user.role === "player" && (
-          <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
-            <div className="px-4 pt-4 pb-2">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Player</p>
-            </div>
-            <div className="divide-y divide-border">
-              <SettingRow icon={Trophy} iconBg="bg-primary/15" iconColor="text-primary" label="Quest & Daily Tasks" onClick={() => setQuestOpen(true)} />
-              <SettingRow icon={Gift} iconBg="bg-emerald-500/15" iconColor="text-emerald-400" label="Referral Program" onClick={() => setReferralOpen(true)} />
-              <SettingRow icon={Medal} iconBg="bg-yellow-500/15" iconColor="text-yellow-400" label="Esports Player" onClick={() => setEsportsOpen(true)} />
-            </div>
-          </div>
-        )}
-
-        {/* More */}
-        <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">More</p>
-          </div>
           <div className="divide-y divide-border">
+            {/* Player-only rows */}
+            {user.role === "player" && (
+              <>
+                <SettingRow icon={Trophy} iconBg="bg-primary/15" iconColor="text-primary" label="Quest & Daily Tasks" onClick={() => setQuestOpen(true)} />
+                <SettingRow icon={Gift} iconBg="bg-emerald-500/15" iconColor="text-emerald-400" label="Referral Program" onClick={() => setReferralOpen(true)} />
+                <SettingRow icon={Medal} iconBg="bg-yellow-500/15" iconColor="text-yellow-400" label="Esports Player" onClick={() => setEsportsOpen(true)} />
+              </>
+            )}
+
+            {/* Store - for players and hosts */}
             {(user.role === "player" || user.role === "host") && (
               <Link href="/store">
                 <button className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors">
@@ -470,19 +458,18 @@ export default function SettingsPage() {
                 </button>
               </Link>
             )}
+
             <SettingRow icon={Flag} iconBg="bg-red-500/15" iconColor="text-red-400" label="Raise a Complaint" onClick={() => setComplaintOpen(true)} />
             <SettingRow icon={FileText} iconBg="bg-primary/15" iconColor="text-primary" label="Terms & Policies" onClick={() => setTermsOpen(true)} />
-          </div>
-        </div>
 
-        {/* Logout */}
-        <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
-          <button className="flex items-center gap-3 w-full px-4 py-4 hover:bg-destructive/5 transition-colors" onClick={handleLogout}>
-            <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center">
-              <LogOut className="w-4 h-4 text-destructive" />
-            </div>
-            <span className="text-sm font-medium text-destructive">Log Out</span>
-          </button>
+            {/* Logout */}
+            <button className="flex items-center gap-3 w-full px-4 py-3 hover:bg-destructive/5 transition-colors" onClick={handleLogout}>
+              <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center">
+                <LogOut className="w-4 h-4 text-destructive" />
+              </div>
+              <span className="text-sm font-medium text-destructive">Log Out</span>
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground/50">TournaX v1.0 · All rights reserved</p>

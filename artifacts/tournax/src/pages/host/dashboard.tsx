@@ -109,6 +109,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
 
   const [ranks, setRanks] = useState<Record<number, string>>({});
   const [rewards, setRewards] = useState<Record<number, string>>({});
+  const [kills, setKills] = useState<Record<number, string>>({});
   const [screenshots, setScreenshots] = useState<string[]>([]);
   const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -170,6 +171,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       participantId: p.id,
       rank: parseInt(ranks[p.id] || "0"),
       reward: parseFloat(rewards[p.id] || "0"),
+      kills: parseInt(kills[p.id] || "0"),
     }));
     const invalid = results.find((r) => !r.rank || r.rank < 1);
     if (invalid) {
@@ -195,6 +197,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
     if (!o) {
       setRanks({});
       setRewards({});
+      setKills({});
       setScreenshots([]);
       setScreenshotPreviews([]);
     }
@@ -340,7 +343,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div>
                       <Label className="text-xs text-muted-foreground mb-1 block">Rank</Label>
                       <Input
@@ -350,6 +353,17 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
                         className="h-8 text-sm"
                         value={ranks[p.id] || ""}
                         onChange={(e) => setRanks((r) => ({ ...r, [p.id]: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">Kills</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        className="h-8 text-sm"
+                        value={kills[p.id] || ""}
+                        onChange={(e) => setKills((k) => ({ ...k, [p.id]: e.target.value }))}
                       />
                     </div>
                     <div>

@@ -834,32 +834,33 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
               <Input placeholder="Your in-game UID" value={form.gameUid} onChange={(e) => setForm(f => ({ ...f, gameUid: e.target.value }))} />
             </div>
           )}
-          {isEsports && (
+          {isPlayer && (
             <div className="space-y-3">
               <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                <span className="text-yellow-400">🎖️</span> Esports Profile Style
+                Banner Color
               </Label>
-              <div className="space-y-2">
-                <Label className="text-xs">Animation</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PROFILE_ANIMATIONS.map(a => (
-                    <button key={a.value} type="button" onClick={() => setForm(f => ({ ...f, profileAnimation: a.value }))}
-                      className={cn("text-xs py-2 px-3 rounded-xl border transition-all text-left", form.profileAnimation === a.value ? "border-primary bg-primary/20 text-primary font-semibold" : "border-border bg-secondary/50 text-muted-foreground")}>
-                      {a.value === "" && "✦ "}{a.value === "pulse" && "✦ "}{a.value === "neon" && "⚡ "}{a.value === "shimmer" && "✨ "}{a.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {PROFILE_COLORS.map(c => (
+                  <button key={c.value} type="button" onClick={() => setForm(f => ({ ...f, profileColor: c.value }))}
+                    className={cn("w-8 h-8 rounded-full border-2 transition-all", form.profileColor === c.value ? "border-white scale-110" : "border-transparent opacity-70 hover:opacity-100")}
+                    style={{ backgroundColor: c.hex }} title={c.label} />
+                ))}
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Profile Color</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PROFILE_COLORS.map(c => (
-                    <button key={c.value} type="button" onClick={() => setForm(f => ({ ...f, profileColor: c.value }))}
-                      className={cn("w-8 h-8 rounded-full border-2 transition-all", form.profileColor === c.value ? "border-white scale-110" : "border-transparent opacity-70 hover:opacity-100")}
-                      style={{ backgroundColor: c.hex }} title={c.label} />
-                  ))}
+              {isEsports && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="text-yellow-400">🎖️</span> Banner Animation
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PROFILE_ANIMATIONS.map(a => (
+                      <button key={a.value} type="button" onClick={() => setForm(f => ({ ...f, profileAnimation: a.value }))}
+                        className={cn("text-xs py-2 px-3 rounded-xl border transition-all text-left", form.profileAnimation === a.value ? "border-primary bg-primary/20 text-primary font-semibold" : "border-border bg-secondary/50 text-muted-foreground")}>
+                        {a.value === "" && "✦ "}{a.value === "pulse" && "✦ "}{a.value === "neon" && "⚡ "}{a.value === "shimmer" && "✨ "}{a.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
           <div className="space-y-2">
@@ -891,10 +892,10 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
 }
 
 function ProfileBanner({ profileAnimation, profileColor }: { profileAnimation?: string | null; profileColor?: string | null }) {
-  const hasStyle = !!(profileColor || profileAnimation);
   const animClass = profileAnimation === "pulse" ? "profile-banner-pulse" : profileAnimation === "neon" ? "profile-banner-neon" : profileAnimation === "shimmer" ? "profile-banner-shimmer" : "";
-  const gradient = getBannerGradient(profileColor, profileAnimation);
-  if (!hasStyle) return <div className="h-20 w-full bg-secondary/30" />;
+  const gradient = (profileColor || profileAnimation)
+    ? getBannerGradient(profileColor, profileAnimation)
+    : "linear-gradient(135deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)";
   return (
     <div className={cn("profile-banner h-28 w-full relative overflow-hidden", animClass)} style={{ backgroundImage: gradient }}>
       <div className="absolute inset-0 bg-black/20" />
@@ -930,7 +931,7 @@ function OwnProfile() {
         <div className="relative">
           <ProfileBanner profileAnimation={animation} profileColor={color} />
           <div className="px-4">
-            <div className="flex items-end justify-between -mt-10 mb-3">
+            <div className="flex items-end justify-between -mt-10 mb-3 relative z-10">
               <div className="profile-avatar-wrap">
                 <AvatarDisplay avatar={user.avatar} className={cn("w-20 h-20 rounded-2xl text-4xl border-4 border-background", getFrameClass((user as any).equippedFrame))} />
               </div>
@@ -1093,7 +1094,7 @@ function PublicProfile({ handle }: { handle: string }) {
         <div className="relative">
           <ProfileBanner profileAnimation={animation} profileColor={color} />
           <div className="px-4">
-            <div className="flex items-end justify-between -mt-10 mb-3">
+            <div className="flex items-end justify-between -mt-10 mb-3 relative z-10">
               <div className="profile-avatar-wrap">
                 <AvatarDisplay avatar={profile.avatar} className={cn("w-20 h-20 rounded-2xl text-4xl border-4 border-background", getFrameClass((profile as any).equippedFrame))} />
               </div>
