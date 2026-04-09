@@ -233,10 +233,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
 
   const handleSubmit = async () => {
     if (!participants || participants.length === 0) return;
-    if (screenshots.length === 0) {
-      toast({ title: "Upload at least 1 in-game result screenshot", description: "Screenshots are mandatory to verify results.", variant: "destructive" });
-      return;
-    }
+
     const results = participants.map((p) => ({
       participantId: p.id,
       rank: parseInt(ranks[p.id] || "0"),
@@ -310,9 +307,9 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
               <Label className="flex items-center gap-1.5 text-sm">
                 <Camera className="w-3.5 h-3.5 text-primary" />
                 Result Screenshots
-                <span className="text-destructive">*</span>
+                <span className="text-muted-foreground text-xs font-normal">(optional)</span>
               </Label>
-              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", screenshots.length > 0 ? "bg-green-500/20 text-green-400" : "bg-destructive/20 text-destructive")}>
+              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", screenshots.length > 0 ? "bg-green-500/20 text-green-400" : "bg-secondary text-muted-foreground")}>
                 {screenshots.length}/5
               </span>
             </div>
@@ -320,8 +317,8 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5 flex items-start gap-2">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
               <div className="text-xs text-amber-300 space-y-0.5">
-                <p className="font-medium">Screenshots are mandatory</p>
-                <p className="text-amber-400/80">Upload 1–5 in-game result screenshots. These will be auto-deleted after 3 days.</p>
+                <p className="font-medium">Screenshots are optional</p>
+                <p className="text-amber-400/80">Upload up to 5 in-game result screenshots for verification. These will be auto-deleted after 3 days.</p>
               </div>
             </div>
 
@@ -353,12 +350,12 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
                 className={cn(
                   "w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-medium transition-all",
                   uploading ? "border-border text-muted-foreground cursor-wait" :
-                  screenshots.length === 0 ? "border-primary/50 text-primary hover:border-primary hover:bg-primary/5" :
+                  screenshots.length === 0 ? "border-border text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5" :
                   "border-border text-muted-foreground hover:border-border/80 hover:bg-secondary/40"
                 )}
               >
                 <ImagePlus className="w-4 h-4" />
-                {uploading ? "Uploading..." : screenshots.length === 0 ? "Upload Screenshots (required)" : "Add More Screenshots"}
+                {uploading ? "Uploading..." : screenshots.length === 0 ? "Upload Screenshots (optional)" : "Add More Screenshots"}
               </button>
             )}
 
@@ -544,9 +541,9 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={isPending || isLoading || !participants || participants.length === 0 || isOverBudget || screenshots.length === 0}
+            disabled={isPending || isLoading || !participants || participants.length === 0 || isOverBudget}
           >
-            {isPending ? "Submitting..." : screenshots.length === 0 ? "Upload Screenshots First" : "Submit Result & Distribute Rewards"}
+            {isPending ? "Submitting..." : "Submit Result & Distribute Rewards"}
           </Button>
         </div>
       </DialogContent>
