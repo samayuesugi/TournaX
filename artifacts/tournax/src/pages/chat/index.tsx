@@ -223,6 +223,43 @@ export default function ChatListPage() {
           </button>
         </div>
 
+        {/* Message Requests section */}
+        {!requestsLoading && msgRequests.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Inbox className="w-3.5 h-3.5 text-primary" />
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chat Requests</h3>
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">{msgRequests.length}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {msgRequests.map((req) => (
+                <div key={req.id} className="flex items-center gap-3 bg-card border border-primary/20 rounded-xl px-4 py-3">
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0 overflow-hidden">
+                    {req.sender?.avatar && (req.sender.avatar.startsWith("/") || req.sender.avatar.startsWith("http") || req.sender.avatar.startsWith("data:"))
+                      ? <img src={req.sender.avatar} alt={req.sender.name || ""} className="w-full h-full object-cover" />
+                      : req.sender?.avatar || "🔥"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="font-semibold text-sm truncate">{req.sender?.name || req.sender?.handle}</span>
+                      {req.sender?.role === "host" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Host</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate italic">"{req.firstMessage}"</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => handleAcceptRequest(req.fromUserId)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/15 text-primary hover:bg-primary/30 transition-colors">
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeclineRequest(req.fromUserId)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-destructive/15 text-destructive hover:bg-destructive/30 transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Groups section */}
         <div className="flex items-center justify-between mb-2 mt-1">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Groups</h3>
@@ -277,42 +314,6 @@ export default function ChatListPage() {
         ) : (
           <div className="text-center py-6 text-muted-foreground text-sm border border-dashed border-border rounded-xl mb-4">
             {q ? "No groups match your search" : <>No groups yet.{" "}{(user?.role === "player" || user?.role === "host") && <button onClick={() => setCreateOpen(true)} className="text-primary underline">Create one</button>}</>}
-          </div>
-        )}
-
-        {/* Message Requests section */}
-        {!requestsLoading && msgRequests.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Message Requests</h3>
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">{msgRequests.length}</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              {msgRequests.map((req) => (
-                <div key={req.id} className="flex items-center gap-3 bg-card border border-primary/20 rounded-xl px-4 py-3">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0 overflow-hidden">
-                    {req.sender?.avatar && (req.sender.avatar.startsWith("/") || req.sender.avatar.startsWith("http") || req.sender.avatar.startsWith("data:"))
-                      ? <img src={req.sender.avatar} alt={req.sender.name || ""} className="w-full h-full object-cover" />
-                      : req.sender?.avatar || "🔥"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="font-semibold text-sm truncate">{req.sender?.name || req.sender?.handle}</span>
-                      {req.sender?.role === "host" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Host</span>}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate italic">"{req.firstMessage}"</p>
-                  </div>
-                  <div className="flex gap-1.5 shrink-0">
-                    <button onClick={() => handleAcceptRequest(req.fromUserId)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/15 text-primary hover:bg-primary/30 transition-colors">
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDeclineRequest(req.fromUserId)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-destructive/15 text-destructive hover:bg-destructive/30 transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 

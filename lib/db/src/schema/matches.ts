@@ -30,6 +30,7 @@ export const matchesTable = pgTable("matches", {
   screenshotUploadedAt: timestamp("screenshot_uploaded_at"),
   resultSkipReason: text("result_skip_reason"),
   rewardDistribution: text("reward_distribution"),
+  isEsportsOnly: boolean("is_esports_only").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

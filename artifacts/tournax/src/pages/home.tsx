@@ -44,7 +44,7 @@ function FilterSheet({
   const isFF = game === "Free Fire";
   const isBGMI = game === "BGMI";
   const baseCategories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
-  const allCategories = isEsportsPlayer ? [...baseCategories, "Esports"] : baseCategories;
+  const allCategories = baseCategories;
   const maps = isFF ? FF_MAPS : isBGMI ? BGMI_MAPS : [];
 
   useEffect(() => { if (open) setLocal(filters); }, [open]);

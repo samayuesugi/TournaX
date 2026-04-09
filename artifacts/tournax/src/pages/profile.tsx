@@ -510,6 +510,7 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const filteredSquad = (squad ?? []).filter((m: any) => m.game === squadGame);
   const mainMembers = filteredSquad.filter((m: any) => !m.isBackup);
   const backupMembers = filteredSquad.filter((m: any) => m.isBackup);
+  const activeGame = userGame ?? SQUAD_GAMES[0];
 
   const handleSearch = (q: string) => {
     setSearchQ(q);
@@ -594,13 +595,11 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
 
   return (
     <div className="pb-4">
-      <div className="flex gap-1.5 overflow-x-auto pb-2 px-4 pt-4" style={{ scrollbarWidth: "none" }}>
-        {SQUAD_GAMES.map(g => (
-          <button key={g} onClick={() => setSquadGame(g)}
-            className={cn("shrink-0 text-xs px-2.5 py-1 rounded-full border transition-all", squadGame === g ? "border-primary bg-primary/20 text-primary font-semibold" : "border-border bg-secondary/50 text-muted-foreground")}>
-            {g}
-          </button>
-        ))}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Game</span>
+          <span className="text-xs font-bold bg-primary/15 text-primary border border-primary/30 px-2.5 py-1 rounded-full">{activeGame}</span>
+        </div>
       </div>
 
       <div className="px-4 space-y-3">

@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
@@ -40,8 +41,6 @@ const BGMI_CATEGORIES = [
 
 const BGMI_MAPS = ["Erangel", "Miramar", "Sanhok", "Vikendi", "Livik", "Karakin", "Nusa"];
 
-const ESPORTS_CATEGORY = { id: "Esports", label: "Esports", emoji: "🏅", allowSquad: true };
-
 const TEAM_SIZES = [
   { label: "Solo", value: 1 },
   { label: "Duo", value: 2 },
@@ -57,7 +56,7 @@ function getOrdinal(n: number): string {
 }
 
 function getDefaultRewardRows(categoryId: string, numSlots: number = 4): { rows: RewardRow[]; hostPct: number; platformPct: number; locked: boolean } {
-  const isBR = categoryId === "Battle Royale" || categoryId === "Esports" || categoryId === "Classic";
+  const isBR = categoryId === "Battle Royale" || categoryId === "Classic";
   const n = Math.max(1, Math.min(numSlots || 4, 100));
   if (isBR) {
     const rows: RewardRow[] = Array.from({ length: n }, (_, i) => {
@@ -275,8 +274,7 @@ export default function CreateMatchPage() {
   const hostGame = (user as any)?.game ?? "";
   const isFF = hostGame === "Free Fire";
   const isBGMI = hostGame === "BGMI";
-  const baseCategories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
-  const categories = [...baseCategories, ESPORTS_CATEGORY];
+  const categories = isFF ? FF_CATEGORIES : isBGMI ? BGMI_CATEGORIES : [];
   const maps = isFF ? FF_MAPS : isBGMI ? BGMI_MAPS : [];
   const maxSlots = isFF ? 50 : 100;
 
@@ -288,6 +286,7 @@ export default function CreateMatchPage() {
   const [teamSize, setTeamSize] = useState<number>(1);
   const [selectedMap, setSelectedMap] = useState<string>("");
   const [selectedThumbnail, setSelectedThumbnail] = useState<string>("");
+  const [isEsportsOnly, setIsEsportsOnly] = useState(false);
   const [form, setForm] = useState({
     entryFee: "",
     slots: "",
@@ -361,6 +360,7 @@ export default function CreateMatchPage() {
           description: form.description.trim() || undefined,
           thumbnailImage: selectedThumbnail || undefined,
           rewardDistribution: distribution,
+          isEsportsOnly,
         } as any,
       });
       toast({ title: "Match created!" });
@@ -413,15 +413,20 @@ export default function CreateMatchPage() {
                 </button>
               ))}
             </div>
-            {selectedCategory === "Esports" && (
-              <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-                <Trophy className="w-3.5 h-3.5 shrink-0" />
-                <span>Esports matches are only visible to esports-verified players</span>
-              </div>
-            )}
           </div>
 
-          {maps.length > 0 && selectedCategory !== "Esports" && (
+          <div className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Esports Only</p>
+                <p className="text-xs text-muted-foreground">Only esports-verified players can see & join</p>
+              </div>
+            </div>
+            <Switch checked={isEsportsOnly} onCheckedChange={setIsEsportsOnly} />
+          </div>
+
+          {maps.length > 0 && (
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5"><Map className="w-3.5 h-3.5" /> Map</Label>
               <Select value={selectedMap} onValueChange={setSelectedMap}>

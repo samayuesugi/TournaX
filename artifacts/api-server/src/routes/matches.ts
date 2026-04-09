@@ -78,6 +78,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     mode: match.mode,
     category: match.category ?? null,
     map: match.map ?? null,
+    isEsportsOnly: (match as any).isEsportsOnly ?? false,
     teamSize: match.teamSize,
     entryFee,
     showcasePrizePool,
@@ -158,6 +159,11 @@ router.get("/matches", requireAuth, async (req: Request, res: Response) => {
       conditions.push(inArray(matchesTable.hostId, allowedIds));
     }
     // If allowedIds is empty, show all matches so new users don't see a blank home page
+
+    // Esports-only matches are only visible to esports-verified players
+    if (!user.isEsportsPlayer) {
+      conditions.push(eq(matchesTable.isEsportsOnly, false));
+    }
   }
 
   const matches = conditions.length > 0
@@ -174,7 +180,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, category, map: matchMap, rewardDistribution } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, category, map: matchMap, rewardDistribution, isEsportsOnly } = req.body;
   const resolvedGame = game || user.game;
   if (!resolvedGame || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
@@ -237,6 +243,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       category: category ? String(category).trim() : null,
       map: matchMap ? String(matchMap).trim() : null,
       rewardDistribution: rewardDistribution ? JSON.stringify(rewardDistribution) : null,
+      isEsportsOnly: isEsportsOnly === true || isEsportsOnly === "true",
     } as any).returning();
     match = inserted;
   });
