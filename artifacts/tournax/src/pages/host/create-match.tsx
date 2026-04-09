@@ -18,12 +18,14 @@ import thumb1 from "@assets/e481c7200956291.666b40011da84_1774695040111.webp";
 import thumb2 from "@assets/81e162153377959.632e6c70effcb_1774695040183.jpg";
 import thumb3 from "@assets/a8f058153377959.632e6c70f10b6_1774695040228.jpg";
 import thumb4 from "@assets/6fa5cd183933069.6549000c19789_1774695040280.png";
+import thumb5 from "@assets/01bf62183933069.6549000c306ac_1775725760171.png";
 
 const THUMBNAIL_OPTIONS = [
   { id: "thumb1", src: thumb1, label: "Warrior" },
   { id: "thumb2", src: thumb2, label: "Rivals" },
   { id: "thumb3", src: thumb3, label: "Squad" },
   { id: "thumb4", src: thumb4, label: "Battle" },
+  { id: "thumb5", src: thumb5, label: "Scout" },
 ];
 
 const FF_CATEGORIES = [
