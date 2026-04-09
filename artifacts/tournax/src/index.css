@@ -309,6 +309,29 @@
   }
 }
 
+@keyframes chat-item-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.chat-item-in {
+  animation: chat-item-in 0.25s ease-out both;
+}
+
+@keyframes send-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.88); }
+  80%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.send-pop {
+  animation: send-pop 0.3s ease-out;
+}
+
+.chat-input-glow:focus {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.25);
+  border-color: hsl(var(--primary) / 0.6);
+}
+
 @keyframes esports-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }

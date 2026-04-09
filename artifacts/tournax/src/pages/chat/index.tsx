@@ -277,9 +277,9 @@ export default function ChatListPage() {
           <Skeleton className="h-16 rounded-xl" />
         ) : filteredGroups.length > 0 ? (
           <div className="flex flex-col gap-1 mb-4">
-            {filteredGroups.map((g) => (
+            {filteredGroups.map((g, i) => (
               <Link key={g.id} href={`/chat/group/${g.id}`}>
-                <div className="flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer">
+                <div className="chat-item-in flex items-center gap-3 bg-card border border-card-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer" style={{ animationDelay: `${i * 50}ms` }}>
                   <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
                     {isImageAvatar(g.avatar)
                       ? <img src={g.avatar} alt={g.name} className="w-full h-full object-cover" />
@@ -324,12 +324,12 @@ export default function ChatListPage() {
           [1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : filteredConversations && filteredConversations.length > 0 ? (
           <div className="flex flex-col gap-1">
-            {filteredConversations.map((conv) => (
+            {filteredConversations.map((conv, i) => (
               <Link key={conv.userId} href={`/chat/${conv.userId}`}>
                 <div className={cn(
-                  "flex items-center gap-3 bg-card border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer",
+                  "chat-item-in flex items-center gap-3 bg-card border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-all cursor-pointer",
                   conv.unreadCount > 0 ? "border-primary/30" : "border-card-border"
-                )}>
+                )} style={{ animationDelay: `${i * 50}ms` }}>
                   <div className="w-11 h-11 rounded-full bg-secondary flex items-center justify-center text-xl shrink-0 overflow-hidden">
                     {conv.avatar && (conv.avatar.startsWith("/") || conv.avatar.startsWith("http") || conv.avatar.startsWith("data:"))
                       ? <img src={conv.avatar} alt={conv.name || "avatar"} className="w-full h-full object-cover" />

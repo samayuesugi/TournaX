@@ -68,6 +68,7 @@ export default function ConversationPage() {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef<Map<number, number>>(new Map());
   const [requestStatus, setRequestStatus] = useState<{ sent?: boolean; received?: boolean; firstMessage?: string } | null>(null);
+  const [sendAnimKey, setSendAnimKey] = useState(0);
 
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
@@ -501,17 +502,17 @@ export default function ConversationPage() {
             onKeyDown={handleKeyDown}
             placeholder={requestStatus?.sent ? "Request pending approval..." : requestStatus?.received ? "Accept request to reply..." : "Message..."}
             disabled={!!requestStatus?.sent || !!requestStatus?.received}
-            className="flex-1 bg-card border border-card-border rounded-2xl px-4 py-2 text-sm resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-primary/50 leading-relaxed min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="chat-input-glow flex-1 bg-card border border-card-border rounded-2xl px-4 py-2 text-sm resize-none overflow-hidden focus:outline-none leading-relaxed min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             style={{ maxHeight: "120px" }}
             autoFocus={!requestStatus?.sent && !requestStatus?.received}
           />
           <Button
             size="icon"
-            onClick={handleSend}
+            onClick={() => { if (text.trim()) { setSendAnimKey(k => k + 1); handleSend(); } }}
             disabled={!text.trim() || !!requestStatus?.sent || !!requestStatus?.received}
             className="shrink-0 rounded-full"
           >
-            <Send className="w-4 h-4" />
+            <Send key={sendAnimKey} className="w-4 h-4" style={sendAnimKey > 0 ? { animation: "send-pop 0.3s ease-out" } : {}} />
           </Button>
         </div>
       </div>
