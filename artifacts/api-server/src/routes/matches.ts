@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, referralsTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, referralsTable, tournamentBracketsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { notify } from "../lib/notify";
@@ -691,6 +691,71 @@ router.post("/matches/:id/review", requireAuth, async (req: Request, res: Respon
     comment: comment?.trim() || null,
   });
   res.json({ success: true });
+});
+
+router.get("/matches/:id/bracket", requireAuth, async (req: Request, res: Response) => {
+  const matchId = parseInt(req.params.id);
+  const [bracket] = await db.select().from(tournamentBracketsTable).where(eq(tournamentBracketsTable.matchId, matchId));
+  if (!bracket) { res.status(404).json({ error: "No bracket found" }); return; }
+  res.json({ matchId: bracket.matchId, bracketData: JSON.parse(bracket.bracketData) });
+});
+
+router.post("/matches/:id/bracket", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const matchId = parseInt(req.params.id);
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (match.hostId !== user.id && user.role !== "admin") { res.status(403).json({ error: "Not authorized" }); return; }
+  if (!match.isEsportsOnly) { res.status(400).json({ error: "Brackets are only for esports matches" }); return; }
+  const [existing] = await db.select().from(tournamentBracketsTable).where(eq(tournamentBracketsTable.matchId, matchId));
+  if (existing) { res.status(400).json({ error: "Bracket already exists" }); return; }
+
+  const teams = await db.select().from(matchParticipantsTable)
+    .where(eq(matchParticipantsTable.matchId, matchId))
+    .orderBy(matchParticipantsTable.teamNumber);
+  if (teams.length < 2) { res.status(400).json({ error: "Need at least 2 teams to create a bracket" }); return; }
+
+  const teamNames = teams.map(t => t.teamName || `Team ${t.teamNumber}`);
+  const n = teamNames.length;
+  const rounds: { name: string; roundNumber: number; matches: { id: string; team1: string | null; team2: string | null; winner: string | null }[] }[] = [];
+
+  const roundNames = ["Round of 16", "Quarter-Final", "Semi-Final", "Final"];
+  let slots = 1;
+  while (slots < n) slots *= 2;
+  const totalRounds = Math.log2(slots);
+
+  for (let r = 0; r < totalRounds; r++) {
+    const matchCount = slots / Math.pow(2, r + 1);
+    const name = roundNames[roundNames.length - (totalRounds - r)];
+    const matches = Array.from({ length: matchCount }, (_, i) => ({
+      id: `r${r + 1}m${i + 1}`,
+      team1: r === 0 ? (teamNames[i * 2] ?? null) : null,
+      team2: r === 0 ? (teamNames[i * 2 + 1] ?? null) : null,
+      winner: null as string | null,
+    }));
+    if (r === 0) {
+      matches.forEach(m => { if (m.team1 && !m.team2) { m.winner = m.team1; } });
+    }
+    rounds.push({ name: name || `Round ${r + 1}`, roundNumber: r + 1, matches });
+  }
+
+  const bracketData = { rounds };
+  await db.insert(tournamentBracketsTable).values({ matchId, bracketData: JSON.stringify(bracketData) });
+  res.json({ matchId, bracketData });
+});
+
+router.put("/matches/:id/bracket", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const matchId = parseInt(req.params.id);
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (match.hostId !== user.id && user.role !== "admin") { res.status(403).json({ error: "Not authorized" }); return; }
+  const { bracketData } = req.body;
+  if (!bracketData) { res.status(400).json({ error: "bracketData required" }); return; }
+  await db.update(tournamentBracketsTable)
+    .set({ bracketData: JSON.stringify(bracketData), updatedAt: new Date() })
+    .where(eq(tournamentBracketsTable.matchId, matchId));
+  res.json({ matchId, bracketData });
 });
 
 router.get("/admin/matches", requireAuth, async (req: Request, res: Response) => {

@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
@@ -129,6 +130,144 @@ function NotifyMeButton({ matchId }: { matchId: number }) {
       <Button variant="outline" className="w-full gap-2" size="lg" onClick={handleNotify}>
         <BellRing className="w-4 h-4" /> Notify Me if a Slot Opens
       </Button>
+    </div>
+  );
+}
+
+type BracketMatch = { id: string; team1: string | null; team2: string | null; winner: string | null };
+type BracketRound = { name: string; roundNumber: number; matches: BracketMatch[] };
+type BracketData = { rounds: BracketRound[] };
+
+function TournamentBracket({ matchId, canManage }: { matchId: number; canManage: boolean }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["bracket", matchId],
+    queryFn: async () => {
+      const res = await fetch(`/api/matches/${matchId}/bracket`, { credentials: "include" });
+      if (!res.ok) throw new Error("not found");
+      return res.json() as Promise<{ bracketData: BracketData }>;
+    },
+    retry: false,
+  });
+
+  const { mutateAsync: createBracket, isPending: isCreating } = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/matches/${matchId}/bracket`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        credentials: "include", body: JSON.stringify({}),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bracket", matchId] }),
+  });
+
+  const { mutateAsync: updateBracket } = useMutation({
+    mutationFn: async (bracketData: BracketData) => {
+      const res = await fetch(`/api/matches/${matchId}/bracket`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        credentials: "include", body: JSON.stringify({ bracketData }),
+      });
+      if (!res.ok) throw new Error("Failed to update bracket");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bracket", matchId] }),
+  });
+
+  const handleAdvance = async (roundIdx: number, matchIdx: number, winner: string) => {
+    if (!data?.bracketData) return;
+    const bd: BracketData = JSON.parse(JSON.stringify(data.bracketData));
+    bd.rounds[roundIdx].matches[matchIdx].winner = winner;
+    if (roundIdx + 1 < bd.rounds.length) {
+      const nextMatchIdx = Math.floor(matchIdx / 2);
+      const isTeam1Slot = matchIdx % 2 === 0;
+      if (isTeam1Slot) { bd.rounds[roundIdx + 1].matches[nextMatchIdx].team1 = winner; }
+      else { bd.rounds[roundIdx + 1].matches[nextMatchIdx].team2 = winner; }
+    }
+    try { await updateBracket(bd); }
+    catch { toast({ title: "Failed to advance team", variant: "destructive" }); }
+  };
+
+  if (isLoading) return (
+    <div className="h-16 flex items-center justify-center">
+      <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
+
+  if (error || !data) {
+    if (!canManage) return (
+      <p className="text-sm text-muted-foreground text-center py-4">Tournament bracket hasn't been set up yet.</p>
+    );
+    return (
+      <div className="text-center py-4">
+        <p className="text-sm text-muted-foreground mb-3">Seed all joined teams into the bracket to get started.</p>
+        <Button size="sm" onClick={async () => {
+          try { await createBracket(); toast({ title: "Bracket created! 🏆" }); }
+          catch (e: any) { toast({ title: e.message, variant: "destructive" }); }
+        }} disabled={isCreating}>
+          {isCreating ? "Creating..." : "Generate Bracket"}
+        </Button>
+      </div>
+    );
+  }
+
+  const { rounds } = data.bracketData;
+  const CARD_H = 72;
+
+  return (
+    <div className="overflow-x-auto -mx-1 px-1 pb-2">
+      <div className="flex gap-3 min-w-max items-start">
+        {rounds.map((round, rIdx) => {
+          const spacing = rIdx === 0 ? 8 : (CARD_H + 8) * Math.pow(2, rIdx) - CARD_H;
+          return (
+            <div key={round.roundNumber} className="flex flex-col" style={{ minWidth: 152 }}>
+              <div className="text-[10px] font-bold text-primary/80 text-center mb-2 uppercase tracking-widest">{round.name}</div>
+              <div className="flex flex-col" style={{ gap: spacing }}>
+                {round.matches.map((m, mIdx) => (
+                  <div key={m.id} className="rounded-xl border border-card-border overflow-hidden bg-card shadow-sm" style={{ minWidth: 152 }}>
+                    {([{ team: m.team1 }, { team: m.team2 }] as { team: string | null }[]).map(({ team }, tIdx) => (
+                      <button
+                        key={tIdx}
+                        disabled={!canManage || !team || m.winner !== null}
+                        onClick={() => team && handleAdvance(rIdx, mIdx, team)}
+                        className={cn(
+                          "w-full flex items-center gap-1.5 px-3 text-left text-xs transition-all",
+                          tIdx === 0 ? "pt-2.5 pb-1.5 border-b border-card-border/60" : "pt-1.5 pb-2.5",
+                          m.winner === team && team
+                            ? "text-green-400 font-semibold"
+                            : m.winner && m.winner !== team
+                            ? "text-muted-foreground/40 line-through"
+                            : "text-foreground",
+                          canManage && team && !m.winner ? "hover:bg-primary/10 cursor-pointer" : "cursor-default"
+                        )}
+                      >
+                        {m.winner === team && team && (
+                          <Check className="w-3 h-3 shrink-0 text-green-400" />
+                        )}
+                        <span className="truncate max-w-[108px]">{team ?? <span className="text-muted-foreground/50 italic">TBD</span>}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {rounds[rounds.length - 1]?.matches[0]?.winner && (
+          <div className="flex flex-col items-center justify-center self-center ml-2">
+            <div className="w-12 h-12 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center mb-1">
+              <Trophy className="w-5 h-5 text-yellow-400" />
+            </div>
+            <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-wide">Champion</span>
+            <span className="text-xs font-semibold text-foreground mt-0.5 max-w-[80px] text-center truncate">
+              {rounds[rounds.length - 1].matches[0].winner}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -709,6 +848,17 @@ export default function MatchDetailPage() {
               <Trash2 className="w-4 h-4 mr-2" />
               {isDeleting ? "Deleting..." : "Delete Match"}
             </Button>
+          </div>
+        )}
+
+        {match?.isEsportsOnly && (
+          <div className="bg-card border border-card-border rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-4 h-4 text-yellow-400" />
+              <h3 className="font-semibold text-sm">Tournament Bracket</h3>
+              <span className="ml-auto text-[10px] font-bold text-yellow-400 border border-yellow-500/30 bg-yellow-500/10 rounded-full px-2 py-0.5 uppercase tracking-wide">Esports</span>
+            </div>
+            <TournamentBracket matchId={matchId} canManage={canManage} />
           </div>
         )}
 

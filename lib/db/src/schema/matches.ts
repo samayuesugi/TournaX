@@ -54,6 +54,14 @@ export const matchPlayersTable = pgTable("match_players", {
   position: integer("position").notNull().default(1),
 });
 
+export const tournamentBracketsTable = pgTable("tournament_brackets", {
+  id: serial("id").primaryKey(),
+  matchId: integer("match_id").notNull().unique(),
+  bracketData: text("bracket_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertMatchSchema = createInsertSchema(matchesTable).omit({ id: true, createdAt: true, code: true, filledSlots: true });
 export type InsertMatch = z.infer<typeof insertMatchSchema>;
 export type Match = typeof matchesTable.$inferSelect;
