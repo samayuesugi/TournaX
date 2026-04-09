@@ -1004,7 +1004,7 @@ function OwnProfile() {
             ) : myMatches?.participated.length ? (
               <div className="flex flex-col gap-2">{myMatches.participated.map(m => <MatchCard key={m.id} match={m} />)}</div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground"><div className="text-3xl mb-2">🎮</div><p className="text-sm">No active matches</p></div>
+              <div className="text-center py-8 text-muted-foreground"><Swords className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm">No active matches</p></div>
             )}
           </div>
         )}
@@ -1237,7 +1237,7 @@ function PublicProfile({ handle }: { handle: string }) {
               </div>
             )}
             {profile.activeMatches.length === 0 && profile.upcomingMatches.length === 0 && (
-              <div className="text-center py-6 text-muted-foreground"><div className="text-3xl mb-2">🎮</div><p className="text-sm">No active matches</p></div>
+              <div className="text-center py-6 text-muted-foreground"><Swords className="w-8 h-8 mx-auto mb-2 opacity-30" /><p className="text-sm">No active matches</p></div>
             )}
           </div>
         )}
