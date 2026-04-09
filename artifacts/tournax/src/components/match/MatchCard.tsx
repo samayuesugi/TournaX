@@ -145,6 +145,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
   const matchMap: string | null = (match as any).map ?? null;
   const teamSizeLabel = match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`;
 
+  const isEsportsOnly = (match as any).isEsportsOnly ?? false;
   const isUpcoming = match.status === "upcoming";
 
   const statusBadge = isUpcoming ? (
@@ -174,6 +175,11 @@ export function MatchCard({ match, className }: MatchCardProps) {
               className="w-full h-full object-cover [object-position:center_20%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
+            {isEsportsOnly && (
+              <span className="esports-badge absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
+                ⚡ ESPORTS
+              </span>
+            )}
             <span className={cn("absolute top-2 right-2 text-xs font-bold px-2.5 py-0.5 rounded-full border backdrop-blur-sm flex items-center gap-1", statusColors[match.status])}>
               {isUpcoming ? (
                 <>
@@ -204,7 +210,16 @@ export function MatchCard({ match, className }: MatchCardProps) {
                 )}
               </div>
             </div>
-            {!thumbnail && statusBadge}
+            {!thumbnail && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                {isEsportsOnly && (
+                  <span className="esports-badge text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    ⚡ ESPORTS
+                  </span>
+                )}
+                {statusBadge}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-3">
