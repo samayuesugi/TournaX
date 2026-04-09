@@ -443,8 +443,8 @@ export default function MatchDetailPage() {
         )}
 
         {match.roomReleased && match.isJoined && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4">
-            <h3 className="font-semibold text-green-400 mb-3">Room Credentials</h3>
+          <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-4">
+            <h3 className="font-semibold text-purple-400 mb-3">Room Credentials</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-2">
                 <div>
