@@ -14,6 +14,7 @@ import auctionsRouter from "./auctions";
 import pushRouter from "./push";
 import postsRouter from "./posts";
 import storeRouter from "./store";
+import aiRefereeRouter from "./ai-referee";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(auctionsRouter);
 router.use(pushRouter);
 router.use(postsRouter);
 router.use(storeRouter);
+router.use(aiRefereeRouter);
 
 export default router;
