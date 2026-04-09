@@ -39,3 +39,6 @@ VAPID_EMAIL = "mailto:admin@tournax.app"
 APP_URL = "https://tourna-x--tournaxofficial.replit.app"
 
 [userenv.production]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-906a2c54-fffa-4975-b8c2-e53cfdd3f92b"
