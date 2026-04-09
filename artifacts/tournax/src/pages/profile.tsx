@@ -406,7 +406,8 @@ function EsportsStatsDisplay({ handle, game }: { handle: string; game: string | 
   });
   if (isLoading) return <div className="p-4 space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 rounded-xl" />)}</div>;
   const allStats = data ?? [];
-  if (!allStats.length) return (
+  const filteredStats = game ? allStats.filter(s => s.game === game) : allStats;
+  if (!filteredStats.length) return (
     <div className="text-center py-12 text-muted-foreground p-4">
       <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
       <p className="text-sm">No Esports stats added yet</p>
@@ -414,7 +415,7 @@ function EsportsStatsDisplay({ handle, game }: { handle: string; game: string | 
   );
   return (
     <div className="space-y-4 p-4">
-      {allStats.map(({ game: g, stats }) => {
+      {filteredStats.map(({ game: g, stats }) => {
         const fields = GAME_STATS_FIELDS[g] ?? [];
         const filledFields = fields.filter(f => stats[f.key]);
         if (!filledFields.length) return null;
