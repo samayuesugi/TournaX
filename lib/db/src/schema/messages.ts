@@ -36,5 +36,14 @@ export const messageReactionsTable = pgTable("message_reactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const messageRequestsTable = pgTable("message_requests", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull(),
+  toUserId: integer("to_user_id").notNull(),
+  firstMessage: text("first_message").notNull(),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertMessageSchema = createInsertSchema(messagesTable).omit({ id: true, createdAt: true });
 export type InsertMessage = z.infer<typeof insertMessageSchema>;

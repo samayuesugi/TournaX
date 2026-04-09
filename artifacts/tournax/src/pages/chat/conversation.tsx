@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Check, CheckCheck, Smile, Copy, X } from "lucide-react";
+import { Send, Check, CheckCheck, Smile, Copy, X, Inbox } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { customFetch } from "@workspace/api-client-react";
@@ -67,6 +67,7 @@ export default function ConversationPage() {
   const [heartAnim, setHeartAnim] = useState<{ msgId: number; key: number } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef<Map<number, number>>(new Map());
+  const [requestStatus, setRequestStatus] = useState<{ sent?: boolean; received?: boolean; firstMessage?: string } | null>(null);
 
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
@@ -129,6 +130,23 @@ export default function ConversationPage() {
     vv.addEventListener("resize", handleVVResize);
     return () => vv.removeEventListener("resize", handleVVResize);
   }, []);
+
+  useEffect(() => {
+    const checkRequest = async () => {
+      try {
+        const [sent, received] = await Promise.all([
+          customFetch<any[]>("/api/message-requests/sent"),
+          customFetch<any[]>("/api/message-requests"),
+        ]);
+        const sentReq = sent.find((r: any) => r.toUserId === partnerId && r.status === "pending");
+        const receivedReq = received.find((r: any) => r.fromUserId === partnerId);
+        if (sentReq) setRequestStatus({ sent: true, firstMessage: sentReq.firstMessage });
+        else if (receivedReq) setRequestStatus({ received: true, firstMessage: receivedReq.firstMessage });
+        else setRequestStatus(null);
+      } catch {}
+    };
+    checkRequest();
+  }, [partnerId]);
 
   const adjustTextareaHeight = () => {
     const el = textareaRef.current;
@@ -268,6 +286,48 @@ export default function ConversationPage() {
           style={{ overscrollBehavior: "contain" }}
           onClick={() => { setContextMenu(null); setReactionPicker(null); setShowEmojiPicker(false); }}
         >
+          {requestStatus?.sent && (
+            <div className="flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3.5 py-3 mx-0.5 mt-2 mb-1">
+              <Inbox className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-amber-400 mb-0.5">Message Request Sent</p>
+                <p className="text-xs text-muted-foreground">Waiting for them to accept your request before you can continue chatting.</p>
+              </div>
+            </div>
+          )}
+          {requestStatus?.received && (
+            <div className="flex flex-col gap-2 bg-primary/10 border border-primary/25 rounded-xl px-3.5 py-3 mx-0.5 mt-2 mb-1">
+              <div className="flex items-start gap-2.5">
+                <Inbox className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-primary mb-0.5">Message Request</p>
+                  <p className="text-xs text-muted-foreground">They want to chat with you. Accept to start the conversation.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    await customFetch(`/api/message-requests/${partnerId}/accept`, { method: "POST" });
+                    setRequestStatus(null);
+                    queryClient.invalidateQueries({ queryKey: [`/api/conversations/${partnerId}`] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+                  }}
+                  className="flex-1 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/90 transition-colors"
+                >
+                  <Check className="w-3.5 h-3.5" /> Accept
+                </button>
+                <button
+                  onClick={async () => {
+                    await customFetch(`/api/message-requests/${partnerId}`, { method: "DELETE" });
+                    setRequestStatus(null);
+                  }}
+                  className="flex-1 h-8 rounded-lg bg-destructive/15 text-destructive text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-destructive/25 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" /> Decline
+                </button>
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <div className="space-y-3 py-4">
               {[1, 2, 3, 4].map((i) => (
@@ -439,15 +499,16 @@ export default function ConversationPage() {
             rows={1}
             onChange={(e) => { setText(e.target.value); adjustTextareaHeight(); }}
             onKeyDown={handleKeyDown}
-            placeholder="Message..."
-            className="flex-1 bg-card border border-card-border rounded-2xl px-4 py-2 text-sm resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-primary/50 leading-relaxed min-h-[38px]"
+            placeholder={requestStatus?.sent ? "Request pending approval..." : requestStatus?.received ? "Accept request to reply..." : "Message..."}
+            disabled={!!requestStatus?.sent || !!requestStatus?.received}
+            className="flex-1 bg-card border border-card-border rounded-2xl px-4 py-2 text-sm resize-none overflow-hidden focus:outline-none focus:ring-1 focus:ring-primary/50 leading-relaxed min-h-[38px] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ maxHeight: "120px" }}
-            autoFocus
+            autoFocus={!requestStatus?.sent && !requestStatus?.received}
           />
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!text.trim()}
+            disabled={!text.trim() || !!requestStatus?.sent || !!requestStatus?.received}
             className="shrink-0 rounded-full"
           >
             <Send className="w-4 h-4" />

@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable, esportsStatsTable, squadRequestsTable, notificationsTable } from "@workspace/db/schema";
+import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTable, matchParticipantsTable, hostReviewsTable, messagesTable, messageReactionsTable, esportsStatsTable, squadRequestsTable, notificationsTable, messageRequestsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, avg, inArray, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { getIO } from "../lib/socket";
@@ -440,31 +440,95 @@ router.put("/conversations/:userId/read", requireAuth, async (req: Request, res:
 });
 
 router.post("/messages", requireAuth, async (req: Request, res: Response) => {
-  const { messagesTable } = await import("@workspace/db/schema");
   const user = (req as any).user;
   const { toUserId, content } = req.body;
   if (!toUserId || !content?.trim()) { res.status(400).json({ error: "toUserId and content required" }); return; }
   const [target] = await db.select().from(usersTable).where(eq(usersTable.id, Number(toUserId)));
   if (!target) { res.status(404).json({ error: "User not found" }); return; }
-  if (!canChat(user.role, target.role)) {
-    res.status(403).json({ error: "You are not allowed to message this user" }); return;
-  }
+  if (!canChat(user.role, target.role)) { res.status(403).json({ error: "You are not allowed to message this user" }); return; }
   if (user.id === target.id) { res.status(400).json({ error: "Cannot message yourself" }); return; }
+
+  const existingRequest = await db.select().from(messageRequestsTable).where(
+    or(
+      and(eq(messageRequestsTable.fromUserId, user.id), eq(messageRequestsTable.toUserId, target.id)),
+      and(eq(messageRequestsTable.fromUserId, target.id), eq(messageRequestsTable.toUserId, user.id))
+    )
+  );
+
+  const req_ = existingRequest[0];
+  if (req_ && req_.status === "declined") { res.status(403).json({ error: "This user has declined your message request" }); return; }
+  if (req_ && req_.status === "pending" && req_.fromUserId === user.id) { res.status(403).json({ error: "Your message request is still pending" }); return; }
+
+  const existingMsgs = await db.select({ id: messagesTable.id }).from(messagesTable).where(
+    or(
+      and(eq(messagesTable.fromUserId, user.id), eq(messagesTable.toUserId, target.id)),
+      and(eq(messagesTable.fromUserId, target.id), eq(messagesTable.toUserId, user.id))
+    )
+  ).limit(1);
+
+  if (!req_ && existingMsgs.length === 0) {
+    await db.insert(messageRequestsTable).values({ fromUserId: user.id, toUserId: target.id, firstMessage: content.trim(), status: "pending" });
+    res.json({ success: true, isRequest: true });
+    return;
+  }
+
   const [saved] = await db.insert(messagesTable).values({ fromUserId: user.id, toUserId: target.id, content: content.trim() }).returning();
   try {
-    const { getIO } = await import("../lib/socket");
-    const payload = {
-      id: saved.id,
-      fromUserId: user.id,
-      toUserId: target.id,
-      content: saved.content,
-      createdAt: saved.createdAt,
-      read: false,
-      reactions: {},
-    };
+    const payload = { id: saved.id, fromUserId: user.id, toUserId: target.id, content: saved.content, createdAt: saved.createdAt, read: false, reactions: {} };
     getIO().to(`user-${target.id}`).emit("dm:message", payload);
     getIO().to(`user-${user.id}`).emit("dm:message", payload);
   } catch {}
+  res.json({ success: true, isRequest: false });
+});
+
+router.get("/message-requests", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const incoming = await db.select().from(messageRequestsTable).where(
+    and(eq(messageRequestsTable.toUserId, user.id), eq(messageRequestsTable.status, "pending"))
+  );
+  const result = await Promise.all(incoming.map(async (r) => {
+    const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, r.fromUserId));
+    return { id: r.id, fromUserId: r.fromUserId, firstMessage: r.firstMessage, createdAt: r.createdAt?.toISOString(), sender: sender ? { name: sender.name, handle: sender.handle, avatar: sender.avatar, role: sender.role } : null };
+  }));
+  res.json(result);
+});
+
+router.get("/message-requests/sent", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const sent = await db.select().from(messageRequestsTable).where(
+    eq(messageRequestsTable.fromUserId, user.id)
+  );
+  const result = await Promise.all(sent.map(async (r) => {
+    const [recipient] = await db.select().from(usersTable).where(eq(usersTable.id, r.toUserId));
+    return { id: r.id, toUserId: r.toUserId, firstMessage: r.firstMessage, status: r.status, createdAt: r.createdAt?.toISOString(), recipient: recipient ? { name: recipient.name, handle: recipient.handle, avatar: recipient.avatar, role: recipient.role } : null };
+  }));
+  res.json(result);
+});
+
+router.post("/message-requests/:fromUserId/accept", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const fromUserId = Number(req.params.fromUserId);
+  const [request] = await db.select().from(messageRequestsTable).where(
+    and(eq(messageRequestsTable.fromUserId, fromUserId), eq(messageRequestsTable.toUserId, user.id), eq(messageRequestsTable.status, "pending"))
+  );
+  if (!request) { res.status(404).json({ error: "Request not found" }); return; }
+  await db.update(messageRequestsTable).set({ status: "accepted" }).where(eq(messageRequestsTable.id, request.id));
+  const [saved] = await db.insert(messagesTable).values({ fromUserId, toUserId: user.id, content: request.firstMessage }).returning();
+  try {
+    const payload = { id: saved.id, fromUserId, toUserId: user.id, content: saved.content, createdAt: saved.createdAt, read: false, reactions: {} };
+    getIO().to(`user-${user.id}`).emit("dm:message", payload);
+    getIO().to(`user-${fromUserId}`).emit("dm:message", payload);
+    getIO().to(`user-${fromUserId}`).emit("request:accepted", { by: user.id });
+  } catch {}
+  res.json({ success: true });
+});
+
+router.delete("/message-requests/:fromUserId", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const fromUserId = Number(req.params.fromUserId);
+  await db.update(messageRequestsTable).set({ status: "declined" }).where(
+    and(eq(messageRequestsTable.fromUserId, fromUserId), eq(messageRequestsTable.toUserId, user.id))
+  );
   res.json({ success: true });
 });
 
