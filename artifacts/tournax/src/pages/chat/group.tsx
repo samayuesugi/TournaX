@@ -209,6 +209,16 @@ export default function GroupChatPage() {
   }, [allMessages.length]);
 
   useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleVVResize = () => {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    };
+    vv.addEventListener("resize", handleVVResize);
+    return () => vv.removeEventListener("resize", handleVVResize);
+  }, []);
+
+  useEffect(() => {
     if (showRequests && isCreator) fetchJoinRequests();
   }, [showRequests]);
 
@@ -413,7 +423,7 @@ export default function GroupChatPage() {
 
   return (
     <AppLayout showBack backHref="/chat" hideNav title={group?.name || "Group"}>
-      <div className="flex flex-col h-[calc(100vh-8rem)]">
+      <div className="flex flex-col h-[calc(100dvh-8rem)]">
         {/* Group info bar */}
         <button
           onClick={() => setShowMembers(true)}
@@ -464,7 +474,7 @@ export default function GroupChatPage() {
               const showDate = dateLabel !== lastDate;
               lastDate = dateLabel;
               return (
-                <div key={msg.id}>
+                <div key={msg.id} className={cn("animate-in fade-in duration-300", isMine ? "slide-in-from-right-4" : "slide-in-from-left-4")}>
                   {showDate && (
                     <div className="text-center my-3">
                       <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{dateLabel}</span>

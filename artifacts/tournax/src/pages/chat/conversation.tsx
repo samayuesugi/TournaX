@@ -120,6 +120,16 @@ export default function ConversationPage() {
     prevLengthRef.current = currentLength;
   }, [messages.length]);
 
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleVVResize = () => {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    };
+    vv.addEventListener("resize", handleVVResize);
+    return () => vv.removeEventListener("resize", handleVVResize);
+  }, []);
+
   const adjustTextareaHeight = () => {
     const el = textareaRef.current;
     if (!el) return;
@@ -252,7 +262,7 @@ export default function ConversationPage() {
           100% { transform: scale(1.1); opacity: 0; }
         }
       `}</style>
-      <div className="flex flex-col h-[calc(100vh-8rem)]">
+      <div className="flex flex-col h-[calc(100dvh-8rem)]">
         <div
           className="flex-1 overflow-y-auto pb-2 px-0.5"
           style={{ overscrollBehavior: "contain" }}
@@ -281,7 +291,7 @@ export default function ConversationPage() {
                 const reactionEntries = Object.entries(msg.reactions ?? {});
 
                 return (
-                  <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
+                  <div key={msg.id} className={cn("animate-in fade-in duration-300", isMine ? "slide-in-from-right-4" : "slide-in-from-left-4")}>
                     {showDate && (
                       <div className="flex justify-center my-3">
                         <span className="text-[10px] text-muted-foreground bg-secondary/80 px-3 py-0.5 rounded-full">
