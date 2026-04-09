@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star, Lock } from "lucide-react";
+import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star, Lock, Clapperboard, ImageIcon } from "lucide-react";
 import { Link } from "wouter";
 import { customFetch, useFollowUser, useUnfollowUser } from "@workspace/api-client-react";
 import type { UserProfile } from "@workspace/api-client-react";
@@ -223,6 +223,7 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [mediaType, setMediaType] = useState<"image" | "clip">("image");
   const [caption, setCaption] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -231,6 +232,7 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
 
   const reset = () => {
     setCaption("");
+    setMediaType("image");
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
@@ -278,31 +280,65 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5" variant="outline"><Camera className="w-3.5 h-3.5" /> Share</Button>
+        <Button size="sm" className="gap-1.5" variant="outline">
+          <Lock className="w-3 h-3" />
+          <Camera className="w-3.5 h-3.5" /> Share
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-          <DialogTitle className="flex items-center gap-2"><Camera className="w-4 h-4 text-primary" /> Share a Moment</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {mediaType === "image" ? <Camera className="w-4 h-4 text-primary" /> : <Clapperboard className="w-4 h-4 text-primary" />}
+            Share a Moment
+          </DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-          {imagePreview ? (
-            <div className="relative rounded-xl overflow-hidden border border-border">
-              <img src={imagePreview} alt="Preview" className="w-full aspect-video object-cover" />
-              <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-black/70 rounded-full p-1"><X className="w-4 h-4 text-white" /></button>
-            </div>
-          ) : (
-            <button onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-10 hover:border-primary/50 hover:bg-primary/5 transition-colors">
-              <Camera className="w-8 h-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Tap to select image</span>
+          {/* Image / Clips tab toggle */}
+          <div className="flex gap-1 bg-secondary/50 rounded-xl p-1">
+            <button
+              onClick={() => { setMediaType("image"); handleRemoveImage(); }}
+              className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all", mediaType === "image" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              <ImageIcon className="w-3.5 h-3.5" /> Image
             </button>
+            <button
+              onClick={() => { setMediaType("clip"); handleRemoveImage(); }}
+              className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all", mediaType === "clip" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+            >
+              <Clapperboard className="w-3.5 h-3.5" /> Clips
+            </button>
+          </div>
+
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+
+          {mediaType === "image" ? (
+            imagePreview ? (
+              <div className="relative rounded-xl overflow-hidden border border-border">
+                <img src={imagePreview} alt="Preview" className="w-full aspect-video object-cover" />
+                <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-black/70 rounded-full p-1"><X className="w-4 h-4 text-white" /></button>
+              </div>
+            ) : (
+              <button onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-10 hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                <Camera className="w-8 h-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Tap to select image</span>
+              </button>
+            )
+          ) : (
+            <div className="w-full flex flex-col items-center gap-3 border-2 border-dashed border-border rounded-xl py-10 relative overflow-hidden">
+              <div className="absolute inset-0 bg-primary/5" />
+              <Clapperboard className="w-8 h-8 text-muted-foreground relative z-10" />
+              <span className="text-sm font-medium text-muted-foreground relative z-10">Clips</span>
+              <span className="text-xs text-primary/70 font-semibold border border-primary/30 bg-primary/10 rounded-full px-3 py-1 relative z-10">Coming Soon</span>
+              <span className="text-xs text-muted-foreground/60 text-center px-6 relative z-10">Video clips support is on the way — stay tuned!</span>
+            </div>
           )}
+
           <div className="space-y-1.5">
             <Label>Caption <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Textarea placeholder="Say something about this moment..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={2} className="resize-none" />
           </div>
-          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !imageFile}>
-            {isSubmitting ? "Posting..." : "Post"}
+          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !imageFile || mediaType === "clip"}>
+            {isSubmitting ? "Posting..." : mediaType === "clip" ? "Coming Soon" : "Post"}
           </Button>
         </div>
       </DialogContent>
