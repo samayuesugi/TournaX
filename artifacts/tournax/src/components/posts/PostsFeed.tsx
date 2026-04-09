@@ -312,17 +312,13 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
 
           {mediaType === "image" ? (
-            imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden border border-border">
-                <img src={imagePreview} alt="Preview" className="w-full aspect-video object-cover" />
-                <button onClick={handleRemoveImage} className="absolute top-2 right-2 bg-black/70 rounded-full p-1"><X className="w-4 h-4 text-white" /></button>
-              </div>
-            ) : (
-              <button onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl py-10 hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                <Camera className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Tap to select image</span>
-              </button>
-            )
+            <div className="w-full flex flex-col items-center gap-3 border-2 border-dashed border-border rounded-xl py-10 relative overflow-hidden">
+              <div className="absolute inset-0 bg-primary/5" />
+              <ImageIcon className="w-8 h-8 text-muted-foreground relative z-10" />
+              <span className="text-sm font-medium text-muted-foreground relative z-10">Image Sharing</span>
+              <span className="text-xs text-primary/70 font-semibold border border-primary/30 bg-primary/10 rounded-full px-3 py-1 relative z-10">Coming Soon</span>
+              <span className="text-xs text-muted-foreground/60 text-center px-6 relative z-10">Image support is on the way — stay tuned!</span>
+            </div>
           ) : (
             <div className="w-full flex flex-col items-center gap-3 border-2 border-dashed border-border rounded-xl py-10 relative overflow-hidden">
               <div className="absolute inset-0 bg-primary/5" />
@@ -337,8 +333,8 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
             <Label>Caption <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Textarea placeholder="Say something about this moment..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={2} className="resize-none" />
           </div>
-          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting || !imageFile || mediaType === "clip"}>
-            {isSubmitting ? "Posting..." : mediaType === "clip" ? "Coming Soon" : "Post"}
+          <Button className="w-full" disabled={true}>
+            Coming Soon
           </Button>
         </div>
       </DialogContent>
