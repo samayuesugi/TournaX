@@ -68,7 +68,6 @@ export default function ConversationPage() {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef<Map<number, number>>(new Map());
   const [requestStatus, setRequestStatus] = useState<{ sent?: boolean; received?: boolean; firstMessage?: string } | null>(null);
-  const [sendAnimKey, setSendAnimKey] = useState(0);
 
   const { data: conversations } = useGetConversations();
   const partner = conversations?.find((c) => c.userId === partnerId);
@@ -280,6 +279,33 @@ export default function ConversationPage() {
           80%  { transform: scale(1.25); opacity: 1; }
           100% { transform: scale(1.1); opacity: 0; }
         }
+        @keyframes firstChatFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes firstChatFadeUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes firstChatRing {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(1.8); opacity: 0; }
+        }
+        .first-chat-avatar {
+          animation: firstChatFloat 3s ease-in-out infinite;
+        }
+        .first-chat-ring {
+          animation: firstChatRing 2s ease-out infinite;
+        }
+        .first-chat-ring-2 {
+          animation: firstChatRing 2s ease-out 0.7s infinite;
+        }
+        .first-chat-text {
+          animation: firstChatFadeUp 0.6s ease-out 0.3s both;
+        }
+        .first-chat-hint {
+          animation: firstChatFadeUp 0.6s ease-out 0.6s both;
+        }
       `}</style>
       <div className="flex flex-col h-[calc(100dvh-8rem)]">
         <div
@@ -459,13 +485,23 @@ export default function ConversationPage() {
               })}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-              <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-2xl">
-                {partner?.avatar || "💬"}
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-20 h-20 rounded-full bg-primary/20 first-chat-ring" />
+                <div className="absolute w-20 h-20 rounded-full bg-primary/10 first-chat-ring-2" />
+                <div className="first-chat-avatar relative w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-3xl overflow-hidden border-2 border-primary/30 shadow-lg">
+                  {partner?.avatar && (partner.avatar.startsWith("/") || partner.avatar.startsWith("http") || partner.avatar.startsWith("data:"))
+                    ? <img src={partner.avatar} alt={partner.name || "avatar"} className="w-full h-full object-cover" />
+                    : partner?.avatar || "💬"}
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-sm">{partner?.name || `User ${partnerId}`}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">No messages yet. Say hi! 👋</p>
+              <div className="first-chat-text">
+                <p className="font-bold text-base">{partner?.name || `User ${partnerId}`}</p>
+                {partner?.handle && <p className="text-xs text-muted-foreground mt-0.5">@{partner.handle}</p>}
+              </div>
+              <div className="first-chat-hint flex flex-col items-center gap-1">
+                <span className="text-2xl">👋</span>
+                <p className="text-muted-foreground text-xs">This is the beginning of your conversation.<br />Say something nice!</p>
               </div>
             </div>
           )}
@@ -508,11 +544,11 @@ export default function ConversationPage() {
           />
           <Button
             size="icon"
-            onClick={() => { if (text.trim()) { setSendAnimKey(k => k + 1); handleSend(); } }}
+            onClick={handleSend}
             disabled={!text.trim() || !!requestStatus?.sent || !!requestStatus?.received}
             className="shrink-0 rounded-full"
           >
-            <Send key={sendAnimKey} className="w-4 h-4" style={sendAnimKey > 0 ? { animation: "send-pop 0.3s ease-out" } : {}} />
+            <Send className="w-4 h-4" />
           </Button>
         </div>
       </div>
