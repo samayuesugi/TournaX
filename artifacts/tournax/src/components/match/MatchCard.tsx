@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Clock, Users, Trophy, Star } from "lucide-react";
+import { Clock, Users, Trophy, Star, Swords } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoinIcon } from "@/components/ui/Coins";
 import type { Match } from "@workspace/api-client-react";
@@ -177,7 +177,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
             {isEsportsOnly && (
               <span className="esports-badge absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-                ⚡ ESPORTS
+                <Trophy className="w-2.5 h-2.5" /> ESPORTS
               </span>
             )}
             <span className={cn("absolute top-2 right-2 text-xs font-bold px-2.5 py-0.5 rounded-full border backdrop-blur-sm flex items-center gap-1", statusColors[match.status])}>
@@ -214,7 +214,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
               <div className="flex items-center gap-1.5 shrink-0">
                 {isEsportsOnly && (
                   <span className="esports-badge text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                    ⚡ ESPORTS
+                    <Trophy className="w-2.5 h-2.5" /> ESPORTS
                   </span>
                 )}
                 {statusBadge}
