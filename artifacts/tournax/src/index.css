@@ -309,6 +309,23 @@
   }
 }
 
+@keyframes esports-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes esports-glow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(234, 179, 8, 0.5), 0 0 12px 2px rgba(234, 179, 8, 0.2); }
+  50% { box-shadow: 0 0 10px 3px rgba(251, 191, 36, 0.7), 0 0 20px 6px rgba(251, 191, 36, 0.3); }
+}
+
+.esports-badge {
+  background: linear-gradient(90deg, #92400e 0%, #d97706 20%, #fbbf24 40%, #fde68a 50%, #fbbf24 60%, #d97706 80%, #92400e 100%);
+  background-size: 200% auto;
+  animation: esports-shimmer 2.5s linear infinite, esports-glow 2s ease-in-out infinite;
+  color: #1c1002;
+  border: 1px solid rgba(251, 191, 36, 0.6);
+}
+
 @keyframes profile-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6), 0 0 20px 4px rgba(139, 92, 246, 0.3); }
   50% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0), 0 0 35px 10px rgba(139, 92, 246, 0.5); }

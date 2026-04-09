@@ -955,7 +955,11 @@ function OwnProfile() {
                 {user.role === "admin" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><ShieldCheck className="w-3 h-3" /> Admin</span>}
                 {user.role === "host" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400"><ShieldCheck className="w-3 h-3" /> Host</span>}
                 {(user as any).game && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-2.5 py-0.5">🎮 {(user as any).game}</span>}
-                {isEsports && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-0.5">🎖️ Esports</span>}
+                {isEsports && (
+                  <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
+                    <ShieldCheck className="w-3 h-3 shrink-0" /> Esports
+                  </span>
+                )}
               </div>
             </div>
             {(user as any).bio && <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{(user as any).bio}</p>}
@@ -1124,7 +1128,11 @@ function PublicProfile({ handle }: { handle: string }) {
                 {profile.role === "admin" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><ShieldCheck className="w-3 h-3" /> Admin</span>}
                 {profile.role === "host" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400"><ShieldCheck className="w-3 h-3" /> Host</span>}
                 {(profile as any).game && isPlayer && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-2.5 py-0.5">🎮 {(profile as any).game}</span>}
-                {isEsports && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-0.5">🎖️ Esports</span>}
+                {isEsports && (
+                  <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
+                    <ShieldCheck className="w-3 h-3 shrink-0" /> Esports
+                  </span>
+                )}
                 {isHost && (profile as any).rating && (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold bg-yellow-500/10 text-yellow-400 rounded-full px-2.5 py-0.5">
                     <Star className="w-3 h-3 fill-yellow-400" /> {(profile as any).rating?.toFixed(1)}
