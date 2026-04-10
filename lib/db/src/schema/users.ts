@@ -43,6 +43,7 @@ export const usersTable = pgTable("users", {
   equippedHandleColor: text("equipped_handle_color"),
   isEsportsPlayer: boolean("is_esports_player").notNull().default(false),
   bio: text("bio"),
+  ingameRole: text("ingame_role"),
   profileAnimation: text("profile_animation"),
   profileColor: text("profile_color"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -737,6 +737,7 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
     handle: user?.handle ?? "",
     avatar: user?.avatar ?? "🎮",
     bio: (user as any)?.bio ?? "",
+    ingameRole: (user as any)?.ingameRole ?? "",
     instagram: user?.instagram ?? "",
     discord: user?.discord ?? "",
     x: user?.x ?? "",
@@ -753,6 +754,7 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
         handle: user?.handle ?? "",
         avatar: user?.avatar ?? "🎮",
         bio: (user as any)?.bio ?? "",
+        ingameRole: (user as any)?.ingameRole ?? "",
         instagram: user?.instagram ?? "",
         discord: user?.discord ?? "",
         x: user?.x ?? "",
@@ -832,6 +834,7 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
                 </SelectContent>
               </Select>
               <Input placeholder="Your in-game UID" value={form.gameUid} onChange={(e) => setForm(f => ({ ...f, gameUid: e.target.value }))} />
+              <Input placeholder="Your role (e.g. IGL, Entry Fragger, Sniper, Support...)" value={form.ingameRole} onChange={(e) => setForm(f => ({ ...f, ingameRole: e.target.value }))} maxLength={40} />
             </div>
           )}
           {isPlayer && (
@@ -963,7 +966,10 @@ function OwnProfile() {
                 )}
               </div>
             </div>
-            {(user as any).bio && <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{(user as any).bio}</p>}
+            {(user as any).bio && <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{(user as any).bio}</p>}
+            {(user as any).ingameRole && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5 mb-3">🎯 {(user as any).ingameRole}</span>
+            )}
             <div className="grid grid-cols-3 gap-3 mb-3">
               <button className="text-center hover:opacity-80 transition-opacity" onClick={() => setFollowersOpen(true)}>
                 <div className="font-black text-lg">{user.followersCount ?? 0}</div>
@@ -1142,7 +1148,10 @@ function PublicProfile({ handle }: { handle: string }) {
               </div>
             </div>
 
-            {(profile as any).bio && <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{(profile as any).bio}</p>}
+            {(profile as any).bio && <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{(profile as any).bio}</p>}
+            {(profile as any).ingameRole && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5 mb-3">🎯 {(profile as any).ingameRole}</span>
+            )}
 
             {isHost ? (
               <div className="grid grid-cols-4 gap-2 mb-3">

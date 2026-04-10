@@ -274,7 +274,7 @@ router.put("/users/me/esports-stats", requireAuth, async (req: Request, res: Res
 
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio, profileAnimation, profileColor } = req.body;
+  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio, ingameRole, profileAnimation, profileColor } = req.body;
   const updateData: any = {};
   if (name) updateData.name = name;
   if (handle) updateData.handle = handle;
@@ -293,6 +293,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     if (game) updateData.game = game;
     if (gameUid !== undefined) updateData.gameUid = gameUid || null;
     if (isEsportsPlayer !== undefined) updateData.isEsportsPlayer = Boolean(isEsportsPlayer);
+    updateData.ingameRole = ingameRole ?? null;
   }
   const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
   try { getIO().to(`user-${user.id}`).emit("user:updated"); } catch {}
@@ -305,6 +306,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     youtube: updated.youtube, twitch: updated.twitch,
     isEsportsPlayer: updated.isEsportsPlayer ?? false,
     bio: updated.bio ?? null,
+    ingameRole: updated.ingameRole ?? null,
     profileAnimation: updated.profileAnimation ?? null,
     profileColor: updated.profileColor ?? null,
   });
@@ -591,6 +593,7 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     youtube: user.youtube,
     twitch: user.twitch,
     bio: user.bio ?? null,
+    ingameRole: user.ingameRole ?? null,
     isEsportsPlayer: user.isEsportsPlayer ?? false,
     profileAnimation: user.profileAnimation ?? null,
     profileColor: user.profileColor ?? null,
