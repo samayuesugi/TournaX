@@ -220,7 +220,10 @@ router.put("/users/me/squad-requests/:requestId", requireAuth, async (req: Reque
   if (!request) { res.status(404).json({ error: "Request not found" }); return; }
   await db.update(squadRequestsTable).set({ status: action === "accept" ? "accepted" : "rejected" }).where(eq(squadRequestsTable.id, requestId));
   if (action === "accept") {
-    await db.update(usersTable).set({ isEsportsPlayer: true }).where(eq(usersTable.id, user.id));
+    const [inviter] = await db.select({ isEsportsPlayer: usersTable.isEsportsPlayer }).from(usersTable).where(eq(usersTable.id, request.fromUserId));
+    if (inviter?.isEsportsPlayer) {
+      await db.update(usersTable).set({ isEsportsPlayer: true }).where(eq(usersTable.id, user.id));
+    }
     const existing = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, request.fromUserId));
     const mainCount = existing.filter((m: any) => !m.isBackup && m.game === request.game).length;
     const backupCount = existing.filter((m: any) => m.isBackup && m.game === request.game).length;
