@@ -5,8 +5,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/useAuth";
 import { SocketProvider } from "@/contexts/SocketContext";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
+
+if (import.meta.env.VITE_API_URL) {
+  setBaseUrl(import.meta.env.VITE_API_URL);
+}
 
 import AuthPage from "@/pages/auth";
 import AuthCallbackPage from "@/pages/auth-callback";
