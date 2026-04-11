@@ -606,10 +606,14 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
   const ratingMap = await getHostRatings([user.id]);
 
   let playedMatchIds: number[] = [];
+  let matchWins = 0;
   if (user.role === "player") {
-    const participations = await db.select({ matchId: matchParticipantsTable.matchId }).from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, user.id));
+    const participations = await db.select({ matchId: matchParticipantsTable.matchId, rank: matchParticipantsTable.rank }).from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, user.id));
     playedMatchIds = participations.map(p => p.matchId);
+    matchWins = participations.filter(p => p.rank === 1).length;
   }
+  const totalMatches = user.role === "player" ? playedMatchIds.length : hostedMatches.length;
+  const winRatePct = totalMatches > 0 ? Math.round((matchWins / totalMatches) * 100) : 0;
 
   res.json({
     id: user.id,
@@ -621,7 +625,10 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     followersCount: user.followersCount,
     followingCount: user.followingCount,
     rating: ratingMap.get(user.id) ?? null,
-    matchesCount: user.role === "player" ? playedMatchIds.length : hostedMatches.length,
+    matchesCount: totalMatches,
+    matchWins,
+    winRatePct,
+    tournamentWins: user.tournamentWins ?? 0,
     isFollowing: !!follow,
     instagram: user.instagram,
     discord: user.discord,

@@ -399,22 +399,137 @@ function PlayerMatchHistory({ userId }: { userId: number }) {
   );
 }
 
-function EsportsStatsDisplay({ handle, game }: { handle: string; game: string | null }) {
+const TRUST_TIERS: { tier: string; color: string; min: number }[] = [
+  { tier: "Trusted",     color: "text-green-600 dark:text-green-400",  min: 0 },
+  { tier: "Reliable",   color: "text-blue-600 dark:text-blue-400",    min: 600 },
+  { tier: "Veteran",    color: "text-violet-600 dark:text-violet-400", min: 750 },
+  { tier: "Elite",      color: "text-amber-600 dark:text-amber-400",   min: 900 },
+];
+
+function TrustTierBadge({ tier }: { tier: string }) {
+  const t = TRUST_TIERS.find(t => t.tier === tier) ?? TRUST_TIERS[0];
+  return <span className={cn("text-xs font-bold", t.color)}>{tier}</span>;
+}
+
+function StatCard({ icon, label, value, sub, accent }: {
+  icon: React.ReactNode; label: string; value: string | number; sub?: string; accent?: string;
+}) {
+  return (
+    <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", accent ?? "bg-primary/15")}>
+          {icon}
+        </div>
+        <span className="text-xs text-muted-foreground font-medium leading-tight">{label}</span>
+      </div>
+      <div>
+        <p className="text-2xl font-black tracking-tight leading-none">{value}</p>
+        {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+function PlayerStatsSection({ profile }: { profile: any }) {
+  const matches = profile.matchesCount ?? 0;
+  const wins = profile.matchWins ?? 0;
+  const winRate = profile.winRatePct ?? 0;
+  const tournWins = profile.tournamentWins ?? 0;
+  const paidMatches = profile.paidMatchesPlayed ?? 0;
+  const trustScore = profile.trustScore ?? 500;
+  const trustTier = profile.trustTier ?? "Trusted";
+  const trustPct = Math.min(100, Math.round((trustScore / 1000) * 100));
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard
+          icon={<Swords className="w-4 h-4 text-primary" />}
+          label="Matches Played"
+          value={matches}
+          sub="All time"
+          accent="bg-primary/15"
+        />
+        <StatCard
+          icon={<Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+          label="Tournament Wins"
+          value={tournWins}
+          sub="1st place finishes"
+          accent="bg-amber-500/15"
+        />
+        <StatCard
+          icon={<TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />}
+          label="Match Wins"
+          value={wins}
+          sub={matches > 0 ? `out of ${matches} matches` : "no matches yet"}
+          accent="bg-green-500/15"
+        />
+        <StatCard
+          icon={<Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+          label="Win Rate"
+          value={`${winRate}%`}
+          sub={matches > 0 ? `${wins}W / ${matches - wins}L` : "no data yet"}
+          accent="bg-blue-500/15"
+        />
+        <StatCard
+          icon={<Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
+          label="Paid Matches"
+          value={paidMatches}
+          sub="Entry fee matches"
+          accent="bg-orange-500/15"
+        />
+        <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+              <Shield className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            </div>
+            <span className="text-xs text-muted-foreground font-medium leading-tight">Trust Score</span>
+          </div>
+          <div>
+            <div className="flex items-end gap-2 mb-1.5">
+              <p className="text-2xl font-black tracking-tight leading-none">{trustScore}</p>
+              <TrustTierBadge tier={trustTier} />
+            </div>
+            <div className="h-2 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-primary transition-all duration-700"
+                style={{ width: `${trustPct}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {(profile.isEsportsPlayer && profile.game) && (
+        <div className="mt-2">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground font-semibold px-2">🎮 Esports Stats</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <EsportsStatsDisplay handle={profile.handle} game={profile.game} className="space-y-4" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EsportsStatsDisplay({ handle, game, className }: { handle: string; game: string | null; className?: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["esportsStats", handle],
     queryFn: () => customFetch<{ game: string; stats: Record<string, string> }[]>(`/api/users/${handle}/esports-stats`),
   });
-  if (isLoading) return <div className="p-4 space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 rounded-xl" />)}</div>;
+  if (isLoading) return <div className={cn("space-y-2", className ?? "p-4")}>{[1,2,3].map(i => <Skeleton key={i} className="h-10 rounded-xl" />)}</div>;
   const allStats = data ?? [];
   const filteredStats = game ? allStats.filter(s => s.game === game) : allStats;
   if (!filteredStats.length) return (
-    <div className="text-center py-12 text-muted-foreground p-4">
+    <div className={cn("text-center py-8 text-muted-foreground", className ?? "p-4")}>
       <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
       <p className="text-sm">No Esports stats added yet</p>
     </div>
   );
   return (
-    <div className="space-y-4 p-4">
+    <div className={cn("space-y-4", className ?? "p-4")}>
       {filteredStats.map(({ game: g, stats }) => {
         const fields = GAME_STATS_FIELDS[g] ?? [];
         const filledFields = fields.filter(f => stats[f.key]);
@@ -1288,7 +1403,7 @@ function PublicProfile({ handle }: { handle: string }) {
     ? [{ id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "ratings", label: "Ratings", icon: <Star className="w-4 h-4" /> }]
     : isEsports
       ? [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "squad", label: "Squad", icon: <Users className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }, ...(showVsTab ? [{ id: "vs", label: "VS", icon: <Crosshair className="w-4 h-4" /> }] : [])]
-      : [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, ...(showVsTab ? [{ id: "vs", label: "VS", icon: <Crosshair className="w-4 h-4" /> }] : [])];
+      : [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }, ...(showVsTab ? [{ id: "vs", label: "VS", icon: <Crosshair className="w-4 h-4" /> }] : [])];
 
   const activeTab = tab;
 
@@ -1441,7 +1556,7 @@ function PublicProfile({ handle }: { handle: string }) {
         {isPlayer && activeTab === "posts" && <PostGrid userId={profile.id} isOwn={false} />}
         {isPlayer && activeTab === "matches" && <PlayerMatchHistory userId={profile.id} />}
         {isEsports && activeTab === "squad" && <SquadSection userId={profile.id} isOwn={false} userGame={(profile as any).game} isEsports />}
-        {isEsports && activeTab === "stats" && <EsportsStatsDisplay handle={handle} game={(profile as any).game} />}
+        {isPlayer && activeTab === "stats" && <PlayerStatsSection profile={profile} />}
         {showVsTab && activeTab === "vs" && <PvPStatsSection handle={handle} />}
 
         {isHost && activeTab === "matches" && (
