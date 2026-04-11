@@ -62,6 +62,11 @@ const DEFAULT_GAMES = [
   { name: "COD Mobile", modes: [{ name: "Solo", teamSize: 1 }, { name: "Duo", teamSize: 2 }, { name: "Squad", teamSize: 4 }] },
   { name: "Valorant", modes: [{ name: "Solo", teamSize: 1 }, { name: "Team", teamSize: 5 }] },
   { name: "PUBG PC", modes: [{ name: "Solo", teamSize: 1 }, { name: "Duo", teamSize: 2 }, { name: "Squad", teamSize: 4 }] },
+  { name: "Clash Royale", modes: [{ name: "1v1", teamSize: 1 }, { name: "2v2", teamSize: 2 }] },
+  { name: "Clash of Clans", modes: [{ name: "Clan War", teamSize: 10 }, { name: "Builder Base", teamSize: 1 }] },
+  { name: "Pokemon Unite", modes: [{ name: "Solo", teamSize: 1 }, { name: "Team", teamSize: 5 }] },
+  { name: "Mobile Legends", modes: [{ name: "Solo", teamSize: 1 }, { name: "Team", teamSize: 5 }] },
+  { name: "Minecraft", modes: [{ name: "Solo", teamSize: 1 }, { name: "Team", teamSize: 4 }] },
 ];
 
 export async function seedDefaults() {

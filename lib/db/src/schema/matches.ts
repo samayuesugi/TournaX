@@ -38,6 +38,7 @@ export const matchesTable = pgTable("matches", {
   resultSkipReason: text("result_skip_reason"),
   rewardDistribution: text("reward_distribution"),
   isEsportsOnly: boolean("is_esports_only").notNull().default(false),
+  streamLink: text("stream_link"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

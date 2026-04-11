@@ -40,10 +40,12 @@ import AdminEarningsPage from "@/pages/admin/earnings";
 import StorePage from "@/pages/store";
 import SettingsPage from "@/pages/settings";
 import CoachPage from "@/pages/coach";
+import ClansPage from "@/pages/clans";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 setAuthTokenGetter(getToken);
 
@@ -172,6 +174,12 @@ function Router() {
       <Route path="/coach">
         <ProtectedRoute roles={["player", "host"]}>
           <CoachPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/clans">
+        <ProtectedRoute roles={["player", "host"]}>
+          <ClansPage />
         </ProtectedRoute>
       </Route>
 
@@ -326,13 +334,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <SocketProvider>
-            <AppContent />
-          </SocketProvider>
-        </AuthProvider>
-        <Toaster />
-        <PwaInstallBanner />
+        <LanguageProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <AppContent />
+            </SocketProvider>
+          </AuthProvider>
+          <Toaster />
+          <PwaInstallBanner />
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -4,6 +4,7 @@ import {
   useUpdateMyProfile, customFetch
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
   LogOut, Flag, ShoppingBag, Gift, Link as LinkIcon,
   Copy, Check, ChevronRight, FileText,
   Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal,
-  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle
+  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle, Languages
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
@@ -555,6 +556,7 @@ function ComplaintDialog({ open, onClose }: { open: boolean; onClose: () => void
 export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth();
   const [, navigate] = useLocation();
+  const { language, setLanguage } = useLanguage();
 
   const [questOpen, setQuestOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
@@ -562,6 +564,7 @@ export default function SettingsPage() {
   const [termsOpen, setTermsOpen] = useState(false);
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [gameVerifyOpen, setGameVerifyOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
 
   const [referralStats, setReferralStats] = useState<any>(null);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -675,6 +678,21 @@ export default function SettingsPage() {
               </Link>
             )}
 
+            <button
+              className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors"
+              onClick={() => setLanguageOpen(true)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                  <Languages className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Language / भाषा</span>
+                  <span className="text-[10px] text-muted-foreground">{language === "hi" ? "हिंदी" : "English"}</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
             <SettingRow icon={Flag} iconBg="bg-red-500/15" iconColor="text-red-400" label="Raise a Complaint" onClick={() => setComplaintOpen(true)} />
             <SettingRow icon={FileText} iconBg="bg-primary/15" iconColor="text-primary" label="Terms & Policies" onClick={() => setTermsOpen(true)} />
 
@@ -701,6 +719,41 @@ export default function SettingsPage() {
       <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
       <ComplaintDialog open={complaintOpen} onClose={() => setComplaintOpen(false)} />
       <GameVerifyDialog open={gameVerifyOpen} onClose={() => setGameVerifyOpen(false)} user={user} refreshUser={refreshUser} />
+
+      <Dialog open={languageOpen} onOpenChange={setLanguageOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Languages className="w-4 h-4 text-blue-400" />
+              Language / भाषा
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Choose your preferred language for the app interface.</p>
+            {[
+              { code: "en", label: "English", sub: "English Interface" },
+              { code: "hi", label: "हिंदी", sub: "Hindi Interface" },
+            ].map(({ code, label, sub }) => (
+              <button
+                key={code}
+                onClick={() => { setLanguage(code as "en" | "hi"); setLanguageOpen(false); }}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
+                  language === code
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-secondary/30 hover:border-primary/40"
+                )}
+              >
+                <div className="text-left">
+                  <p className={cn("font-semibold text-sm", language === code ? "text-primary" : "")}>{label}</p>
+                  <p className="text-xs text-muted-foreground">{sub}</p>
+                </div>
+                {language === code && <Check className="w-4 h-4 text-primary" />}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

@@ -1,0 +1,247 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+
+export type Language = "en" | "hi";
+
+const translations = {
+  en: {
+    home: "Home",
+    explore: "Explore",
+    clans: "Clans",
+    matches: "Matches",
+    profile: "Profile",
+    settings: "Settings",
+    wallet: "Wallet",
+    leaderboard: "Leaderboard",
+    coach: "Coach",
+    notifications: "Notifications",
+    signIn: "Sign In",
+    signUp: "Sign Up",
+    logout: "Logout",
+    create: "Create",
+    join: "Join",
+    leave: "Leave",
+    search: "Search",
+    loading: "Loading...",
+    noMatches: "No matches found",
+    upcomingMatches: "Upcoming Matches",
+    liveMatches: "Live Matches",
+    completedMatches: "Completed Matches",
+    entryFee: "Entry Fee",
+    prizePool: "Prize Pool",
+    slots: "Slots",
+    free: "Free",
+    paid: "Paid",
+    solo: "Solo",
+    duo: "Duo",
+    squad: "Squad",
+    matchDetails: "Match Details",
+    joinMatch: "Join Match",
+    shareReferral: "Share Referral",
+    dailyBonus: "Daily Bonus",
+    goldCoins: "Gold Coins",
+    silverCoins: "Silver Coins",
+    balance: "Balance",
+    withdraw: "Withdraw",
+    addBalance: "Add Balance",
+    transactions: "Transactions",
+    myMatches: "My Matches",
+    follow: "Follow",
+    following: "Following",
+    followers: "Followers",
+    posts: "Posts",
+    store: "Store",
+    referral: "Referral",
+    quests: "Quests",
+    esportsMode: "Esports Mode",
+    gameVerification: "Game Verification",
+    language: "Language",
+    english: "English",
+    hindi: "Hindi",
+    changeLanguage: "Change Language",
+    liveStream: "Live Stream",
+    watchLive: "Watch Live",
+    createClan: "Create Clan",
+    joinClan: "Join Clan",
+    myClan: "My Clans",
+    discover: "Discover",
+    members: "Members",
+    publicClan: "Public Clan",
+    privateClan: "Private Clan",
+    clanName: "Clan Name",
+    clanIcon: "Clan Icon",
+    request: "Request",
+    cancel: "Cancel",
+    save: "Save",
+    edit: "Edit",
+    delete: "Delete",
+    confirm: "Confirm",
+    close: "Close",
+    submit: "Submit",
+    back: "Back",
+    next: "Next",
+    done: "Done",
+    chat: "Chat",
+    message: "Message",
+    send: "Send",
+    type: "Type a message...",
+    roomId: "Room ID",
+    roomPassword: "Room Password",
+    copyCode: "Copy Code",
+    copied: "Copied!",
+    hostBadge: "Host Badge",
+    reviews: "Reviews",
+    rating: "Rating",
+    winRate: "Win Rate",
+    tournaments: "Tournaments",
+    stats: "Stats",
+    topPlayers: "Top Players",
+    topHosts: "Top Hosts",
+    earnMore: "Earn More",
+    inviteFriend: "Invite a Friend",
+    howItWorks: "How it works",
+    welcomeBack: "Welcome back",
+    competeWinDominate: "Compete. Win. Dominate.",
+  },
+  hi: {
+    home: "होम",
+    explore: "खोजें",
+    clans: "क्लैन",
+    matches: "मैच",
+    profile: "प्रोफाइल",
+    settings: "सेटिंग्स",
+    wallet: "वॉलेट",
+    leaderboard: "लीडरबोर्ड",
+    coach: "कोच",
+    notifications: "नोटिफिकेशन",
+    signIn: "साइन इन",
+    signUp: "साइन अप",
+    logout: "लॉगआउट",
+    create: "बनाएं",
+    join: "जॉइन",
+    leave: "छोड़ें",
+    search: "खोजें",
+    loading: "लोड हो रहा है...",
+    noMatches: "कोई मैच नहीं मिला",
+    upcomingMatches: "आने वाले मैच",
+    liveMatches: "लाइव मैच",
+    completedMatches: "पूरे हो चुके मैच",
+    entryFee: "एंट्री फीस",
+    prizePool: "इनाम",
+    slots: "स्लॉट",
+    free: "मुफ्त",
+    paid: "पेड",
+    solo: "सोलो",
+    duo: "डुओ",
+    squad: "स्क्वाड",
+    matchDetails: "मैच डिटेल",
+    joinMatch: "मैच जॉइन करें",
+    shareReferral: "रेफरल शेयर करें",
+    dailyBonus: "डेली बोनस",
+    goldCoins: "गोल्ड कॉइन",
+    silverCoins: "सिल्वर कॉइन",
+    balance: "बैलेंस",
+    withdraw: "निकालें",
+    addBalance: "बैलेंस जोड़ें",
+    transactions: "लेनदेन",
+    myMatches: "मेरे मैच",
+    follow: "फॉलो",
+    following: "फॉलो कर रहे हैं",
+    followers: "फॉलोअर्स",
+    posts: "पोस्ट",
+    store: "स्टोर",
+    referral: "रेफरल",
+    quests: "क्वेस्ट",
+    esportsMode: "ईस्पोर्ट्स मोड",
+    gameVerification: "गेम वेरिफिकेशन",
+    language: "भाषा",
+    english: "अंग्रेज़ी",
+    hindi: "हिंदी",
+    changeLanguage: "भाषा बदलें",
+    liveStream: "लाइव स्ट्रीम",
+    watchLive: "लाइव देखें",
+    createClan: "क्लैन बनाएं",
+    joinClan: "क्लैन जॉइन करें",
+    myClan: "मेरे क्लैन",
+    discover: "खोजें",
+    members: "सदस्य",
+    publicClan: "पब्लिक क्लैन",
+    privateClan: "प्राइवेट क्लैन",
+    clanName: "क्लैन का नाम",
+    clanIcon: "क्लैन आइकन",
+    request: "रिक्वेस्ट",
+    cancel: "रद्द करें",
+    save: "सेव करें",
+    edit: "एडिट",
+    delete: "डिलीट",
+    confirm: "कन्फर्म",
+    close: "बंद करें",
+    submit: "जमा करें",
+    back: "वापस",
+    next: "आगे",
+    done: "हो गया",
+    chat: "चैट",
+    message: "मैसेज",
+    send: "भेजें",
+    type: "मैसेज लिखें...",
+    roomId: "रूम ID",
+    roomPassword: "रूम पासवर्ड",
+    copyCode: "कोड कॉपी करें",
+    copied: "कॉपी हो गया!",
+    hostBadge: "होस्ट बैज",
+    reviews: "समीक्षाएं",
+    rating: "रेटिंग",
+    winRate: "जीत दर",
+    tournaments: "टूर्नामेंट",
+    stats: "आँकड़े",
+    topPlayers: "टॉप खिलाड़ी",
+    topHosts: "टॉप होस्ट",
+    earnMore: "और कमाएं",
+    inviteFriend: "दोस्त को बुलाएं",
+    howItWorks: "यह कैसे काम करता है",
+    welcomeBack: "वापसी पर स्वागत",
+    competeWinDominate: "खेलो। जीतो। राज करो।",
+  },
+};
+
+export type TranslationKey = keyof typeof translations.en;
+
+type LanguageContextType = {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: TranslationKey) => string;
+};
+
+const LanguageContext = createContext<LanguageContextType>({
+  language: "en",
+  setLanguage: () => {},
+  t: (key) => translations.en[key],
+});
+
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      return (localStorage.getItem("tournax_language") as Language) || "en";
+    } catch {
+      return "en";
+    }
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    try { localStorage.setItem("tournax_language", lang); } catch {}
+  };
+
+  const t = (key: TranslationKey): string => {
+    return translations[language][key] || translations.en[key] || key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export function useLanguage() {
+  return useContext(LanguageContext);
+}

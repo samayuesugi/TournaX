@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck, Tv2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -295,6 +295,7 @@ export default function CreateMatchPage() {
     startTime: "",
     hostContribution: "",
     description: "",
+    streamLink: "",
   });
 
   const [distribution, setDistribution] = useState(() => getDefaultRewardRows(categories[0]?.id ?? ""));
@@ -363,6 +364,7 @@ export default function CreateMatchPage() {
           thumbnailImage: selectedThumbnail || undefined,
           rewardDistribution: distribution,
           isEsportsOnly,
+          streamLink: form.streamLink.trim() || undefined,
         } as any,
       });
       toast({ title: "Match created!" });
@@ -508,6 +510,17 @@ export default function CreateMatchPage() {
               rows={3}
               className="resize-none"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><Tv2 className="w-3.5 h-3.5" /> Live Stream Link <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              type="url"
+              placeholder="https://youtube.com/live/... or twitch.tv/..."
+              value={form.streamLink}
+              onChange={(e) => setForm(f => ({ ...f, streamLink: e.target.value }))}
+            />
+            <p className="text-[11px] text-muted-foreground">Players can watch the match live on YouTube, Twitch, etc.</p>
           </div>
         </div>
 

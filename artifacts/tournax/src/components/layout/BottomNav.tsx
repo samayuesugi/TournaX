@@ -1,31 +1,8 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Gavel, Bot } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Gavel, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
-
-const playerNav = [
-  { href: "/", icon: Home, label: "Home" },
-  { href: "/explore", icon: Compass, label: "Discovery" },
-  { href: "/coach", icon: Bot, label: "Coach" },
-  { href: "/my-matches", icon: Swords, label: "Matches" },
-  { href: "/profile", icon: User, label: "Profile" },
-];
-
-const hostNav = [
-  { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/host/create-match", icon: Plus, label: "Create" },
-  { href: "/coach", icon: Bot, label: "Coach" },
-  { href: "/explore", icon: Compass, label: "Explore" },
-  { href: "/profile", icon: User, label: "Profile" },
-];
-
-const adminNav = [
-  { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/auctions", icon: Gavel, label: "Auctions" },
-  { href: "/admin/players", icon: User, label: "Players" },
-  { href: "/admin/finance", icon: DollarSign, label: "Finance" },
-  { href: "/admin/profile", icon: User, label: "Profile" },
-];
 
 const EXACT_MATCH_HREFS = new Set(["/", "/admin", "/host"]);
 
@@ -37,6 +14,32 @@ function isNavActive(href: string, location: string): boolean {
 export function BottomNav() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { t } = useLanguage();
+
+  const playerNav = [
+    { href: "/", icon: Home, label: t("home") },
+    { href: "/explore", icon: Compass, label: t("explore") },
+    { href: "/clans", icon: Shield, label: t("clans") },
+    { href: "/my-matches", icon: Swords, label: t("matches") },
+    { href: "/profile", icon: User, label: t("profile") },
+  ];
+
+  const hostNav = [
+    { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/host/create-match", icon: Plus, label: t("create") },
+    { href: "/clans", icon: Shield, label: t("clans") },
+    { href: "/explore", icon: Compass, label: t("explore") },
+    { href: "/profile", icon: User, label: t("profile") },
+  ];
+
+  const adminNav = [
+    { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/admin/auctions", icon: Gavel, label: "Auctions" },
+    { href: "/admin/players", icon: User, label: "Players" },
+    { href: "/admin/finance", icon: DollarSign, label: "Finance" },
+    { href: "/admin/profile", icon: User, label: t("profile") },
+  ];
+
   const nav = user?.role === "admin" ? adminNav : user?.role === "host" ? hostNav : playerNav;
 
   return (

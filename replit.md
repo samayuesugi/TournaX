@@ -22,6 +22,10 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Trust Score System**: Players start at 500 points; score changes based on match completions, disputes, profile actions; tiers: Risky/Beginner/Trusted/Veteran/Elite
 - **Host Reputation System**: After each match, players rate hosts on prize timeliness, room code sharing, and overall experience (1-5 stars); host badges auto-assigned
 - **Escrow Prize System**: All match prize funds locked in escrow when match goes live; auto-distributed to winners after AI result verification; hosts cannot touch prize pool
+- **Clans System**: Dedicated `/clans` page for creating and discovering player groups/clans; public/private clans; join directly or send request; integrated with group chat; in bottom nav for players and hosts
+- **Hindi Language Support**: Full language context (English/Hindi) with 60+ translation keys; language toggle in Settings; persisted in localStorage; bottom nav and key UI strings use translations
+- **Extended Games**: 10 games seeded — BGMI, Free Fire, COD Mobile, Valorant, PUBG PC, Clash Royale, Clash of Clans, Pokemon Unite, Mobile Legends, Minecraft
+- **Live Stream Link**: Hosts can add YouTube/Twitch stream links when creating matches; displayed prominently on match detail page with direct link button
 
 ## Stack
 

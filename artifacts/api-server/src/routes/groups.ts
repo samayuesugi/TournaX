@@ -416,6 +416,38 @@ router.post("/groups/:id/messages", requireAuth, async (req: Request, res: Respo
   res.json({ success: true });
 });
 
+router.get("/groups/discover", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { search } = req.query;
+
+  const allGroups = await db.select().from(groupsTable)
+    .where(eq(groupsTable.isPublic, true));
+
+  const filtered = search
+    ? allGroups.filter(g => g.name.toLowerCase().includes((search as string).toLowerCase()))
+    : allGroups;
+
+  const myMemberships = await db.select().from(groupMembersTable).where(eq(groupMembersTable.userId, user.id));
+  const myGroupIds = new Set(myMemberships.map(m => m.groupId));
+
+  const result = await Promise.all(filtered.map(async (group) => {
+    const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, group.id));
+    return {
+      id: group.id,
+      name: group.name,
+      avatar: group.avatar,
+      type: group.type,
+      createdBy: group.createdBy,
+      maxMembers: group.maxMembers,
+      isPublic: group.isPublic,
+      memberCount: members.length,
+      isMember: myGroupIds.has(group.id),
+    };
+  }));
+
+  res.json(result);
+});
+
 // Always return the host group (public or private) so it shows on the host's profile
 router.get("/groups/by-host/:hostId", async (req: Request, res: Response) => {
   const hostId = Number(req.params.hostId);
