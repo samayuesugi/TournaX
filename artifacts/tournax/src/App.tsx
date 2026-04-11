@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/useAuth";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
+import { useEffect, useRef } from "react";
+import { parseTwemoji } from "@/lib/twemoji";
 
 import AuthPage from "@/pages/auth";
 import AuthCallbackPage from "@/pages/auth-callback";
@@ -322,6 +324,18 @@ function AppContent() {
   );
 }
 
+function TwemojiRoot({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
+
+  useEffect(() => {
+    const id = setTimeout(() => parseTwemoji(ref.current), 80);
+    return () => clearTimeout(id);
+  }, [location]);
+
+  return <div ref={ref} style={{ display: "contents" }}>{children}</div>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -329,7 +343,9 @@ function App() {
         <LanguageProvider>
           <AuthProvider>
             <SocketProvider>
-              <AppContent />
+              <TwemojiRoot>
+                <AppContent />
+              </TwemojiRoot>
             </SocketProvider>
           </AuthProvider>
           <Toaster />

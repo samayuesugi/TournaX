@@ -397,3 +397,11 @@
 .profile-color-pink { --profile-accent: #ec4899; --profile-accent-light: #f472b6; }
 .profile-color-cyan { --profile-accent: #06b6d4; --profile-accent-light: #22d3ee; }
 .profile-color-purple { --profile-accent: #8b5cf6; --profile-accent-light: #a78bfa; }
+
+img.twemoji {
+  display: inline-block;
+  height: 1.1em;
+  width: 1.1em;
+  margin: 0 0.05em 0 0.1em;
+  vertical-align: -0.15em;
+}
