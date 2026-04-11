@@ -6,6 +6,32 @@ import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
+const allowedScreenshotMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+const maxAiScreenshotBytes = 4 * 1024 * 1024;
+
+function detectImageMimeType(buffer: Buffer): string | null {
+  if (buffer.length >= 4 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return "image/jpeg";
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP") return "image/webp";
+  return null;
+}
+
+function validateBase64Screenshot(imageBase64: unknown, mimeType: unknown): { ok: true; data: string; mimeType: string } | { ok: false; error: string } {
+  if (typeof imageBase64 !== "string" || !imageBase64.trim()) return { ok: false, error: "imageBase64 is required" };
+  const normalizedMimeType = typeof mimeType === "string" ? mimeType.toLowerCase() : "";
+  if (!allowedScreenshotMimeTypes.includes(normalizedMimeType)) return { ok: false, error: "Unsupported screenshot file type" };
+  const cleaned = imageBase64.replace(/^data:[^;]+;base64,/, "").trim();
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(cleaned)) return { ok: false, error: "Invalid screenshot data" };
+  const buffer = Buffer.from(cleaned, "base64");
+  if (!buffer.length) return { ok: false, error: "Screenshot is empty" };
+  if (buffer.length > maxAiScreenshotBytes) return { ok: false, error: "Screenshot is too large. Maximum size is 4MB." };
+  const detectedMime = detectImageMimeType(buffer);
+  if (!detectedMime || detectedMime !== normalizedMimeType) return { ok: false, error: "Screenshot content does not match the selected file type" };
+  const sample = buffer.subarray(0, Math.min(buffer.length, 256 * 1024)).toString("latin1").toLowerCase();
+  if (sample.includes("<script") || sample.includes("<svg") || sample.includes("<?php") || sample.includes("<html")) return { ok: false, error: "Screenshot failed safety checks" };
+  return { ok: true, data: cleaned, mimeType: detectedMime };
+}
+
 async function getGeminiClient() {
   if (!process.env.AI_INTEGRATIONS_GEMINI_BASE_URL || !process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
     throw new Error("Gemini AI integration is not configured");
@@ -18,8 +44,9 @@ router.post("/ai/analyze-screenshot", requireAuth, async (req, res) => {
   try {
     const { imageBase64, mimeType, participants, game } = req.body;
 
-    if (!imageBase64) {
-      res.status(400).json({ error: "imageBase64 is required" });
+    const validation = validateBase64Screenshot(imageBase64, mimeType);
+    if (!validation.ok) {
+      res.status(400).json({ error: validation.error });
       return;
     }
 
@@ -81,8 +108,8 @@ Important checks for cheating detection:
           parts: [
             {
               inlineData: {
-                mimeType: mimeType || "image/jpeg",
-                data: imageBase64,
+                mimeType: validation.mimeType,
+                data: validation.data,
               },
             },
             { text: prompt },
@@ -231,8 +258,9 @@ router.post("/users/me/verify-game", requireAuth, async (req, res) => {
     const user = (req as any).user;
     const { imageBase64, mimeType } = req.body;
 
-    if (!imageBase64) {
-      res.status(400).json({ error: "imageBase64 is required" });
+    const validation = validateBase64Screenshot(imageBase64, mimeType);
+    if (!validation.ok) {
+      res.status(400).json({ error: validation.error });
       return;
     }
 
@@ -270,7 +298,7 @@ Be strict: codeFound must only be true if you can CLEARLY see "${expectedCode}" 
         {
           role: "user",
           parts: [
-            { inlineData: { mimeType: mimeType || "image/jpeg", data: imageBase64 } },
+            { inlineData: { mimeType: validation.mimeType, data: validation.data } },
             { text: prompt },
           ],
         },

@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Bot, Sparkles, ShieldAlert, CheckCircle2, RefreshCw, Users, UserX, ShieldCheck, Shield, BookTemplate, History, TrendingUp, CalendarDays } from "lucide-react";
 
 const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
+const SCREENSHOT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MATCH_SCREENSHOT_MAX_BYTES = 6 * 1024 * 1024;
 
 function saveMatchAsTemplate(match: any) {
   const existing = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || "[]");
@@ -174,6 +176,12 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       reader.readAsDataURL(file);
     });
 
+  const validateScreenshotFile = (file: File): string | null => {
+    if (!SCREENSHOT_MIME_TYPES.includes(file.type)) return "Upload JPG, PNG, or WebP screenshots only.";
+    if (file.size > MATCH_SCREENSHOT_MAX_BYTES) return "Each screenshot must be 6MB or smaller.";
+    return null;
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -190,12 +198,15 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       const newFiles: { base64: string; mimeType: string }[] = [];
       for (let i = 0; i < canAdd; i++) {
         const file = files[i];
+        const validationError = validateScreenshotFile(file);
+        if (validationError) throw new Error(validationError);
         const preview = URL.createObjectURL(file);
         newPreviews.push(preview);
         const fileData = await readFileAsBase64(file);
         newFiles.push(fileData);
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("context", "matchResult");
         const res = await fetch("/api/storage/uploads/file", { method: "POST", body: formData });
         if (!res.ok) throw new Error("Upload failed");
         const data = await res.json();
@@ -205,8 +216,8 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       setScreenshotPreviews(prev => [...prev, ...newPreviews]);
       setScreenshotFiles(prev => [...prev, ...newFiles]);
       toast({ title: `${canAdd} screenshot${canAdd > 1 ? "s" : ""} uploaded!` });
-    } catch {
-      toast({ title: "Screenshot upload failed", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Screenshot upload failed", description: err?.message || "Unsupported or unsafe file.", variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -399,7 +410,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
               className="hidden"
               onChange={handleFileChange}

@@ -33,6 +33,9 @@ const COMPLAINT_TOPICS = [
   { id: "Other", label: "Other", icon: "📋" },
 ];
 
+const GAME_VERIFY_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const GAME_VERIFY_MAX_BYTES = 4 * 1024 * 1024;
+
 type DailyTasksData = {
   inviteClaimed: boolean;
   loginClaimed: boolean;
@@ -420,6 +423,18 @@ function GameVerifyDialog({ open, onClose, user, refreshUser }: {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!GAME_VERIFY_MIME_TYPES.includes(file.type)) {
+      setErrorMsg("Upload a JPG, PNG, or WebP screenshot.");
+      setStep("error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > GAME_VERIFY_MAX_BYTES) {
+      setErrorMsg("Screenshot is too large. Maximum size is 4MB.");
+      setStep("error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setStep("verifying");
     setErrorMsg(null);
     try {
@@ -530,7 +545,7 @@ function GameVerifyDialog({ open, onClose, user, refreshUser }: {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 onChange={handleFileChange}
               />

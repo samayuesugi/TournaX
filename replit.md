@@ -11,15 +11,15 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **YouTube-like Filter**: Home page has a filter button (sliders icon) opening a bottom sheet with category, mode, map, and free/paid filters; active filters shown as chips
 - **Team Auction System**: Admin creates auctions with teams/players, users bid on teams, rewards distributed proportionally to winners' bidders
 - **Wallet System**: Gold Coins (GC) for match entry/auctions, Silver Coins for daily tasks, deposit/withdrawal via admin approval
-- **Manual UPI Payments**: Wallet top-ups use backend-configured `ADMIN_UPI_ID`, minimum 10 GC/₹, required receipt upload, and unique normalized UTR/reference validation before admin approval
+- **Manual UPI Payments**: Wallet top-ups use backend-configured `ADMIN_UPI_ID`, minimum 10 GC/₹, required private receipt upload, unique normalized UTR/reference validation, and server-side upload MIME/signature/size checks before admin approval
 - **Leaderboard**: Player rankings by wins, matches played, or earnings
 - **Social**: Follow hosts, chat (DMs + group), profile pages
 - **Admin Panel**: Manage players, hosts, finance, complaints, auctions
 - **Esports Category**: Hosts with Esports verification can create Esports-category matches; visible only to Esports players
 - **Auto Prize Pool**: Showcase prize = slots × entry fee + host contribution (auto-calculated, read-only)
 - **Reward Distribution Table**: Battle Royale has customizable position rewards (1st 30%, 2nd 25%, 3rd 15%, MVP 10%; host/platform 10% each locked); Clash Squad/Lone Wolf fully locked (winner 90%, host/platform 5% each)
-- **Mandatory Result Screenshots**: Hosts must upload 1-5 in-game result screenshots when submitting results; auto-deleted after 3 days; stored in `result_screenshot_urls` column
-- **Game Verification Flow**: Players get a unique code (#TX-XXXX), add it to their in-game name, upload a profile screenshot, and AI (Gemini 2.5 Flash) verifies the code + auto-extracts IGN and UID. Verified badge shown on profile.
+- **Mandatory Result Screenshots**: Hosts must upload 1-5 in-game result screenshots when submitting results; screenshots are validated as JPG/PNG/WebP with size/signature checks, auto-deleted after 3 days, and stored in `result_screenshot_urls` column
+- **Game Verification Flow**: Players get a unique code (#TX-XXXX), add it to their in-game name, upload a profile screenshot, and AI (Gemini 2.5 Flash) verifies the code + auto-extracts IGN and UID. Verification screenshots are limited to JPG/PNG/WebP with backend base64 size/signature validation. Verified badge shown on profile.
 - **Trust Score System**: Players start at 500 points; score changes based on match completions, disputes, profile actions; tiers: Risky/Beginner/Trusted/Veteran/Elite
 - **Host Reputation System**: After each match, players rate hosts on prize timeliness, room code sharing, and overall experience (1-5 stars); host badges auto-assigned
 - **Escrow Prize System**: All match prize funds locked in escrow when match goes live; auto-distributed to winners after AI result verification; hosts cannot touch prize pool

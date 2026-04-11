@@ -128,13 +128,32 @@ export class ObjectStorageService {
     });
   }
 
-  async uploadFile(buffer: Buffer, contentType: string): Promise<string> {
+  async uploadFile(
+    buffer: Buffer,
+    contentType: string,
+    options: { ownerId?: string; originalName?: string; context?: string } = {}
+  ): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     const objectId = randomUUID();
     const fullPath = `${privateObjectDir}/uploads/${objectId}`;
     const { bucketName, objectName } = parseObjectPath(fullPath);
     const file = objectStorageClient.bucket(bucketName).file(objectName);
-    await file.save(buffer, { contentType, resumable: false });
+    await file.save(buffer, {
+      contentType,
+      resumable: false,
+      metadata: {
+        metadata: {
+          originalName: sanitizeObjectMetadataValue(options.originalName ?? ""),
+          uploadContext: sanitizeObjectMetadataValue(options.context ?? "general"),
+        },
+      },
+    });
+    if (options.ownerId) {
+      await setObjectAclPolicy(file, {
+        owner: options.ownerId,
+        visibility: "private",
+      });
+    }
     return this.normalizeObjectEntityPath(`https://storage.googleapis.com/${bucketName}/${objectName}`);
   }
 
@@ -214,6 +233,10 @@ export class ObjectStorageService {
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
+}
+
+function sanitizeObjectMetadataValue(value: string): string {
+  return value.replace(/[^\w.\- ()]/g, "").slice(0, 120);
 }
 
 function parseObjectPath(path: string): {

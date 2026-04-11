@@ -36,6 +36,9 @@ const COIN_PACKS = [
   { id: "custom", label: "Custom", coins: 0, price: 0, color: "from-violet-800/60 to-purple-900/50 border-violet-400/25", accent: "bg-violet-400/20", badge: "" },
 ];
 
+const RECEIPT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
+
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -106,6 +109,16 @@ function CoinsPackDialog() {
   const handleReceiptSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!RECEIPT_MIME_TYPES.includes(file.type)) {
+      toast({ title: "Unsupported receipt", description: "Upload a JPG, PNG, WebP, or PDF receipt.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > RECEIPT_MAX_BYTES) {
+      toast({ title: "Receipt too large", description: "Maximum receipt size is 5MB.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setReceiptFile(file);
     const url = URL.createObjectURL(file);
     setReceiptPreview(url);
@@ -139,6 +152,7 @@ function CoinsPackDialog() {
     try {
       const formData = new FormData();
       formData.append("file", receiptFile);
+      formData.append("context", "receipt");
       const uploadRes = await customFetch<{ objectPath: string }>(
         "/api/storage/uploads/file",
         { method: "POST", body: formData }
@@ -314,7 +328,7 @@ function CoinsPackDialog() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
                   className="hidden"
                   onChange={handleReceiptSelect}
                 />
