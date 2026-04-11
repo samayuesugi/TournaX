@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { Users, Plus, Search, Shield, Lock, Globe, Swords, MessageCircle, ChevronRight } from "lucide-react";
+import { Users, Plus, Search, Shield, Lock, Globe, Swords, MessageCircle, Loader2 } from "lucide-react";
 
 const CLAN_EMOJIS = ["⚔️", "🛡️", "🔥", "💥", "🎮", "🏆", "👑", "⚡", "🦁", "🐉", "🦅", "🌟"];
 
@@ -91,6 +91,8 @@ export default function ClansPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newClan, setNewClan] = useState({ name: "", avatar: "⚔️", isPublic: true });
   const [activeTab, setActiveTab] = useState<"my" | "discover">("my");
+  const [discoverPage, setDiscoverPage] = useState(1);
+  const [allDiscoverGroups, setAllDiscoverGroups] = useState<Group[]>([]);
 
   const { data: myGroups = [], isLoading: myLoading } = useQuery<Group[]>({
     queryKey: ["/api/groups"],
@@ -102,12 +104,22 @@ export default function ClansPage() {
     },
   });
 
-  const { data: publicGroups = [], isLoading: discoverLoading } = useQuery<Group[]>({
-    queryKey: ["/api/groups/public"],
+  const { data: discoverData, isLoading: discoverLoading, isFetching: discoverFetching } = useQuery<{
+    groups: Group[]; total: number; page: number; totalPages: number; hasMore: boolean;
+  }>({
+    queryKey: ["/api/groups/discover", discoverPage, searchQuery],
     queryFn: async () => {
-      const res = await customFetch("/api/groups/discover");
-      if (!res.ok) return [];
-      return res.json();
+      const params = new URLSearchParams({ page: String(discoverPage), limit: "12" });
+      if (searchQuery) params.set("search", searchQuery);
+      const res = await customFetch(`/api/groups/discover?${params}`);
+      if (!res.ok) return { groups: [], total: 0, page: 1, totalPages: 1, hasMore: false };
+      const data = await res.json();
+      if (discoverPage === 1) {
+        setAllDiscoverGroups(data.groups || []);
+      } else {
+        setAllDiscoverGroups(prev => [...prev, ...(data.groups || [])]);
+      }
+      return data;
     },
   });
 
@@ -156,12 +168,10 @@ export default function ClansPage() {
   const filteredMy = myGroups.filter(g =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const filteredDiscover = publicGroups.filter(g =>
-    g.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
-  const displayGroups = activeTab === "my" ? filteredMy : filteredDiscover;
-  const isLoading = activeTab === "my" ? myLoading : discoverLoading;
+  const displayGroups = activeTab === "my" ? filteredMy : allDiscoverGroups;
+  const isLoading = activeTab === "my" ? myLoading : (discoverLoading && discoverPage === 1);
+  const hasMore = discoverData?.hasMore ?? false;
 
   return (
     <AppLayout title="Clans">
@@ -186,7 +196,11 @@ export default function ClansPage() {
             placeholder="Search clans..."
             className="pl-9"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setDiscoverPage(1);
+              setAllDiscoverGroups([]);
+            }}
           />
         </div>
 
@@ -246,6 +260,19 @@ export default function ClansPage() {
                 navigate={navigate}
               />
             ))}
+            {activeTab === "discover" && hasMore && (
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                disabled={discoverFetching}
+                onClick={() => setDiscoverPage(p => p + 1)}
+              >
+                {discoverFetching
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</>
+                  : "Load More Clans"
+                }
+              </Button>
+            )}
           </div>
         )}
       </div>

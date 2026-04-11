@@ -418,7 +418,11 @@ router.post("/groups/:id/messages", requireAuth, async (req: Request, res: Respo
 
 router.get("/groups/discover", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { search } = req.query;
+  const { search, page, limit: limitParam } = req.query;
+
+  const pageNum = Math.max(1, parseInt(String(page || "1"), 10));
+  const pageSize = Math.min(20, Math.max(1, parseInt(String(limitParam || "12"), 10)));
+  const offset = (pageNum - 1) * pageSize;
 
   const allGroups = await db.select().from(groupsTable)
     .where(eq(groupsTable.isPublic, true));
@@ -430,7 +434,9 @@ router.get("/groups/discover", requireAuth, async (req: Request, res: Response) 
   const myMemberships = await db.select().from(groupMembersTable).where(eq(groupMembersTable.userId, user.id));
   const myGroupIds = new Set(myMemberships.map(m => m.groupId));
 
-  const result = await Promise.all(filtered.map(async (group) => {
+  const paginated = filtered.slice(offset, offset + pageSize);
+
+  const result = await Promise.all(paginated.map(async (group) => {
     const members = await db.select().from(groupMembersTable).where(eq(groupMembersTable.groupId, group.id));
     return {
       id: group.id,
@@ -445,7 +451,13 @@ router.get("/groups/discover", requireAuth, async (req: Request, res: Response) 
     };
   }));
 
-  res.json(result);
+  res.json({
+    groups: result,
+    total: filtered.length,
+    page: pageNum,
+    totalPages: Math.ceil(filtered.length / pageSize),
+    hasMore: offset + pageSize < filtered.length,
+  });
 });
 
 // Always return the host group (public or private) so it shows on the host's profile

@@ -1,5 +1,12 @@
-const CACHE_NAME = "tournax-v1";
-const STATIC_ASSETS = ["/", "/manifest.json"];
+const CACHE_NAME = "tournax-v2";
+const STATIC_ASSETS = [
+  "/",
+  "/manifest.json",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icon-maskable.png",
+  "/favicon.svg",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -18,7 +25,24 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.url.includes("/api/")) return;
+  const url = new URL(event.request.url);
+
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/__")) return;
+  if (event.request.method !== "GET") return;
+
+  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|webp|svg|woff2?|ttf)$/)) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const response = await fetch(event.request);
+        if (response.ok) cache.put(event.request, response.clone());
+        return response;
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );

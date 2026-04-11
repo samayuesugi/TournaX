@@ -33,8 +33,8 @@ channel = "stable-25_05"
 [userenv.shared]
 JWT_SECRET = "t4Kd4xGcqU3vfK4zS6lxUc198p1GVZbQZYoT/zfFEUpjNJA4DmdxA04Uu6zsCcSQ"
 DEFAULT_ADMIN_PASSWORD = "SmityXmr@0816"
-VAPID_PUBLIC_KEY = "BFQMqdjU5uyWAUrzXy6kQ0T-rJ9JmkRJF2w3CHCdrcnQ6MeSVGzR84avrTqqTpVna2POPHlvz_T1BZ3os3w55Y4"
-VAPID_PRIVATE_KEY = "MRoBLguzVGeOyYHV_UEw1NKdQDbNwCw9nRzRUucm0uI"
+VAPID_PUBLIC_KEY = "BA6hiS2v8tNo3rDwOLA2KO-14Dm3MD-1sfu6nK-Ps_uCuiMzFzf8lfeYWT8o8lxcLRvdsR6V8SE_rII_IZ8JSf0"
+VAPID_PRIVATE_KEY = "B3teBvYO9G2eZY0QaQz1vu94yFCqpSs0L4hYfLKl6vc"
 VAPID_EMAIL = "mailto:admin@tournax.app"
 APP_URL = "https://tourna-x--tournaxofficial.replit.app"
 

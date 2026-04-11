@@ -413,29 +413,29 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
     }
   }
 
-  // Check for duplicate UIDs already in this match
   const submittedUids: string[] = players
     ? players.map((p: any) => String(p.uid).trim())
     : [String(req.body.uid || user.gameUid || "").trim()].filter(Boolean);
 
-  if (submittedUids.length > 0) {
-    const existingPlayers = await db
-      .select({ uid: matchPlayersTable.uid })
-      .from(matchPlayersTable)
-      .where(eq(matchPlayersTable.matchId, match.id));
-
-    const takenUids = new Set(existingPlayers.map((p) => String(p.uid).trim()));
-    const duplicateUid = submittedUids.find((uid) => takenUids.has(uid));
-    if (duplicateUid) {
-      res.status(400).json({ error: `UID "${duplicateUid}" is already registered in this match.` });
-      return;
-    }
-  }
-
-  const totalFee = parseFloat(match.entryFee as string) * (match.teamSize > 1 ? match.teamSize : 1);
+  const entryFeeCents = Math.round(parseFloat(match.entryFee as string) * 100);
+  const totalFeeCents = entryFeeCents * (match.teamSize > 1 ? match.teamSize : 1);
+  const totalFee = totalFeeCents / 100;
 
   try {
     await db.transaction(async (tx) => {
+      if (submittedUids.length > 0) {
+        const existingPlayers = await tx
+          .select({ uid: matchPlayersTable.uid })
+          .from(matchPlayersTable)
+          .where(eq(matchPlayersTable.matchId, match.id));
+
+        const takenUids = new Set(existingPlayers.map((p) => String(p.uid).trim()));
+        const duplicateUid = submittedUids.find((uid) => takenUids.has(uid));
+        if (duplicateUid) {
+          throw new Error(`UID "${duplicateUid}" is already registered in this match.`);
+        }
+      }
+
       const deductResult = await tx.execute(
         sql`UPDATE users SET balance = balance - ${totalFee} WHERE id = ${user.id} AND balance >= ${totalFee} RETURNING balance`
       );
@@ -538,6 +538,9 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   } catch (err: any) {
     const msg = err?.message;
     if (msg === "Insufficient balance" || msg === "Match is full") {
+      res.status(400).json({ error: msg }); return;
+    }
+    if (msg?.includes("is already registered in this match")) {
       res.status(400).json({ error: msg }); return;
     }
     throw err;
