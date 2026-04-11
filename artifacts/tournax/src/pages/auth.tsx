@@ -371,7 +371,7 @@ export default function AuthPage() {
   };
 
   const Logo = () => (
-    <div className="text-center mb-8">
+    <div className="text-center mb-6">
       <div className="flex items-center justify-center mb-3">
         <img src={`${import.meta.env.BASE_URL}logo.png`} alt="TournaX" className="w-20 h-20 object-contain" />
       </div>
@@ -579,7 +579,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-start px-4 pt-6 pb-4 sm:justify-center sm:py-8">
       <div className="w-full max-w-sm">
         <Logo />
         <div className="bg-card border border-card-border rounded-2xl p-6 shadow-lg">
