@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck, Tv2, BookTemplate, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck, Tv2, BookTemplate, ChevronDown, ChevronUp, X, ListChecks, Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -21,6 +21,19 @@ import thumb4 from "@assets/6fa5cd183933069.6549000c19789_1774695040280.png";
 import thumb5 from "@assets/01bf62183933069.6549000c306ac_1775725760171.png";
 
 const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
+
+const PREDEFINED_RULES = [
+  { id: "no_camping", label: "No Camping", emoji: "🏕️" },
+  { id: "no_teaming", label: "No Teaming", emoji: "⛔" },
+  { id: "no_hacking", label: "No Hacking / Cheating", emoji: "🚫" },
+  { id: "no_crouch_spam", label: "No Crouch Spam", emoji: "🦆" },
+  { id: "no_emote", label: "No Emote During Match", emoji: "✋" },
+  { id: "fair_play", label: "Fair Play Only", emoji: "🤝" },
+  { id: "no_abuse", label: "No Verbal Abuse (Chat)", emoji: "💬" },
+  { id: "no_vpn", label: "No VPN", emoji: "🔒" },
+  { id: "screenshot_mandatory", label: "Screenshot Mandatory", emoji: "📸" },
+  { id: "no_rush_zone", label: "No Rush in First Zone", emoji: "🏃" },
+];
 
 const THUMBNAIL_OPTIONS = [
   { id: "thumb1", src: thumb1, label: "Warrior" },
@@ -300,6 +313,30 @@ export default function CreateMatchPage() {
     streamLink: "",
   });
 
+  const [selectedRules, setSelectedRules] = useState<string[]>([]);
+  const [customRuleInput, setCustomRuleInput] = useState("");
+  const [customRulesList, setCustomRulesList] = useState<string[]>([]);
+
+  const toggleRule = (id: string) => {
+    setSelectedRules(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  };
+
+  const addCustomRule = () => {
+    const trimmed = customRuleInput.trim();
+    if (!trimmed || customRulesList.includes(trimmed)) return;
+    setCustomRulesList(prev => [...prev, trimmed]);
+    setCustomRuleInput("");
+  };
+
+  const removeCustomRule = (rule: string) => {
+    setCustomRulesList(prev => prev.filter(r => r !== rule));
+  };
+
+  const allSelectedRules = [
+    ...PREDEFINED_RULES.filter(r => selectedRules.includes(r.id)).map(r => `${r.emoji} ${r.label}`),
+    ...customRulesList,
+  ];
+
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const savedTemplates = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || "[]");
 
@@ -386,6 +423,7 @@ export default function CreateMatchPage() {
           rewardDistribution: distribution,
           isEsportsOnly,
           streamLink: form.streamLink.trim() || undefined,
+          customRules: allSelectedRules.length > 0 ? allSelectedRules : undefined,
         } as any,
       });
       toast({ title: "Match created!" });
@@ -580,6 +618,72 @@ export default function CreateMatchPage() {
               onChange={(e) => setForm(f => ({ ...f, streamLink: e.target.value }))}
             />
             <p className="text-[11px] text-muted-foreground">Players can watch the match live on YouTube, Twitch, etc.</p>
+          </div>
+        </div>
+
+        <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <ListChecks className="w-3.5 h-3.5" /> Match Rules
+            </h3>
+            {allSelectedRules.length > 0 && (
+              <span className="text-xs font-semibold bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 rounded-full">
+                {allSelectedRules.length} active
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Toggle karo jo rules apply hote hain is match mein. Players inhe match detail mein dekhenge.</p>
+
+          <div className="grid grid-cols-2 gap-2">
+            {PREDEFINED_RULES.map((rule) => {
+              const active = selectedRules.includes(rule.id);
+              return (
+                <button
+                  key={rule.id}
+                  type="button"
+                  onClick={() => toggleRule(rule.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all",
+                    active
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                  )}
+                >
+                  <span className="text-base shrink-0">{rule.emoji}</span>
+                  <span className="text-xs font-medium leading-tight">{rule.label}</span>
+                  {active && <span className="ml-auto text-primary text-[10px] font-bold shrink-0">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Custom Rule Add Karo</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g. No rush in first circle"
+                value={customRuleInput}
+                onChange={(e) => setCustomRuleInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomRule(); } }}
+                className="flex-1 text-sm"
+                maxLength={60}
+              />
+              <Button type="button" variant="secondary" size="sm" onClick={addCustomRule} className="shrink-0 gap-1 px-3">
+                <Plus className="w-3.5 h-3.5" /> Add
+              </Button>
+            </div>
+            {customRulesList.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {customRulesList.map((rule) => (
+                  <span key={rule} className="flex items-center gap-1.5 bg-secondary/70 text-foreground text-xs px-2.5 py-1 rounded-full border border-border">
+                    {rule}
+                    <button type="button" onClick={() => removeCustomRule(rule)} className="text-muted-foreground hover:text-destructive transition-colors ml-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

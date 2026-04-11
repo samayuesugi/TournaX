@@ -156,6 +156,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     resultScreenshotUrls,
     screenshotUploadedAt: (match as any).screenshotUploadedAt ? (match as any).screenshotUploadedAt.toISOString() : null,
     streamLink: (match as any).streamLink ?? null,
+    customRules: (match as any).customRules ? JSON.parse((match as any).customRules) : [],
   };
   if (isJoined && match.roomReleased) {
     result.roomId = match.roomId;
@@ -226,7 +227,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, hostStake, minTrustScore, category, map: matchMap, rewardDistribution, isEsportsOnly, streamLink } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, hostStake, minTrustScore, category, map: matchMap, rewardDistribution, isEsportsOnly, streamLink, customRules } = req.body;
   const resolvedGame = game || user.game;
   if (!resolvedGame || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
@@ -301,6 +302,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       rewardDistribution: rewardDistribution ? JSON.stringify(rewardDistribution) : null,
       isEsportsOnly: isEsportsOnly === true || isEsportsOnly === "true",
       streamLink: streamLink ? String(streamLink).trim() : null,
+      customRules: customRules && Array.isArray(customRules) && customRules.length > 0 ? JSON.stringify(customRules) : null,
     } as any).returning();
     match = inserted;
     if (parsedHostStake > 0) {

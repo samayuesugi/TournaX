@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy, Tv2, ExternalLink } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy, Tv2, ExternalLink, ListChecks } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
@@ -490,6 +490,21 @@ export default function MatchDetailPage() {
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               </a>
+            )}
+            {Array.isArray((match as any).customRules) && (match as any).customRules.length > 0 && (
+              <div className="mt-3 rounded-xl bg-secondary/40 border border-border px-3 py-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ListChecks className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">Match Rules</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(match as any).customRules.map((rule: string, i: number) => (
+                    <span key={i} className="text-xs bg-card border border-border px-2.5 py-1 rounded-full text-foreground">
+                      {rule}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
