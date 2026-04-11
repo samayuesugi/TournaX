@@ -11,6 +11,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **YouTube-like Filter**: Home page has a filter button (sliders icon) opening a bottom sheet with category, mode, map, and free/paid filters; active filters shown as chips
 - **Team Auction System**: Admin creates auctions with teams/players, users bid on teams, rewards distributed proportionally to winners' bidders
 - **Wallet System**: Gold Coins (GC) for match entry/auctions, Silver Coins for daily tasks, deposit/withdrawal via admin approval
+- **Manual UPI Payments**: Wallet top-ups use backend-configured `ADMIN_UPI_ID`, minimum 10 GC/₹, required receipt upload, and unique normalized UTR/reference validation before admin approval
 - **Leaderboard**: Player rankings by wins, matches played, or earnings
 - **Social**: Follow hosts, chat (DMs + group), profile pages
 - **Admin Panel**: Manage players, hosts, finance, complaints, auctions

@@ -7,7 +7,13 @@
  */
 
 export interface AddBalanceRequest {
+  /**
+   * @minLength 6
+   * @maxLength 30
+   */
   utrNumber: string;
+  /** @minimum 10 */
   amount: number;
-  receiptUrl?: string;
+  /** @minLength 1 */
+  receiptUrl: string;
 }

@@ -6,6 +6,7 @@ import { requireAuth } from "./auth";
 
 const SILVER_TO_GOLD_RATE = 100;
 const GOLD_PER_CONVERSION = 1;
+const MIN_ADD_BALANCE_AMOUNT = 10;
 
 const router: IRouter = Router();
 
@@ -74,16 +75,33 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
 router.post("/wallet/add-balance", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { utrNumber, amount, receiptUrl } = req.body;
-  if (!utrNumber || !amount) { res.status(400).json({ error: "UTR and amount required" }); return; }
+  const normalizedUtr = String(utrNumber ?? "").trim().replace(/\s+/g, "").toUpperCase();
+  const normalizedReceiptUrl = String(receiptUrl ?? "").trim();
+
+  if (!normalizedUtr || !amount) { res.status(400).json({ error: "UTR and amount required" }); return; }
+  if (!/^[A-Z0-9-]{6,30}$/.test(normalizedUtr)) { res.status(400).json({ error: "Please enter a valid UTR/reference number" }); return; }
+  if (!normalizedReceiptUrl) { res.status(400).json({ error: "Payment receipt is required" }); return; }
   const numericAmount = Number(amount);
-  if (isNaN(numericAmount) || numericAmount <= 0) { res.status(400).json({ error: "Amount must be a positive number" }); return; }
-  await db.insert(addBalanceRequestsTable).values({
-    userId: user.id,
-    utrNumber,
-    amount: String(amount),
-    receiptUrl: receiptUrl || null,
-    status: "pending",
-  });
+  if (isNaN(numericAmount) || numericAmount < MIN_ADD_BALANCE_AMOUNT) { res.status(400).json({ error: `Minimum add amount is ${MIN_ADD_BALANCE_AMOUNT} Gold Coins` }); return; }
+
+  const [existingUtr] = await db.select({ id: addBalanceRequestsTable.id }).from(addBalanceRequestsTable).where(eq(addBalanceRequestsTable.utrNumber, normalizedUtr));
+  if (existingUtr) { res.status(409).json({ error: "This UTR/reference number has already been submitted" }); return; }
+
+  try {
+    await db.insert(addBalanceRequestsTable).values({
+      userId: user.id,
+      utrNumber: normalizedUtr,
+      amount: String(numericAmount),
+      receiptUrl: normalizedReceiptUrl,
+      status: "pending",
+    });
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      res.status(409).json({ error: "This UTR/reference number has already been submitted" });
+      return;
+    }
+    throw err;
+  }
   res.json({ success: true, message: "Request submitted successfully" });
 });
 

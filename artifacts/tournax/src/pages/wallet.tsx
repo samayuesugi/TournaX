@@ -19,8 +19,6 @@ function statusBadgeClass(status: string) {
   return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
 }
 
-const UPI_ID = "9971040244@ptaxis";
-
 const ADD_BALANCE_RULES = [
   { icon: "⚠️", text: "Submitting a false or already used UTR will result in a 2 Gold Coin penalty." },
   { icon: "🧾", text: "Attach a clear and readable receipt — blurry or cropped receipts will be rejected." },
@@ -48,7 +46,7 @@ type BuyStep = "select" | "qr" | "receipt";
 function CoinsPackDialog() {
   const { toast } = useToast();
   const { mutateAsync: addBalance, isPending: isAdding } = useRequestAddBalance();
-  const { refetch } = useGetWallet();
+  const { data: wallet, refetch, isLoading: isWalletLoading } = useGetWallet();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [open, setOpen] = useState(false);
@@ -74,8 +72,13 @@ function CoinsPackDialog() {
 
   const finalCoins = selectedPack?.id === "custom" ? parseInt(customAmount) || 0 : selectedPack?.coins ?? 0;
   const finalPrice = selectedPack?.id === "custom" ? parseInt(customAmount) || 0 : selectedPack?.price ?? 0;
+  const upiId = wallet?.upiId?.trim() ?? "";
 
   const handlePackSelect = (pack: typeof COIN_PACKS[0]) => {
+    if (!isWalletLoading && !upiId) {
+      toast({ title: "UPI unavailable", description: "Admin UPI ID is not configured yet. Please contact support.", variant: "destructive" });
+      return;
+    }
     setSelectedPack(pack);
     if (pack.id !== "custom") setStep("qr");
   };
@@ -86,11 +89,16 @@ function CoinsPackDialog() {
       toast({ title: "Minimum 10 coins", variant: "destructive" });
       return;
     }
+    if (!upiId) {
+      toast({ title: "UPI unavailable", description: "Admin UPI ID is not configured yet. Please contact support.", variant: "destructive" });
+      return;
+    }
     setStep("qr");
   };
 
   const handleCopyUpi = () => {
-    navigator.clipboard.writeText(UPI_ID);
+    if (!upiId) return;
+    navigator.clipboard.writeText(upiId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -115,8 +123,13 @@ function CoinsPackDialog() {
       toast({ title: "Receipt required", description: "Please attach your payment receipt.", variant: "destructive" });
       return;
     }
-    if (!utrNumber.trim()) {
+    const normalizedUtr = utrNumber.trim().replace(/\s+/g, "").toUpperCase();
+    if (!normalizedUtr) {
       toast({ title: "UTR required", description: "Please enter the UTR number from your receipt.", variant: "destructive" });
+      return;
+    }
+    if (!/^[A-Z0-9-]{6,30}$/.test(normalizedUtr)) {
+      toast({ title: "Invalid UTR", description: "Enter a valid UTR/reference number from your receipt.", variant: "destructive" });
       return;
     }
     if (finalCoins < 10) {
@@ -132,7 +145,7 @@ function CoinsPackDialog() {
       );
       const objectPath = uploadRes.objectPath;
 
-      await addBalance({ data: { amount: finalCoins, utrNumber: utrNumber.trim(), receiptUrl: objectPath } });
+      await addBalance({ data: { amount: finalCoins, utrNumber: normalizedUtr, receiptUrl: objectPath } });
       toast({ title: "Request submitted!", description: "Await admin approval. Usually within 30 mins." });
       reset();
       setOpen(false);
@@ -247,7 +260,7 @@ function CoinsPackDialog() {
               >
                 <div className="text-left">
                   <p className="text-xs text-muted-foreground mb-0.5">UPI ID</p>
-                  <p className="font-mono font-semibold text-sm text-primary">{UPI_ID}</p>
+                  <p className="font-mono font-semibold text-sm text-primary">{upiId || "UPI ID not configured"}</p>
                 </div>
                 {copied ? (
                   <Check className="w-4 h-4 text-green-400 shrink-0" />
@@ -266,7 +279,7 @@ function CoinsPackDialog() {
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setStep("select")}>Back</Button>
-                <Button className="flex-1" onClick={() => setStep("receipt")}>I Paid → Submit Proof</Button>
+                <Button className="flex-1" onClick={() => setStep("receipt")} disabled={!upiId}>I Paid → Submit Proof</Button>
               </div>
             </div>
           )}
@@ -292,7 +305,7 @@ function CoinsPackDialog() {
                 <Input
                   placeholder="12-digit UTR from receipt"
                   value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value)}
+                  onChange={(e) => setUtrNumber(e.target.value.toUpperCase())}
                 />
               </div>
 

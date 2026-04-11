@@ -830,10 +830,18 @@ export const GetWalletResponse = zod.object({
   ),
 });
 
+export const requestAddBalanceBodyUtrNumberMin = 6;
+export const requestAddBalanceBodyUtrNumberMax = 30;
+
+export const requestAddBalanceBodyAmountMin = 10;
+
 export const RequestAddBalanceBody = zod.object({
-  utrNumber: zod.string(),
-  amount: zod.number(),
-  receiptUrl: zod.string().optional(),
+  utrNumber: zod
+    .string()
+    .min(requestAddBalanceBodyUtrNumberMin)
+    .max(requestAddBalanceBodyUtrNumberMax),
+  amount: zod.number().min(requestAddBalanceBodyAmountMin),
+  receiptUrl: zod.string().min(1),
 });
 
 export const RequestAddBalanceResponse = zod.object({

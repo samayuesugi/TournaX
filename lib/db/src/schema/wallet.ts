@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, numeric, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, numeric, timestamp, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -12,7 +12,9 @@ export const addBalanceRequestsTable = pgTable("add_balance_requests", {
   receiptUrl: text("receipt_url"),
   status: financeStatusEnum("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("add_balance_requests_utr_number_unique").on(table.utrNumber),
+]);
 
 export const withdrawalRequestsTable = pgTable("withdrawal_requests", {
   id: serial("id").primaryKey(),

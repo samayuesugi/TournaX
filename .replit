@@ -37,6 +37,7 @@ VAPID_PUBLIC_KEY = "BA6hiS2v8tNo3rDwOLA2KO-14Dm3MD-1sfu6nK-Ps_uCuiMzFzf8lfeYWT8o
 VAPID_PRIVATE_KEY = "B3teBvYO9G2eZY0QaQz1vu94yFCqpSs0L4hYfLKl6vc"
 VAPID_EMAIL = "mailto:admin@tournax.app"
 APP_URL = "https://tourna-x--tournaxofficial.replit.app"
+ADMIN_UPI_ID = "9971040244@ptaxis"
 
 [userenv.production]
 

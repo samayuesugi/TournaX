@@ -1434,11 +1434,15 @@ components:
       properties:
         utrNumber:
           type: string
+          minLength: 6
+          maxLength: 30
         amount:
           type: number
+          minimum: 10
         receiptUrl:
           type: string
-      required: [utrNumber, amount]
+          minLength: 1
+      required: [utrNumber, amount, receiptUrl]
 
     WithdrawRequest:
       type: object
