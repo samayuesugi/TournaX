@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import {
-  useAdminListPlayers, useVerifyPlayer, useBanPlayer, useAdminAddBalance, useDeletePlayer, customFetch
+  useAdminListPlayers, useVerifyPlayer, useBanPlayer, useAdminAddBalance, customFetch
 } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GoldCoin } from "@/components/ui/Coins";
@@ -20,7 +20,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
   const { toast } = useToast();
   const { mutateAsync: verify } = useVerifyPlayer();
   const { mutateAsync: ban } = useBanPlayer();
-  const { mutateAsync: deletePlayer } = useDeletePlayer();
+  const deletePlayer = async ({ id }: { id: number }) => customFetch(`/api/admin/players/${id}`, { method: "DELETE" });
   const { mutateAsync: addBalance } = useAdminAddBalance();
   const [amount, setAmount] = useState("");
   const [balanceOpen, setBalanceOpen] = useState(false);

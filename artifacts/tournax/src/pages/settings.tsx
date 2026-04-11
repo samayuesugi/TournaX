@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import {
   useUpdateMyProfile, customFetch
@@ -14,7 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   LogOut, Flag, ShoppingBag, Gift, Link as LinkIcon,
   Copy, Check, ChevronRight, FileText,
-  Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal
+  Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal,
+  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
@@ -269,6 +270,202 @@ function EsportsDialog({ open, onClose, user, squad, refreshUser }: {
   );
 }
 
+function GameVerifyDialog({ open, onClose, user, refreshUser }: {
+  open: boolean; onClose: () => void; user: any; refreshUser: () => Promise<void>;
+}) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<"code" | "upload" | "verifying" | "done" | "error">("code");
+  const [code, setCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (open && !user?.isGameVerified) {
+      customFetch<any>("/api/users/me/verification-code")
+        .then((data) => {
+          setCode(data.code);
+          if (data.isGameVerified) setStep("done");
+        })
+        .catch(() => toast({ title: "Error", description: "Could not load verification code", variant: "destructive" }));
+    }
+    if (open && user?.isGameVerified) {
+      setStep("done");
+    }
+  }, [open, user?.isGameVerified]);
+
+  const handleCopyCode = () => {
+    if (code) {
+      navigator.clipboard.writeText(code).catch(() => {});
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setStep("verifying");
+    setErrorMsg(null);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const base64 = dataUrl.split(",")[1];
+        const mimeType = file.type || "image/jpeg";
+        try {
+          const res = await customFetch<any>("/api/users/me/verify-game", {
+            method: "POST",
+            body: JSON.stringify({ imageBase64: base64, mimeType }),
+          });
+          setResult(res);
+          setStep("done");
+          await refreshUser();
+          toast({ title: "Game Verified!", description: `IGN: ${res.gameIgn || "—"} · UID: ${res.gameUid || "—"}` });
+        } catch (err: any) {
+          setErrorMsg(err?.data?.error || "Verification failed. Try uploading a clearer screenshot.");
+          setStep("error");
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      setErrorMsg("Failed to read image. Please try again.");
+      setStep("error");
+    }
+  };
+
+  const handleClose = () => {
+    if (step !== "verifying") {
+      setStep("code");
+      setErrorMsg(null);
+      setResult(null);
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-primary" /> Game Verification
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
+          {step === "done" ? (
+            <div className="space-y-3">
+              <div className="flex flex-col items-center gap-2 py-4 text-center">
+                <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                </div>
+                <p className="font-bold text-lg text-green-400">Verified!</p>
+                <p className="text-sm text-muted-foreground">Your game account is verified</p>
+              </div>
+              <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">IGN</span>
+                  <span className="font-semibold">{user?.gameIgn || result?.gameIgn || "—"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">UID</span>
+                  <span className="font-semibold font-mono">{user?.gameUid || result?.gameUid || "—"}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Game</span>
+                  <span className="font-semibold">{user?.game || "—"}</span>
+                </div>
+              </div>
+              <Button className="w-full" onClick={handleClose}>Done</Button>
+            </div>
+          ) : step === "error" ? (
+            <div className="space-y-3">
+              <div className="flex flex-col items-center gap-2 py-3 text-center">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <XCircle className="w-7 h-7 text-red-400" />
+                </div>
+                <p className="font-semibold text-red-400">Verification Failed</p>
+                <p className="text-xs text-muted-foreground">{errorMsg}</p>
+              </div>
+              <Button className="w-full" variant="outline" onClick={() => setStep("upload")}>
+                Try Again
+              </Button>
+            </div>
+          ) : step === "verifying" ? (
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              <p className="font-semibold">Analyzing screenshot...</p>
+              <p className="text-xs text-muted-foreground">AI is reading your profile — please wait</p>
+            </div>
+          ) : step === "upload" ? (
+            <div className="space-y-3">
+              <div className="bg-primary/10 border border-primary/25 rounded-xl px-3 py-2.5 text-sm">
+                <p className="font-semibold text-primary mb-1">Step 3: Upload Profile Screenshot</p>
+                <p className="text-xs text-muted-foreground">Go to your game, take a screenshot of your profile page where your name with the code is clearly visible. Upload it here.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-border rounded-xl py-8 flex flex-col items-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              >
+                <Camera className="w-8 h-8" />
+                <span className="text-sm font-medium">Tap to upload screenshot</span>
+                <span className="text-xs">JPG, PNG — max 10MB</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button variant="outline" className="w-full" onClick={() => setStep("code")}>Back</Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">1</span>
+                  Copy your unique verification code
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-secondary/60 rounded-xl px-3 py-2.5 font-mono text-lg font-bold tracking-widest text-primary text-center">
+                    {code ?? "Loading..."}
+                  </div>
+                  <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={handleCopyCode} disabled={!code}>
+                    {codeCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-secondary/40 rounded-xl p-3 space-y-2">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
+                  <div>
+                    <p className="font-semibold text-foreground mb-0.5">Add code to your in-game name</p>
+                    <p>Open <span className="font-semibold">{user?.game || "your game"}</span> → Settings → Change Name</p>
+                    <p className="mt-1">Example: <span className="text-primary font-mono font-semibold">DragonX {code ?? "#TX-XXXX"}</span></p>
+                    <p className="mt-1 text-yellow-400">After saving, come back here to continue.</p>
+                  </div>
+                </div>
+              </div>
+
+              <Button className="w-full" disabled={!code} onClick={() => setStep("upload")}>
+                <Camera className="w-4 h-4 mr-2" /> I've Added the Code — Continue
+              </Button>
+
+              <p className="text-[10px] text-muted-foreground text-center">
+                You can remove the code from your name after verification is complete.
+              </p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TermsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -364,6 +561,7 @@ export default function SettingsPage() {
   const [esportsOpen, setEsportsOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [complaintOpen, setComplaintOpen] = useState(false);
+  const [gameVerifyOpen, setGameVerifyOpen] = useState(false);
 
   const [referralStats, setReferralStats] = useState<any>(null);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -441,6 +639,24 @@ export default function SettingsPage() {
                 <SettingRow icon={Trophy} iconBg="bg-primary/15" iconColor="text-primary" label="Quest & Daily Tasks" onClick={() => setQuestOpen(true)} />
                 <SettingRow icon={Gift} iconBg="bg-emerald-500/15" iconColor="text-emerald-400" label="Referral Program" onClick={() => setReferralOpen(true)} />
                 <SettingRow icon={Medal} iconBg="bg-yellow-500/15" iconColor="text-yellow-400" label="Esports Player" onClick={() => setEsportsOpen(true)} />
+                <button
+                  className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors"
+                  onClick={() => setGameVerifyOpen(true)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", (user as any).isGameVerified ? "bg-green-500/15" : "bg-blue-500/15")}>
+                      <ShieldCheck className={cn("w-4 h-4", (user as any).isGameVerified ? "text-green-400" : "text-blue-400")} />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">Game Verification</span>
+                      {(user as any).isGameVerified
+                        ? <span className="text-[10px] text-green-400 font-semibold">Verified ✓</span>
+                        : <span className="text-[10px] text-muted-foreground">Verify your IGN & UID</span>
+                      }
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </button>
               </>
             )}
 
@@ -484,6 +700,7 @@ export default function SettingsPage() {
       <EsportsDialog open={esportsOpen} onClose={() => setEsportsOpen(false)} user={user} squad={squad} refreshUser={refreshUser} />
       <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
       <ComplaintDialog open={complaintOpen} onClose={() => setComplaintOpen(false)} />
+      <GameVerifyDialog open={gameVerifyOpen} onClose={() => setGameVerifyOpen(false)} user={user} refreshUser={refreshUser} />
     </AppLayout>
   );
 }

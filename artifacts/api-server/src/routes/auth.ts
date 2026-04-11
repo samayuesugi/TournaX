@@ -99,6 +99,10 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     ingameRole: user.ingameRole ?? null,
     profileAnimation: user.profileAnimation ?? null,
     profileColor: user.profileColor ?? null,
+    gameIgn: user.gameIgn ?? null,
+    isGameVerified: user.isGameVerified ?? false,
+    verificationCode: user.verificationCode ?? null,
+    tournamentWins: user.tournamentWins ?? 0,
   };
 }
 

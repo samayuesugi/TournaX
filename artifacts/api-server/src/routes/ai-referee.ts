@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { requireAuth } from "./auth.js";
+import { db } from "@workspace/db";
+import { usersTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -148,6 +151,140 @@ Player message: ${message}`;
   } catch (err) {
     console.error("TX Coach error:", err);
     res.status(500).json({ error: "TX Coach is unavailable right now. Please try again." });
+  }
+});
+
+function generateVerificationCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "#TX-";
+  for (let i = 0; i < 4; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+router.get("/users/me/verification-code", requireAuth, async (req, res) => {
+  try {
+    const user = (req as any).user;
+
+    if (user.isGameVerified) {
+      res.json({
+        code: user.verificationCode,
+        isGameVerified: true,
+        gameIgn: user.gameIgn,
+        gameUid: user.gameUid,
+      });
+      return;
+    }
+
+    let code = user.verificationCode;
+    if (!code) {
+      code = generateVerificationCode();
+      await db.update(usersTable).set({ verificationCode: code }).where(eq(usersTable.id, user.id));
+    }
+
+    res.json({ code, isGameVerified: false });
+  } catch (err) {
+    console.error("Verification code error:", err);
+    res.status(500).json({ error: "Failed to get verification code" });
+  }
+});
+
+router.post("/users/me/verify-game", requireAuth, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const { imageBase64, mimeType } = req.body;
+
+    if (!imageBase64) {
+      res.status(400).json({ error: "imageBase64 is required" });
+      return;
+    }
+
+    const expectedCode = user.verificationCode;
+    if (!expectedCode) {
+      res.status(400).json({ error: "Get your verification code first" });
+      return;
+    }
+
+    const prompt = `You are a game profile verifier for TournaX, a gaming tournament platform.
+
+The user was asked to add this verification code to their in-game name: ${expectedCode}
+For example, their name might look like: "DragonX ${expectedCode}" or "${expectedCode} DragonX"
+
+Analyze this screenshot of their game profile and extract:
+1. Whether the verification code "${expectedCode}" is visible in the player name
+2. The player's full in-game name (IGN) WITHOUT the verification code suffix
+3. The player's UID/ID number if visible
+
+Return ONLY valid JSON (no markdown, no extra text):
+{
+  "codeFound": true or false,
+  "extractedIgn": "player name without the verification code, or null if not visible",
+  "extractedUid": "the UID/player ID number as string, or null if not visible",
+  "confidence": "high / medium / low",
+  "notes": "any observation or null"
+}
+
+Be strict: codeFound must only be true if you can CLEARLY see "${expectedCode}" in the screenshot.`;
+
+    const ai = await getGeminiClient();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType: mimeType || "image/jpeg", data: imageBase64 } },
+            { text: prompt },
+          ],
+        },
+      ],
+      config: { maxOutputTokens: 1024 },
+    });
+
+    const rawText = response.text ?? "";
+    let parsed: any;
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch {
+      parsed = null;
+    }
+
+    if (!parsed) {
+      res.status(422).json({ error: "Could not analyze screenshot. Please upload a clearer profile screenshot." });
+      return;
+    }
+
+    if (!parsed.codeFound) {
+      res.status(400).json({
+        error: `Verification code ${expectedCode} not found in screenshot. Make sure you added it to your in-game name first.`,
+        confidence: parsed.confidence,
+        notes: parsed.notes,
+      });
+      return;
+    }
+
+    const updateData: any = { isGameVerified: true };
+    if (parsed.extractedIgn) updateData.gameIgn = parsed.extractedIgn.trim();
+    if (parsed.extractedUid) updateData.gameUid = parsed.extractedUid.trim();
+
+    const [updated] = await db.update(usersTable)
+      .set(updateData)
+      .where(eq(usersTable.id, user.id))
+      .returning();
+
+    res.json({
+      success: true,
+      isGameVerified: true,
+      gameIgn: updated.gameIgn,
+      gameUid: updated.gameUid,
+      confidence: parsed.confidence,
+      notes: parsed.notes,
+    });
+  } catch (err: any) {
+    console.error("Game verification error:", err);
+    res.status(500).json({ error: "Verification failed. Please try again." });
   }
 });
 
