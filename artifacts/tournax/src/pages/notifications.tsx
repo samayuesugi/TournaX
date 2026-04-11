@@ -12,6 +12,8 @@ import { AvatarDisplay } from "./profile";
 
 function getIcon(type: string) {
   if (type === "squad_invite" || type === "squad_accepted") return <Users className="w-4 h-4" />;
+  if (type === "match_live") return <span className="text-sm">🔴</span>;
+  if (type === "room_ready") return <span className="text-sm">🚪</span>;
   if (type.includes("result") || type.includes("win")) return <Trophy className="w-4 h-4" />;
   if (type.includes("join")) return <Trophy className="w-4 h-4" />;
   if (type.includes("ban") || type.includes("reject")) return <AlertCircle className="w-4 h-4" />;

@@ -17,7 +17,19 @@ export async function notify(
   message: string,
   url?: string,
 ) {
-  await db.insert(notificationsTable).values({ userId, type, message });
+  const [inserted] = await db.insert(notificationsTable).values({ userId, type, message }).returning();
+
+  try {
+    const { getIO } = await import("./socket.js");
+    getIO().to(`user-${userId}`).emit("notification:new", {
+      id: inserted.id,
+      type,
+      message,
+      url: url || "/notifications",
+      read: false,
+      createdAt: inserted.createdAt?.toISOString(),
+    });
+  } catch {}
 
   const subs = await db
     .select()

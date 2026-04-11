@@ -576,6 +576,13 @@ router.post("/matches/:id/go-live", requireAuth, async (req: Request, res: Respo
   }
   await db.update(matchesTable).set({ status: "live", escrowStatus: "locked" } as any).where(eq(matchesTable.id, match.id));
   res.json({ success: true, message: "Match is now live" });
+
+  const participants = await db.select({ userId: matchParticipantsTable.userId })
+    .from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
+  const notifMsg = `Match ${match.code} has gone LIVE! 🔴 Get ready to play.`;
+  for (const p of participants) {
+    notify(p.userId, "match_live", notifMsg, `/matches/${match.id}`).catch(() => {});
+  }
 });
 
 router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res: Response) => {

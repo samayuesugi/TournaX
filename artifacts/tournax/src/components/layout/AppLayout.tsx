@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Bell, Plus, ArrowLeft, LogOut, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { GoldCoinIcon, SilverCoinIcon } from "@/components/ui/Coins";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -33,6 +34,8 @@ export function AppLayout({
   const isHomePage = location === "/";
   const queryClient = useQueryClient();
   const socket = useSocket();
+  const { toast } = useToast();
+  const [bellPulse, setBellPulse] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
@@ -46,17 +49,42 @@ export function AppLayout({
     const onUserUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     };
+    const onNotificationNew = (data: { type: string; message: string; url?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["getNotifications"] });
+      setBellPulse(true);
+      setTimeout(() => setBellPulse(false), 2000);
+
+      const emoji =
+        data.type === "match_live" ? "🔴" :
+        data.type === "match_result" ? "🏆" :
+        data.type === "room_ready" ? "🚪" :
+        data.type === "match_join" ? "🎮" :
+        data.type?.includes("wallet") || data.type?.includes("balance") ? "💰" :
+        data.type?.includes("squad") ? "🤝" : "🔔";
+
+      toast({
+        title: `${emoji} ${data.message}`,
+        duration: 4000,
+      });
+    };
+    const onLegacyNotification = () => {
+      queryClient.invalidateQueries({ queryKey: ["getNotifications"] });
+    };
 
     socket.on("match:new", onMatchNew);
     socket.on("match:deleted", onMatchDeleted);
     socket.on("user:updated", onUserUpdated);
+    socket.on("notification:new", onNotificationNew);
+    socket.on("notification", onLegacyNotification);
 
     return () => {
       socket.off("match:new", onMatchNew);
       socket.off("match:deleted", onMatchDeleted);
       socket.off("user:updated", onUserUpdated);
+      socket.off("notification:new", onNotificationNew);
+      socket.off("notification", onLegacyNotification);
     };
-  }, [socket, queryClient]);
+  }, [socket, queryClient, toast]);
 
   const handleLogout = async () => {
     await logout();
@@ -147,11 +175,14 @@ export function AppLayout({
               {user && (
                 <Link href="/notifications">
                   <button className="relative p-2 rounded-full hover:bg-secondary transition-colors">
-                    <Bell className="w-5 h-5" />
+                    <Bell className={cn("w-5 h-5 transition-all", bellPulse && "text-primary animate-bounce")} />
                     {unreadCount > 0 && (
-                      <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive border-0">
+                      <Badge className={cn("absolute -top-0.5 -right-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive border-0", bellPulse && "animate-ping-once")}>
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </Badge>
+                    )}
+                    {bellPulse && unreadCount === 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary animate-ping" />
                     )}
                   </button>
                 </Link>
