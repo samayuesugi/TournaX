@@ -54,6 +54,8 @@ export const usersTable = pgTable("users", {
   ingameRole: text("ingame_role"),
   profileAnimation: text("profile_animation"),
   profileColor: text("profile_color"),
+  state: text("state"),
+  city: text("city"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

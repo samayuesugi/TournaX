@@ -103,6 +103,8 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     isGameVerified: user.isGameVerified ?? false,
     verificationCode: user.verificationCode ?? null,
     tournamentWins: user.tournamentWins ?? 0,
+    state: user.state ?? null,
+    city: user.city ?? null,
   };
 }
 
