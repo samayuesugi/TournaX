@@ -726,6 +726,47 @@ router.get("/users/:handle/esports-stats", requireAuth, async (req: Request, res
   res.json(stats.map(s => ({ game: s.game, stats: s.stats })));
 });
 
+router.get("/users/:handle/h2h", requireAuth, async (req: Request, res: Response) => {
+  const currentUser = (req as any).user;
+  const { handle } = req.params;
+  const [them] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
+  if (!them) { res.status(404).json({ error: "User not found" }); return; }
+
+  const buildStats = async (u: typeof usersTable.$inferSelect) => {
+    const [matchStats] = await db.select({
+      total: sql<number>`count(*)::int`,
+      wins: sql<number>`count(case when ${matchParticipantsTable.rank} = 1 then 1 end)::int`,
+    }).from(matchParticipantsTable).where(eq(matchParticipantsTable.userId, u.id));
+
+    const esports = await db.select().from(esportsStatsTable).where(eq(esportsStatsTable.userId, u.id));
+    const primaryGame = u.game ?? null;
+    const primaryStats = esports.find(s => s.game === primaryGame)?.stats as Record<string, any> ?? null;
+
+    return {
+      id: u.id,
+      name: u.name,
+      handle: u.handle,
+      avatar: u.avatar || "🔥",
+      game: u.game,
+      tournamentWins: u.tournamentWins ?? 0,
+      trustScore: u.trustScore ?? 500,
+      trustTier: u.trustTier ?? "Trusted",
+      paidMatchesPlayed: u.paidMatchesPlayed ?? 0,
+      matchesPlayed: matchStats?.total ?? 0,
+      matchWins: matchStats?.wins ?? 0,
+      winRatePct: matchStats?.total ? Math.round(((matchStats.wins ?? 0) / matchStats.total) * 100) : 0,
+      isEsportsPlayer: u.isEsportsPlayer ?? false,
+      kd: primaryStats?.kd ?? null,
+      headshotPct: primaryStats?.headshotPct ?? null,
+      totalKills: primaryStats?.totalKills ?? null,
+      esportsWinRate: primaryStats?.winRate ?? null,
+    };
+  };
+
+  const [meStats, themStats] = await Promise.all([buildStats(currentUser), buildStats(them)]);
+  res.json({ me: meStats, them: themStats });
+});
+
 router.get("/users/:handle/followers", requireAuth, async (req: Request, res: Response) => {
   const { handle } = req.params;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));

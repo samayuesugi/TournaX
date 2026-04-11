@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus } from "lucide-react";
+import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -1102,6 +1102,126 @@ function OwnProfile() {
   );
 }
 
+type H2HData = {
+  me: { name: string | null; handle: string | null; avatar: string; game: string | null; tournamentWins: number; trustScore: number; trustTier: string; matchesPlayed: number; matchWins: number; winRatePct: number; paidMatchesPlayed: number; kd: number | null; headshotPct: number | null; totalKills: number | null; esportsWinRate: number | null };
+  them: { name: string | null; handle: string | null; avatar: string; game: string | null; tournamentWins: number; trustScore: number; trustTier: string; matchesPlayed: number; matchWins: number; winRatePct: number; paidMatchesPlayed: number; kd: number | null; headshotPct: number | null; totalKills: number | null; esportsWinRate: number | null };
+};
+
+function PvPStatsSection({ handle }: { handle: string }) {
+  const { data, isLoading } = useQuery<H2HData>({
+    queryKey: ["h2h", handle],
+    queryFn: () => customFetch<H2HData>(`/api/users/${handle}/h2h`),
+  });
+
+  if (isLoading) return <div className="p-4 space-y-3"><Skeleton className="h-40 rounded-2xl" /></div>;
+  if (!data) return null;
+
+  const { me, them } = data;
+  const sameGame = me.game && them.game && me.game === them.game;
+
+  type StatRow = { label: string; meVal: string | number | null; themVal: string | number | null; higherIsBetter: boolean; icon: React.ReactNode };
+
+  const rows: StatRow[] = [
+    { label: "Tournament Wins", meVal: me.tournamentWins, themVal: them.tournamentWins, higherIsBetter: true, icon: <Trophy className="w-3.5 h-3.5 text-amber-400" /> },
+    { label: "Matches Played", meVal: me.matchesPlayed, themVal: them.matchesPlayed, higherIsBetter: true, icon: <Swords className="w-3.5 h-3.5 text-primary" /> },
+    { label: "Match Wins", meVal: me.matchWins, themVal: them.matchWins, higherIsBetter: true, icon: <TrendingUp className="w-3.5 h-3.5 text-green-400" /> },
+    { label: "Win Rate", meVal: me.winRatePct != null ? `${me.winRatePct}%` : null, themVal: them.winRatePct != null ? `${them.winRatePct}%` : null, higherIsBetter: true, icon: <Target className="w-3.5 h-3.5 text-green-400" /> },
+    { label: "Trust Score", meVal: me.trustScore, themVal: them.trustScore, higherIsBetter: true, icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> },
+    { label: "Paid Matches", meVal: me.paidMatchesPlayed, themVal: them.paidMatchesPlayed, higherIsBetter: true, icon: <Zap className="w-3.5 h-3.5 text-yellow-400" /> },
+    ...(sameGame ? [
+      { label: "K/D Ratio", meVal: me.kd ?? null, themVal: them.kd ?? null, higherIsBetter: true, icon: <Crosshair className="w-3.5 h-3.5 text-destructive" /> },
+      { label: "Headshot %", meVal: me.headshotPct != null ? `${me.headshotPct}%` : null, themVal: them.headshotPct != null ? `${them.headshotPct}%` : null, higherIsBetter: true, icon: <Target className="w-3.5 h-3.5 text-orange-400" /> },
+      { label: "Total Kills", meVal: me.totalKills ?? null, themVal: them.totalKills ?? null, higherIsBetter: true, icon: <Crosshair className="w-3.5 h-3.5 text-red-400" /> },
+    ] as StatRow[] : []),
+  ];
+
+  const compare = (a: string | number | null, b: string | number | null, higherIsBetter: boolean): "me" | "them" | "tie" => {
+    const na = typeof a === "string" ? parseFloat(a) : a;
+    const nb = typeof b === "string" ? parseFloat(b) : b;
+    if (na == null || nb == null || isNaN(na as number) || isNaN(nb as number)) return "tie";
+    if (na === nb) return "tie";
+    return (higherIsBetter ? na > nb : na < nb) ? "me" : "them";
+  };
+
+  const meWins = rows.filter(r => compare(r.meVal, r.themVal, r.higherIsBetter) === "me").length;
+  const themWins = rows.filter(r => compare(r.meVal, r.themVal, r.higherIsBetter) === "them").length;
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center gap-3 bg-card border border-card-border rounded-2xl p-3">
+        <div className="flex-1 flex flex-col items-center gap-1">
+          <div className="text-2xl">{me.avatar}</div>
+          <div className="text-xs font-bold truncate max-w-[80px] text-center">{me.name || `@${me.handle}`}</div>
+          <div className="text-[10px] text-muted-foreground">@{me.handle}</div>
+          {me.game && <span className="text-[9px] font-semibold bg-primary/15 text-primary border border-primary/20 rounded-full px-2 py-0.5">{me.game}</span>}
+        </div>
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          <div className={cn("text-2xl font-black", meWins > themWins ? "text-primary" : meWins < themWins ? "text-muted-foreground" : "text-foreground")}>
+            {meWins}
+          </div>
+          <div className="flex items-center gap-1">
+            <Crosshair className="w-4 h-4 text-destructive" />
+            <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">VS</span>
+            <Crosshair className="w-4 h-4 text-destructive" />
+          </div>
+          <div className={cn("text-2xl font-black", themWins > meWins ? "text-primary" : themWins < meWins ? "text-muted-foreground" : "text-foreground")}>
+            {themWins}
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center gap-1">
+          <div className="text-2xl">{them.avatar}</div>
+          <div className="text-xs font-bold truncate max-w-[80px] text-center">{them.name || `@${them.handle}`}</div>
+          <div className="text-[10px] text-muted-foreground">@{them.handle}</div>
+          {them.game && <span className="text-[9px] font-semibold bg-primary/15 text-primary border border-primary/20 rounded-full px-2 py-0.5">{them.game}</span>}
+        </div>
+      </div>
+
+      {!sameGame && me.game && them.game && (
+        <p className="text-xs text-muted-foreground text-center">Game-specific stats hidden — different games ({me.game} vs {them.game})</p>
+      )}
+
+      <div className="space-y-2">
+        {rows.map((row) => {
+          const winner = compare(row.meVal, row.themVal, row.higherIsBetter);
+          const meNum = typeof row.meVal === "string" ? parseFloat(row.meVal) : row.meVal;
+          const themNum = typeof row.themVal === "string" ? parseFloat(row.themVal) : row.themVal;
+          const total = (meNum ?? 0) + (themNum ?? 0);
+          const mePct = total > 0 ? ((meNum ?? 0) / total) * 100 : 50;
+          const themPct = 100 - mePct;
+
+          return (
+            <div key={row.label} className="bg-card border border-card-border rounded-xl px-3 py-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className={cn("text-sm font-bold", winner === "me" ? "text-primary" : "text-muted-foreground")}>
+                  {row.meVal ?? "—"}
+                </span>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                  {row.icon} {row.label}
+                </div>
+                <span className={cn("text-sm font-bold", winner === "them" ? "text-primary" : "text-muted-foreground")}>
+                  {row.themVal ?? "—"}
+                </span>
+              </div>
+              {row.meVal != null && row.themVal != null && total > 0 && (
+                <div className="flex h-1.5 rounded-full overflow-hidden gap-px">
+                  <div
+                    className={cn("h-full rounded-l-full transition-all", winner === "me" ? "bg-primary" : "bg-muted-foreground/40")}
+                    style={{ width: `${mePct}%` }}
+                  />
+                  <div
+                    className={cn("h-full rounded-r-full transition-all", winner === "them" ? "bg-primary" : "bg-muted-foreground/40")}
+                    style={{ width: `${themPct}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PublicProfile({ handle }: { handle: string }) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
@@ -1163,11 +1283,12 @@ function PublicProfile({ handle }: { handle: string }) {
   const colorClass = color ? `profile-color-${color}` : "";
   const hasPlayed = hasPlayedData?.hasPlayed ?? false;
 
+  const showVsTab = isPlayer && !isOwnProfile && currentUser?.role === "player";
   const tabs = isHost
     ? [{ id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "ratings", label: "Ratings", icon: <Star className="w-4 h-4" /> }]
     : isEsports
-      ? [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "squad", label: "Squad", icon: <Users className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }]
-      : [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }];
+      ? [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, { id: "squad", label: "Squad", icon: <Users className="w-4 h-4" /> }, { id: "stats", label: "Stats", icon: <BarChart2 className="w-4 h-4" /> }, ...(showVsTab ? [{ id: "vs", label: "VS", icon: <Crosshair className="w-4 h-4" /> }] : [])]
+      : [{ id: "posts", label: "Posts", icon: <Grid3X3 className="w-4 h-4" /> }, { id: "matches", label: "Matches", icon: <Swords className="w-4 h-4" /> }, ...(showVsTab ? [{ id: "vs", label: "VS", icon: <Crosshair className="w-4 h-4" /> }] : [])];
 
   const activeTab = tab;
 
@@ -1321,6 +1442,7 @@ function PublicProfile({ handle }: { handle: string }) {
         {isPlayer && activeTab === "matches" && <PlayerMatchHistory userId={profile.id} />}
         {isEsports && activeTab === "squad" && <SquadSection userId={profile.id} isOwn={false} userGame={(profile as any).game} isEsports />}
         {isEsports && activeTab === "stats" && <EsportsStatsDisplay handle={handle} game={(profile as any).game} />}
+        {showVsTab && activeTab === "vs" && <PvPStatsSection handle={handle} />}
 
         {isHost && activeTab === "matches" && (
           <div className="p-4 space-y-4">
