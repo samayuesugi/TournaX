@@ -17,11 +17,13 @@ import {
   LogOut, Flag, ShoppingBag, Gift, Link as LinkIcon,
   Copy, Check, ChevronRight, FileText,
   Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal,
-  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle, Languages, Sun, Moon, Monitor
+  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle, Languages, Sun, Moon, Monitor,
+  Flame, Zap, Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
+import { SilverCoinIcon } from "@/components/ui/Coins";
 
 const COMPLAINT_TOPICS = [
   { id: "Withdrawal Issue", label: "Withdrawal Issue", icon: "💸" },
@@ -50,38 +52,87 @@ function AvatarDisplay({ avatar, className }: { avatar?: string | null; classNam
   return <div className={cn("flex items-center justify-center bg-secondary", className)}>{avatar}</div>;
 }
 
-function QuestTask({ icon: Icon, title, desc, reward, progress, total, claimed, color = "primary" }: {
+const TASK_THEMES: Record<string, { gradient: string; iconBg: string; iconColor: string; bar: string; glow: string }> = {
+  login:   { gradient: "from-cyan-500/10 to-blue-500/5",     iconBg: "bg-cyan-500/20",   iconColor: "text-cyan-500",   bar: "bg-cyan-400",   glow: "shadow-cyan-500/30" },
+  free:    { gradient: "from-violet-500/10 to-purple-500/5", iconBg: "bg-violet-500/20", iconColor: "text-violet-500", bar: "bg-violet-400", glow: "shadow-violet-500/30" },
+  paid:    { gradient: "from-amber-500/10 to-yellow-500/5",  iconBg: "bg-amber-500/20",  iconColor: "text-amber-500",  bar: "bg-amber-400",  glow: "shadow-amber-500/30" },
+  win:     { gradient: "from-orange-500/10 to-red-500/5",    iconBg: "bg-orange-500/20", iconColor: "text-orange-500", bar: "bg-orange-400", glow: "shadow-orange-500/30" },
+  invite:  { gradient: "from-pink-500/10 to-rose-500/5",     iconBg: "bg-pink-500/20",   iconColor: "text-pink-500",   bar: "bg-pink-400",   glow: "shadow-pink-500/30" },
+};
+
+function QuestTask({ icon: Icon, title, desc, silverReward, progress, total, claimed, taskKey }: {
   icon: React.ComponentType<{ className?: string }>;
-  title: string; desc: string; reward: string;
-  progress: number; total: number; claimed: boolean; color?: "primary" | "gold" | "silver";
+  title: string; desc: string; silverReward: number;
+  progress: number; total: number; claimed: boolean; taskKey: keyof typeof TASK_THEMES;
 }) {
   const pct = Math.min(100, (progress / total) * 100);
-  const barColor = claimed ? "bg-green-500" : color === "gold" ? "bg-amber-400" : color === "silver" ? "bg-slate-400" : "bg-primary";
+  const theme = TASK_THEMES[taskKey] ?? TASK_THEMES.login;
   return (
-    <div className={cn("rounded-2xl p-4 border transition-all", claimed ? "bg-green-500/5 border-green-500/20" : pct > 0 ? "bg-primary/5 border-primary/20" : "bg-card border-card-border")}>
-      <div className="flex items-start gap-3">
-        <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0", claimed ? "bg-green-500/15" : pct > 0 ? "bg-primary/15" : "bg-secondary")}>
-          {claimed ? <CheckCircle2 className="w-6 h-6 text-green-400" /> : <Icon className={cn("w-6 h-6", color === "gold" ? "text-amber-400" : color === "silver" ? "text-slate-300" : "text-primary")} />}
+    <div className={cn(
+      "relative rounded-2xl p-4 border transition-all overflow-hidden",
+      claimed
+        ? "bg-gradient-to-r from-green-500/10 to-emerald-500/5 border-green-500/30"
+        : `bg-gradient-to-r ${theme.gradient} border-border`
+    )}>
+      {claimed && (
+        <div className="absolute top-2 right-2">
+          <span className="text-[10px] font-bold bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-500/30 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> Done
+          </span>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <p className={cn("text-sm font-semibold leading-tight", claimed ? "text-green-400" : "text-foreground")}>{title}</p>
-            <span className={cn("text-xs font-bold shrink-0 px-2 py-0.5 rounded-full", claimed ? "bg-green-500/20 text-green-400" : color === "gold" ? "bg-amber-400/20 text-amber-400" : "bg-slate-400/20 text-slate-300")}>
-              {claimed ? "Done!" : reward}
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground mb-2">{desc}</p>
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
-            <div className={cn("h-full rounded-full transition-all duration-700", barColor)} style={{ width: `${claimed ? 100 : pct}%` }} />
-          </div>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[10px] text-muted-foreground">{claimed ? "Completed" : `${progress} / ${total}`}</p>
-            {!claimed && total > 1 && <p className="text-[10px] text-muted-foreground">{Math.round(pct)}%</p>}
-          </div>
+      )}
+      <div className="flex items-start gap-3">
+        <div className={cn(
+          "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+          claimed ? "bg-green-500/20 shadow-green-500/20" : `${theme.iconBg} ${theme.glow}`
+        )}>
+          {claimed
+            ? <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
+            : <Icon className={cn("w-6 h-6", theme.iconColor)} />}
+        </div>
+        <div className="flex-1 min-w-0 pr-12">
+          <p className={cn("text-sm font-bold leading-tight mb-0.5", claimed ? "text-green-600 dark:text-green-400 line-through decoration-green-500/50" : "text-foreground")}>{title}</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
+        </div>
+      </div>
+      <div className="mt-3 space-y-2">
+        <div className="h-2.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all duration-700 ease-out", claimed ? "bg-green-500" : theme.bar)}
+            style={{ width: `${claimed ? 100 : pct}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground font-medium">
+            {claimed ? "Completed!" : `${progress} / ${total}`}
+          </span>
+          <span className={cn("flex items-center gap-1 text-xs font-bold", claimed ? "text-green-600 dark:text-green-400" : "text-foreground/70")}>
+            +{silverReward} <SilverCoinIcon size="sm" />
+          </span>
         </div>
       </div>
     </div>
   );
+}
+
+function useMidnightCountdown() {
+  const [timeLeft, setTimeLeft] = useState("");
+  useEffect(() => {
+    function update() {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - now.getTime();
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return timeLeft;
 }
 
 function SettingRow({ icon: Icon, iconBg, iconColor, label, onClick }: {
@@ -102,24 +153,85 @@ function SettingRow({ icon: Icon, iconBg, iconColor, label, onClick }: {
 }
 
 function QuestDialog({ open, onClose, dailyTasks }: { open: boolean; onClose: () => void; dailyTasks: DailyTasksData | null }) {
+  const timeLeft = useMidnightCountdown();
+  const completed = [
+    dailyTasks?.inviteClaimed,
+    dailyTasks?.loginClaimed,
+    dailyTasks?.freeMatchesClaimed,
+    dailyTasks?.paidMatchesClaimed,
+    dailyTasks?.tournamentWinsClaimed,
+  ].filter(Boolean).length;
+  const total = 5;
+  const allDone = completed === total;
+  const circumference = 2 * Math.PI * 28;
+  const dashOffset = circumference - (completed / total) * circumference;
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
-          <DialogTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Quest</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              {[dailyTasks?.inviteClaimed, dailyTasks?.loginClaimed, dailyTasks?.freeMatchesClaimed, dailyTasks?.paidMatchesClaimed, dailyTasks?.tournamentWinsClaimed].filter(Boolean).length} / 5 done
-            </span>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-3">
-          <QuestTask icon={CalendarCheck} title="Daily Login" desc="Just open the app every day" reward="+10 Silver" progress={dailyTasks?.loginClaimed ? 1 : 0} total={1} claimed={dailyTasks?.loginClaimed ?? false} color="silver" />
-          <QuestTask icon={Gamepad2} title="Play 3 Free Matches" desc="Join any free tournament" reward="+10 Silver" progress={dailyTasks?.freeMatchesToday ?? 0} total={3} claimed={dailyTasks?.freeMatchesClaimed ?? false} color="silver" />
-          <QuestTask icon={Coins} title="Play 3 Paid Matches" desc="Join any paid tournament" reward="+10 Silver" progress={dailyTasks?.paidMatchesToday ?? 0} total={3} claimed={dailyTasks?.paidMatchesClaimed ?? false} color="silver" />
-          <QuestTask icon={Trophy} title="Win 5 Tournaments" desc="Win 5 paid tournaments today" reward="+10 Silver" progress={dailyTasks?.tournamentWinsToday ?? 0} total={5} claimed={dailyTasks?.tournamentWinsClaimed ?? false} color="silver" />
-          <QuestTask icon={UserPlus} title="Invite a Friend" desc="Someone must sign up using your referral code" reward="+10 Silver" progress={dailyTasks?.inviteClaimed ? 1 : 0} total={1} claimed={dailyTasks?.inviteClaimed ?? false} color="silver" />
-          <p className="text-[10px] text-muted-foreground/60 text-center">All tasks reset every midnight</p>
+        <div className={cn(
+          "relative px-5 pt-6 pb-5 shrink-0 overflow-hidden",
+          "bg-gradient-to-br from-primary/20 via-violet-900/10 to-transparent"
+        )}>
+          <div className="absolute inset-0 pointer-events-none opacity-30"
+            style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(var(--primary)/0.3) 0%, transparent 60%)" }}
+          />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="relative w-16 h-16 shrink-0">
+              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="5" className="text-border opacity-40" />
+                <circle
+                  cx="32" cy="32" r="28" fill="none"
+                  stroke="url(#questGrad)" strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  className="transition-all duration-700"
+                />
+                <defs>
+                  <linearGradient id="questGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" />
+                    <stop offset="100%" stopColor="#a855f7" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-lg font-black leading-none">{completed}</span>
+                <span className="text-[9px] text-muted-foreground font-medium">/{total}</span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                {allDone
+                  ? <Flame className="w-4 h-4 text-orange-500" />
+                  : <Zap className="w-4 h-4 text-primary" />}
+                <h2 className="text-base font-black tracking-tight">
+                  {allDone ? "All Quests Done!" : "Daily Quests"}
+                </h2>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                {allDone ? "Come back tomorrow for more rewards" : `Complete all 5 to earn 50 Silver Coins`}
+              </p>
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>Resets in <span className="font-bold text-foreground tabular-nums">{timeLeft}</span></span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden relative z-10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-violet-400 transition-all duration-700"
+              style={{ width: `${(completed / total) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-4 pb-4 pt-3 space-y-2.5">
+          <QuestTask icon={CalendarCheck} title="Daily Login" desc="Open the app every day" silverReward={10} progress={dailyTasks?.loginClaimed ? 1 : 0} total={1} claimed={dailyTasks?.loginClaimed ?? false} taskKey="login" />
+          <QuestTask icon={Gamepad2} title="Play 3 Free Matches" desc="Join any 3 free entry tournaments" silverReward={10} progress={dailyTasks?.freeMatchesToday ?? 0} total={3} claimed={dailyTasks?.freeMatchesClaimed ?? false} taskKey="free" />
+          <QuestTask icon={Coins} title="Play 3 Paid Matches" desc="Join any 3 paid entry tournaments" silverReward={10} progress={dailyTasks?.paidMatchesToday ?? 0} total={3} claimed={dailyTasks?.paidMatchesClaimed ?? false} taskKey="paid" />
+          <QuestTask icon={Trophy} title="Win 5 Tournaments" desc="Finish first in 5 paid tournaments" silverReward={10} progress={dailyTasks?.tournamentWinsToday ?? 0} total={5} claimed={dailyTasks?.tournamentWinsClaimed ?? false} taskKey="win" />
+          <QuestTask icon={UserPlus} title="Invite a Friend" desc="Someone signs up with your referral code" silverReward={10} progress={dailyTasks?.inviteClaimed ? 1 : 0} total={1} claimed={dailyTasks?.inviteClaimed ?? false} taskKey="invite" />
         </div>
       </DialogContent>
     </Dialog>
