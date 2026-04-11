@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, ChevronRight, Package } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, Swords, Wallet, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 
@@ -344,6 +344,109 @@ function CoinsPackDialog() {
   );
 }
 
+type TxFilter = "all" | "won" | "spent" | "deposited";
+
+function UserWalletHistory({ wallet }: { wallet: any }) {
+  const [filter, setFilter] = useState<TxFilter>("all");
+
+  const deposited: { id: number; amount: number; createdAt: string; status: string; label?: string }[] =
+    (wallet?.addBalanceHistory ?? []).map((t: any) => ({ ...t, _type: "deposited" }));
+  const withdrawn: { id: number; amount: number; createdAt: string; status: string; label?: string }[] =
+    (wallet?.withdrawalHistory ?? []).map((t: any) => ({ ...t, _type: "withdrawn" }));
+  const won: { id: number; amount: number; createdAt: string; matchCode?: string }[] =
+    (wallet?.wonHistory ?? []).map((t: any) => ({ ...t, _type: "won" }));
+  const spent: { id: number; amount: number; createdAt: string; matchCode?: string }[] =
+    (wallet?.spentHistory ?? []).map((t: any) => ({ ...t, _type: "spent" }));
+
+  const allTxs = [...deposited, ...withdrawn, ...won, ...spent]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const filtered = filter === "all" ? allTxs
+    : filter === "deposited" ? allTxs.filter((t: any) => t._type === "deposited")
+    : filter === "won" ? allTxs.filter((t: any) => t._type === "won")
+    : allTxs.filter((t: any) => t._type === "spent" || t._type === "withdrawn");
+
+  const filters: { key: TxFilter; label: string; color: string; activeColor: string }[] = [
+    { key: "all", label: "All", color: "border-border text-muted-foreground", activeColor: "border-primary bg-primary/15 text-primary" },
+    { key: "won", label: "Won", color: "border-border text-muted-foreground", activeColor: "border-green-500 bg-green-500/15 text-green-400" },
+    { key: "spent", label: "Spent", color: "border-border text-muted-foreground", activeColor: "border-destructive bg-destructive/15 text-destructive" },
+    { key: "deposited", label: "Deposited", color: "border-border text-muted-foreground", activeColor: "border-amber-400 bg-amber-400/15 text-amber-400" },
+  ];
+
+  return (
+    <div className="space-y-3 mt-1">
+      <div className="flex gap-2 flex-wrap">
+        {filters.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={cn(
+              "px-3 py-1 text-xs font-semibold rounded-full border transition-all",
+              filter === f.key ? f.activeColor : f.color
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground text-sm">
+          No transactions found
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((tx: any) => {
+            const isWon = tx._type === "won";
+            const isDeposited = tx._type === "deposited";
+            const isSpent = tx._type === "spent";
+            const isWithdrawn = tx._type === "withdrawn";
+
+            return (
+              <div key={`${tx._type}-${tx.id}`} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                    isWon ? "bg-green-500/15" : isDeposited ? "bg-amber-400/15" : "bg-destructive/15"
+                  )}>
+                    {isWon && <Trophy className="w-4 h-4 text-green-400" />}
+                    {isDeposited && <ArrowDownCircle className="w-4 h-4 text-amber-400" />}
+                    {isSpent && <Swords className="w-4 h-4 text-destructive" />}
+                    {isWithdrawn && <ArrowUpCircle className="w-4 h-4 text-destructive" />}
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">
+                      {isWon && `Won — Match #${tx.matchCode}`}
+                      {isDeposited && "Deposited"}
+                      {isSpent && `Entry Fee — Match #${tx.matchCode}`}
+                      {isWithdrawn && "Withdrawal"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt!)}</div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={cn(
+                    "font-bold text-sm flex items-center gap-0.5",
+                    isWon ? "text-green-400" : isDeposited ? "text-amber-400" : "text-destructive"
+                  )}>
+                    {isWon || isDeposited ? "+" : "-"}
+                    <GoldCoin amount={typeof tx.amount === "number" ? tx.amount.toFixed(2) : tx.amount} />
+                  </span>
+                  {(isDeposited || isWithdrawn) && tx.status && (
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
+                      {tx.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WalletPage() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -509,62 +612,7 @@ export default function WalletPage() {
             </TabsContent>
           </Tabs>
         ) : (
-          <Tabs defaultValue="deposits">
-            <TabsList className="w-full">
-              <TabsTrigger value="deposits" className="flex-1">Deposits</TabsTrigger>
-              <TabsTrigger value="withdrawals" className="flex-1">Withdrawals</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="deposits">
-              {wallet?.addBalanceHistory.length ? (
-                <div className="space-y-2 mt-3">
-                  {wallet.addBalanceHistory.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <ArrowDownCircle className="w-5 h-5 text-green-400" />
-                        <div>
-                          <div className="font-medium text-sm flex items-center gap-0.5">
-                            <GoldCoin amount={tx.amount} />
-                          </div>
-                          <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt!)}</div>
-                        </div>
-                      </div>
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
-                        {tx.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground text-sm">No deposit history</div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="withdrawals">
-              {wallet?.withdrawalHistory.length ? (
-                <div className="space-y-2 mt-3">
-                  {wallet.withdrawalHistory.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <ArrowUpCircle className="w-5 h-5 text-destructive" />
-                        <div>
-                          <div className="font-medium text-sm flex items-center gap-0.5">
-                            <GoldCoin amount={tx.amount} />
-                          </div>
-                          <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt!)}</div>
-                        </div>
-                      </div>
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full border capitalize", statusBadgeClass(tx.status))}>
-                        {tx.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground text-sm">No withdrawal history</div>
-              )}
-            </TabsContent>
-          </Tabs>
+          <UserWalletHistory wallet={wallet as any} />
         )}
       </div>
     </AppLayout>

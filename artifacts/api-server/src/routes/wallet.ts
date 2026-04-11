@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { addBalanceRequestsTable, withdrawalRequestsTable, hostEarningsTable, usersTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { addBalanceRequestsTable, withdrawalRequestsTable, hostEarningsTable, usersTable, matchEscrowTransactionsTable, matchesTable } from "@workspace/db/schema";
+import { eq, sql, and, inArray } from "drizzle-orm";
 import { requireAuth } from "./auth";
 
 const SILVER_TO_GOLD_RATE = 100;
@@ -15,6 +15,30 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
     .where(eq(addBalanceRequestsTable.userId, user.id));
   const withdrawHistory = await db.select().from(withdrawalRequestsTable)
     .where(eq(withdrawalRequestsTable.userId, user.id));
+
+  const escrowTxs = await db.select().from(matchEscrowTransactionsTable)
+    .where(and(eq(matchEscrowTransactionsTable.userId, user.id), inArray(matchEscrowTransactionsTable.type, ["entry_fee", "prize_payout"])));
+
+  const matchIds = [...new Set(escrowTxs.map(t => t.matchId))];
+  let matchCodeMap: Record<number, string> = {};
+  if (matchIds.length > 0) {
+    const matchRows = await db.select({ id: matchesTable.id, code: matchesTable.code }).from(matchesTable).where(inArray(matchesTable.id, matchIds));
+    matchCodeMap = Object.fromEntries(matchRows.map(m => [m.id, m.code]));
+  }
+
+  const wonHistory = escrowTxs.filter(t => t.type === "prize_payout").map(t => ({
+    id: t.id,
+    amount: parseFloat(t.amount as string),
+    matchCode: matchCodeMap[t.matchId] ?? String(t.matchId),
+    createdAt: t.createdAt?.toISOString() ?? new Date().toISOString(),
+  }));
+
+  const spentHistory = escrowTxs.filter(t => t.type === "entry_fee").map(t => ({
+    id: t.id,
+    amount: parseFloat(t.amount as string),
+    matchCode: matchCodeMap[t.matchId] ?? String(t.matchId),
+    createdAt: t.createdAt?.toISOString() ?? new Date().toISOString(),
+  }));
 
   let earningsHistory: { id: number; matchCode: string; amount: number; createdAt: string }[] = [];
   if (user.role === "host" || user.role === "admin") {
@@ -41,6 +65,8 @@ router.get("/wallet", requireAuth, async (req: Request, res: Response) => {
       id: r.id, amount: parseFloat(r.amount as string), status: r.status,
       createdAt: r.createdAt?.toISOString(), note: r.upiId,
     })),
+    wonHistory,
+    spentHistory,
     earningsHistory,
   });
 });
