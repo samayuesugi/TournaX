@@ -11,6 +11,7 @@ import { GoldCoinIcon, SilverCoinIcon } from "@/components/ui/Coins";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
 import { useToast } from "@/hooks/use-toast";
+import { OnboardingTour } from "@/components/OnboardingTour";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -227,6 +228,7 @@ export function AppLayout({
       </div>
 
       {!hideNav && <BottomNav />}
+      {user?.role === "player" && <OnboardingTour />}
     </div>
   );
 }
