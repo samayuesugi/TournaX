@@ -165,8 +165,8 @@ export default function NotificationsPage() {
                 n.read ? "border-card-border opacity-70" : "border-primary/30 bg-primary/5"
               )}
             >
-              <div className={cn("mt-0.5 p-1.5 rounded-lg shrink-0", n.read ? "bg-secondary text-muted-foreground" : "bg-primary/20 text-primary")}>
-                {getIcon(n.type)}
+              <div className="mt-0.5 w-8 h-8 rounded-full overflow-hidden shrink-0 bg-black flex items-center justify-center border border-primary/30">
+                <img src="/logo.png" alt="TournaX" className="w-6 h-6 object-contain" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">{n.message}</p>
