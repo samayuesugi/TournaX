@@ -4,6 +4,7 @@ import { usersTable, followsTable, squadMembersTable, complaintsTable, matchesTa
 import { eq, and, ilike, or, sql, avg, inArray, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { getIO } from "../lib/socket";
+import { notify } from "../lib/notify";
 
 async function getHostRatings(hostIds: number[]): Promise<Map<number, number>> {
   if (hostIds.length === 0) return new Map();
@@ -205,8 +206,7 @@ router.post("/users/:handle/squad-request", requireAuth, async (req: Request, re
   );
   if (existing.length > 0) { res.status(400).json({ error: "Already sent a pending invite to this player" }); return; }
   await db.insert(squadRequestsTable).values({ fromUserId: currentUser.id, toUserId: target.id, game, role: role ?? null, isBackup: isBackup ?? false, status: "pending" });
-  await db.insert(notificationsTable).values({ userId: target.id, type: "squad_invite", message: `${currentUser.name || currentUser.handle} invited you to join their squad for ${game}!` });
-  try { getIO().to(`user-${target.id}`).emit("notification"); } catch {}
+  notify(target.id, "squad_invite", `🤝 ${currentUser.name || currentUser.handle} ne aapko ${game} squad mein invite kiya!`, `/notifications`).catch(() => {});
   res.json({ success: true });
 });
 
@@ -778,6 +778,7 @@ router.post("/users/:handle/follow", requireAuth, async (req: Request, res: Resp
   await db.insert(followsTable).values({ followerId: currentUser.id, followingId: target.id });
   await db.execute(sql`UPDATE users SET followers_count = followers_count + 1 WHERE id = ${target.id}`);
   await db.execute(sql`UPDATE users SET following_count = following_count + 1 WHERE id = ${currentUser.id}`);
+  notify(target.id, "new_follower", `👤 ${currentUser.name || "@" + currentUser.handle} ne aapko follow kiya!`, `/profile/${currentUser.handle}`).catch(() => {});
   res.json({ success: true });
 });
 

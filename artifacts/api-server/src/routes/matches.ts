@@ -316,6 +316,15 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
   const serialized = await serializeMatch(match!, user.id);
   try { getIO().emit("match:new", { id: match!.id }); } catch {}
   res.json(serialized);
+
+  const followers = await db.select({ followerId: followsTable.followerId })
+    .from(followsTable).where(eq(followsTable.followingId, user.id));
+  const hostName = user.name || `@${user.handle}`;
+  const feeText = parsedEntryFee > 0 ? `Entry: ${parsedEntryFee} GC` : "Free Entry";
+  const notifMsg = `🎮 ${hostName} ne ek naya match banaya! ${resolvedGame} · ${feeText} · Prize: ${serialized.showcasePrizePool?.toFixed(0) ?? "0"} GC`;
+  for (const f of followers) {
+    notify(f.followerId, "host_match_new", notifMsg, `/matches/${match!.id}`).catch(() => {});
+  }
 });
 
 router.get("/matches/:id", requireAuth, async (req: Request, res: Response) => {

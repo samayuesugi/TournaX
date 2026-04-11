@@ -59,6 +59,8 @@ export function AppLayout({
         data.type === "match_result" ? "🏆" :
         data.type === "room_ready" ? "🚪" :
         data.type === "match_join" ? "🎮" :
+        data.type === "host_match_new" ? "🎮" :
+        data.type === "new_follower" ? "👤" :
         data.type?.includes("wallet") || data.type?.includes("balance") ? "💰" :
         data.type?.includes("squad") ? "🤝" : "🔔";
 
