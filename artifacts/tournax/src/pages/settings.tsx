@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
+import { useTheme } from "next-themes";
 import {
   useUpdateMyProfile, customFetch
 } from "@workspace/api-client-react";
@@ -16,7 +17,7 @@ import {
   LogOut, Flag, ShoppingBag, Gift, Link as LinkIcon,
   Copy, Check, ChevronRight, FileText,
   Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal,
-  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle, Languages
+  ShieldCheck, ShieldOff, Upload, Camera, Loader2, CheckCircle, XCircle, Languages, Sun, Moon, Monitor
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
@@ -557,6 +558,7 @@ export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth();
   const [, navigate] = useLocation();
   const { language, setLanguage } = useLanguage();
+  const { theme, setTheme } = useTheme();
 
   const [questOpen, setQuestOpen] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
@@ -565,6 +567,7 @@ export default function SettingsPage() {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [gameVerifyOpen, setGameVerifyOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
 
   const [referralStats, setReferralStats] = useState<any>(null);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -693,6 +696,31 @@ export default function SettingsPage() {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
+
+            <button
+              className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors"
+              onClick={() => setThemeOpen(true)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                  {theme === "light" ? (
+                    <Sun className="w-4 h-4 text-violet-400" />
+                  ) : theme === "dark" ? (
+                    <Moon className="w-4 h-4 text-violet-400" />
+                  ) : (
+                    <Monitor className="w-4 h-4 text-violet-400" />
+                  )}
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Theme / थीम</span>
+                  <span className="text-[10px] text-muted-foreground capitalize">
+                    {theme === "system" ? "System Default" : theme === "light" ? "Light" : "Dark"}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+
             <SettingRow icon={Flag} iconBg="bg-red-500/15" iconColor="text-red-400" label="Raise a Complaint" onClick={() => setComplaintOpen(true)} />
             <SettingRow icon={FileText} iconBg="bg-primary/15" iconColor="text-primary" label="Terms & Policies" onClick={() => setTermsOpen(true)} />
 
@@ -719,6 +747,45 @@ export default function SettingsPage() {
       <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
       <ComplaintDialog open={complaintOpen} onClose={() => setComplaintOpen(false)} />
       <GameVerifyDialog open={gameVerifyOpen} onClose={() => setGameVerifyOpen(false)} user={user} refreshUser={refreshUser} />
+
+      <Dialog open={themeOpen} onOpenChange={setThemeOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-violet-400" />
+              Theme / थीम
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Choose how TournaX looks. System default follows your device settings.</p>
+            {[
+              { value: "system", label: "System Default", sub: "Follows your device setting", Icon: Monitor },
+              { value: "light", label: "Light", sub: "Always light mode", Icon: Sun },
+              { value: "dark", label: "Dark", sub: "Always dark mode", Icon: Moon },
+            ].map(({ value, label, sub, Icon }) => (
+              <button
+                key={value}
+                onClick={() => { setTheme(value); setThemeOpen(false); }}
+                className={cn(
+                  "w-full flex items-center gap-3 rounded-xl border px-4 py-3 transition-all text-left",
+                  theme === value
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-secondary/40 hover:bg-secondary"
+                )}
+              >
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", theme === value ? "bg-primary/20" : "bg-secondary")}>
+                  <Icon className={cn("w-4 h-4", theme === value ? "text-primary" : "text-muted-foreground")} />
+                </div>
+                <div className="flex-1">
+                  <p className={cn("font-semibold text-sm", theme === value ? "text-primary" : "")}>{label}</p>
+                  <p className="text-[10px] text-muted-foreground">{sub}</p>
+                </div>
+                {theme === value && <Check className="w-4 h-4 text-primary" />}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={languageOpen} onOpenChange={setLanguageOpen}>
         <DialogContent className="max-w-sm">

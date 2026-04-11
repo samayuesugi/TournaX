@@ -1,5 +1,6 @@
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -345,21 +346,23 @@ function TwemojiRoot({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <SocketProvider>
-              <TwemojiRoot>
-                <AppContent />
-              </TwemojiRoot>
-            </SocketProvider>
-          </AuthProvider>
-          <Toaster />
-          <PwaInstallBanner />
-        </LanguageProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <SocketProvider>
+                <TwemojiRoot>
+                  <AppContent />
+                </TwemojiRoot>
+              </SocketProvider>
+            </AuthProvider>
+            <Toaster />
+            <PwaInstallBanner />
+          </LanguageProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
