@@ -20,7 +20,6 @@ import ExplorePage from "@/pages/explore";
 import NotificationsPage from "@/pages/notifications";
 import CreateMatchPage from "@/pages/host/create-match";
 import HostDashboardPage from "@/pages/host/dashboard";
-import HostAuctionsPage from "@/pages/host/auctions";
 import AdminDashboardPage from "@/pages/admin/index";
 import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
@@ -32,10 +31,6 @@ import ChatListPage from "@/pages/chat/index";
 import ConversationPage from "@/pages/chat/conversation";
 import GroupChatPage from "@/pages/chat/group";
 import LeaderboardPage from "@/pages/leaderboard";
-import AuctionsPage from "@/pages/auctions/index";
-import AuctionDetailPage from "@/pages/auctions/detail";
-import AdminAuctionsPage from "@/pages/admin/auctions";
-import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
 import AdminEarningsPage from "@/pages/admin/earnings";
 import StorePage from "@/pages/store";
 import SettingsPage from "@/pages/settings";
@@ -197,18 +192,6 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/host/auctions">
-        <ProtectedRoute roles={["host"]}>
-          <HostAuctionsPage />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/host/auctions/:id">
-        <ProtectedRoute roles={["host"]}>
-          <AdminAuctionDetailPage />
-        </ProtectedRoute>
-      </Route>
-
       <Route path="/admin">
         <ProtectedRoute roles={["admin"]}>
           <AdminDashboardPage />
@@ -278,30 +261,6 @@ function Router() {
       <Route path="/leaderboard">
         <ProtectedRoute roles={["player", "host"]}>
           <LeaderboardPage />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/auctions">
-        <ProtectedRoute roles={["player", "host"]}>
-          <AuctionsPage />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/auctions/:id">
-        <ProtectedRoute roles={["player", "host"]}>
-          <AuctionDetailPage />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/admin/auctions">
-        <ProtectedRoute roles={["admin"]}>
-          <AdminAuctionsPage />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/admin/auctions/:id">
-        <ProtectedRoute roles={["admin"]}>
-          <AdminAuctionDetailPage />
         </ProtectedRoute>
       </Route>
 

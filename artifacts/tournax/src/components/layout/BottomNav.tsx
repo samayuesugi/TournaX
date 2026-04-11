@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Gavel, Shield } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,6 @@ export function BottomNav() {
 
   const adminNav = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/admin/auctions", icon: Gavel, label: "Auctions" },
     { href: "/admin/players", icon: User, label: "Players" },
     { href: "/admin/finance", icon: DollarSign, label: "Finance" },
     { href: "/admin/profile", icon: User, label: t("profile") },

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Users, Plus, Crown, Search, SquarePen, Inbox, Check, X } from "lucide-react";
+import { MessageCircle, Users, Plus, Crown, Search, SquarePen, Inbox, Check, X, Bot } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
@@ -222,6 +222,24 @@ export default function ChatListPage() {
             <SquarePen className="w-4 h-4" />
           </button>
         </div>
+
+        {/* TX Coach AI pinned entry */}
+        {(!q || "tx coach ai".includes(q) || "coach".includes(q)) && (
+          <Link href="/coach">
+            <div className="chat-item-in flex items-center gap-3 bg-primary/8 border border-primary/25 rounded-xl px-4 py-3 hover:bg-primary/15 transition-all cursor-pointer mb-3">
+              <div className="w-11 h-11 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Bot className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="font-semibold text-sm truncate">TX Coach AI</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">AI</span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">Your personal gaming coach — tips, strategy & more</p>
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* Message Requests section */}
         {!requestsLoading && msgRequests.length > 0 && (
