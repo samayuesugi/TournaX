@@ -32,6 +32,14 @@ import ConversationPage from "@/pages/chat/conversation";
 import GroupChatPage from "@/pages/chat/group";
 import LeaderboardPage from "@/pages/leaderboard";
 import AdminEarningsPage from "@/pages/admin/earnings";
+import AdminMatchManagementPage from "@/pages/admin/match-management";
+import AdminBroadcastPage from "@/pages/admin/broadcast";
+import AdminHostManagementPage from "@/pages/admin/host-management";
+import AdminReferralTrackerPage from "@/pages/admin/referral-tracker";
+import AdminLeaderboardControlsPage from "@/pages/admin/leaderboard-controls";
+import AdminStoreManagementPage from "@/pages/admin/store-management";
+import AdminFeeSettingsPage from "@/pages/admin/fee-settings";
+import AdminBannedUsersPage from "@/pages/admin/banned-users";
 import StorePage from "@/pages/store";
 import SettingsPage from "@/pages/settings";
 import CoachPage from "@/pages/coach";
@@ -238,6 +246,31 @@ function Router() {
         <ProtectedRoute roles={["admin"]}>
           <AdminProfilePage />
         </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/match-management">
+        <ProtectedRoute roles={["admin"]}><AdminMatchManagementPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/broadcast">
+        <ProtectedRoute roles={["admin"]}><AdminBroadcastPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/host-management">
+        <ProtectedRoute roles={["admin"]}><AdminHostManagementPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/referral-tracker">
+        <ProtectedRoute roles={["admin"]}><AdminReferralTrackerPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/leaderboard-controls">
+        <ProtectedRoute roles={["admin"]}><AdminLeaderboardControlsPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/store-management">
+        <ProtectedRoute roles={["admin"]}><AdminStoreManagementPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/fee-settings">
+        <ProtectedRoute roles={["admin"]}><AdminFeeSettingsPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/banned-users">
+        <ProtectedRoute roles={["admin"]}><AdminBannedUsersPage /></ProtectedRoute>
       </Route>
 
       <Route path="/chat">

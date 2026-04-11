@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Swords, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight } from "lucide-react";
+import { Users, Swords, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight, Megaphone, GitBranch, Trophy, ShoppingBag, Percent, Ban, Shield } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 
 function HostRow({ host, onDelete }: { host: any; onDelete: () => void }) {
   const { toast } = useToast();
@@ -173,6 +173,33 @@ export default function AdminDashboardPage() {
               <StatCard icon={Activity} label="Live Now" value={data.liveNow} color="bg-green-500/20 text-green-400" />
               <StatCard icon={Swords} label="Total Matches" value={data.totalMatches} color="bg-accent/20 text-accent" />
               <StatCard icon={AlertTriangle} label="Complaints" value={data.complaintsCount} color="bg-destructive/20 text-destructive" />
+            </div>
+
+            {/* Admin Sections Grid */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Admin Tools</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { href: "/admin/match-management", icon: Swords, label: "Matches", color: "bg-accent/15 text-accent" },
+                  { href: "/admin/broadcast", icon: Megaphone, label: "Broadcast", color: "bg-primary/15 text-primary" },
+                  { href: "/admin/host-management", icon: Shield, label: "Hosts", color: "bg-green-500/15 text-green-600" },
+                  { href: "/admin/referral-tracker", icon: GitBranch, label: "Referrals", color: "bg-yellow-500/15 text-yellow-600" },
+                  { href: "/admin/leaderboard-controls", icon: Trophy, label: "Leaderboard", color: "bg-orange-500/15 text-orange-500" },
+                  { href: "/admin/store-management", icon: ShoppingBag, label: "Store", color: "bg-purple-500/15 text-purple-500" },
+                  { href: "/admin/fee-settings", icon: Percent, label: "Fee Settings", color: "bg-cyan-500/15 text-cyan-600" },
+                  { href: "/admin/banned-users", icon: Ban, label: "Banned", color: "bg-destructive/15 text-destructive" },
+                ].map(item => (
+                  <Link key={item.href} href={item.href}>
+                    <div className="flex items-center gap-2.5 bg-card border border-card-border rounded-xl px-3 py-3 hover:bg-secondary/30 transition-colors cursor-pointer">
+                      <div className={`w-8 h-8 rounded-lg ${item.color} flex items-center justify-center shrink-0`}>
+                        <item.icon className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-medium">{item.label}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
 
             {/* Revenue analysis shortcut */}

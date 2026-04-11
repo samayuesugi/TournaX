@@ -4,12 +4,15 @@ import {
   usersTable, matchesTable, matchParticipantsTable, matchPlayersTable,
   addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable,
   platformEarningsTable, hostEarningsTable, trustScoreEventsTable,
-  auctionsTable, auctionTeamsTable, auctionPlayersTable, auctionBidsTable, auctionResultsTable
+  auctionsTable, auctionTeamsTable, auctionPlayersTable, auctionBidsTable, auctionResultsTable,
+  referralsTable
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, gte, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import bcrypt from "bcryptjs";
 import { notify } from "../lib/notify";
+import { getSettings, saveSettings } from "../lib/settings";
+import { STORE_ITEMS } from "./store";
 
 const router: IRouter = Router();
 
@@ -390,6 +393,186 @@ router.get("/admin/earnings", requireAdmin, async (req: Request, res: Response) 
   }));
 
   res.json({ totalAllTime, totalLast30, totalLast7, totalThisMonth, dailyBreakdown, byGame, recentEarnings });
+});
+
+// ─── Match Management ────────────────────────────────────────────────────────
+router.get("/admin/matches", requireAdmin, async (req: Request, res: Response) => {
+  const { status } = req.query;
+  let matches = await db.select().from(matchesTable).orderBy(desc(matchesTable.createdAt));
+  if (status && status !== "all") matches = matches.filter(m => m.status === status);
+  const result = await Promise.all(matches.map(async m => {
+    const [host] = await db.select({ name: usersTable.name, handle: usersTable.handle }).from(usersTable).where(eq(usersTable.id, m.hostId));
+    return {
+      id: m.id, code: m.code, game: m.game, mode: m.mode,
+      status: m.status, entryFee: parseFloat(m.entryFee as string),
+      slots: m.slots, filledSlots: m.filledSlots,
+      startTime: m.startTime?.toISOString(),
+      hostName: host?.name || "Unknown", hostHandle: host?.handle || null,
+      createdAt: m.createdAt?.toISOString(),
+    };
+  }));
+  res.json(result);
+});
+
+router.delete("/admin/matches/:id", requireAdmin, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, id));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  await db.transaction(async tx => {
+    const participants = await tx.select({ id: matchParticipantsTable.id }).from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, id));
+    const pIds = participants.map(p => p.id);
+    if (pIds.length > 0) {
+      await tx.delete(matchPlayersTable).where(sql`participant_id = ANY(${pIds})`);
+    }
+    await tx.delete(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, id));
+    await tx.delete(hostEarningsTable).where(eq(hostEarningsTable.matchId, id));
+    await tx.delete(platformEarningsTable).where(eq(platformEarningsTable.matchId, id));
+    await tx.delete(matchesTable).where(eq(matchesTable.id, id));
+  });
+  res.json({ success: true });
+});
+
+// ─── Broadcast / Announcements ───────────────────────────────────────────────
+router.post("/admin/broadcast", requireAdmin, async (req: Request, res: Response) => {
+  const { message, target, link } = req.body;
+  if (!message?.trim()) { res.status(400).json({ error: "Message is required" }); return; }
+  let users;
+  if (target === "players") {
+    users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "player"));
+  } else if (target === "hosts") {
+    users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "host"));
+  } else {
+    users = await db.select({ id: usersTable.id }).from(usersTable).where(sql`role != 'admin'`);
+  }
+  await Promise.allSettled(users.map(u => notify(u.id, "admin_broadcast", message.trim(), link || "/")));
+  res.json({ success: true, sent: users.length });
+});
+
+// ─── Host Management (Extended) ──────────────────────────────────────────────
+router.get("/admin/hosts-list", requireAdmin, async (req: Request, res: Response) => {
+  const hosts = await db.select().from(usersTable).where(eq(usersTable.role, "host"));
+  const result = await Promise.all(hosts.map(async h => {
+    const matchCount = await db.$count(matchesTable, eq(matchesTable.hostId, h.id));
+    return {
+      id: h.id, name: h.name, email: h.email, handle: h.handle, avatar: h.avatar,
+      game: h.game, status: h.status, recommended: h.recommended,
+      hostBadge: h.hostBadge, hostRatingAvg: parseFloat((h.hostRatingAvg as string) || "0"),
+      hostRatingCount: h.hostRatingCount, matchCount,
+      createdAt: h.createdAt?.toISOString(),
+    };
+  }));
+  res.json(result);
+});
+
+router.patch("/admin/hosts/:id/status", requireAdmin, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const { status } = req.body;
+  if (!["active", "banned"].includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
+  await db.update(usersTable).set({ status }).where(and(eq(usersTable.id, id), eq(usersTable.role, "host")));
+  res.json({ success: true });
+});
+
+// ─── Referral Tracker ────────────────────────────────────────────────────────
+router.get("/admin/referrals", requireAdmin, async (req: Request, res: Response) => {
+  const referrals = await db.select().from(referralsTable).orderBy(desc(referralsTable.createdAt));
+  const result = await Promise.all(referrals.map(async r => {
+    const [referrer] = await db.select({ name: usersTable.name, handle: usersTable.handle, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, r.referrerId));
+    const [referred] = await db.select({ name: usersTable.name, handle: usersTable.handle, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, r.referredId));
+    return {
+      id: r.id, referrerId: r.referrerId,
+      referrerName: referrer?.name || referrer?.email || "Unknown",
+      referrerHandle: referrer?.handle || null,
+      referredId: r.referredId,
+      referredName: referred?.name || referred?.email || "Unknown",
+      referredHandle: referred?.handle || null,
+      completed: r.completed, referrerRewarded: r.referrerRewarded,
+      createdAt: r.createdAt?.toISOString(),
+    };
+  }));
+  res.json(result);
+});
+
+// ─── Leaderboard Controls ─────────────────────────────────────────────────────
+router.get("/admin/leaderboard-ctrl", requireAdmin, async (req: Request, res: Response) => {
+  const settings = getSettings();
+  const players = await db.select({
+    id: usersTable.id, name: usersTable.name, handle: usersTable.handle,
+    avatar: usersTable.avatar, game: usersTable.game, trustScore: usersTable.trustScore,
+    tournamentWins: usersTable.tournamentWins,
+  }).from(usersTable).where(eq(usersTable.role, "player")).orderBy(desc(usersTable.trustScore)).limit(50);
+  res.json({ featuredPlayerIds: settings.featuredPlayerIds, players });
+});
+
+router.post("/admin/leaderboard-ctrl/feature/:id", requireAdmin, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const settings = getSettings();
+  const idx = settings.featuredPlayerIds.indexOf(id);
+  if (idx === -1) { settings.featuredPlayerIds.push(id); } else { settings.featuredPlayerIds.splice(idx, 1); }
+  saveSettings(settings);
+  res.json({ success: true, featured: settings.featuredPlayerIds.includes(id) });
+});
+
+router.post("/admin/leaderboard-ctrl/reset", requireAdmin, async (req: Request, res: Response) => {
+  const settings = getSettings();
+  settings.featuredPlayerIds = [];
+  saveSettings(settings);
+  res.json({ success: true });
+});
+
+// ─── Store Management ─────────────────────────────────────────────────────────
+router.get("/admin/store", requireAdmin, async (req: Request, res: Response) => {
+  const settings = getSettings();
+  const items = STORE_ITEMS.map(item => ({
+    ...item,
+    cost: settings.storePriceOverrides[item.id] ?? item.cost,
+    originalCost: item.cost,
+  }));
+  res.json(items);
+});
+
+router.patch("/admin/store/:id/price", requireAdmin, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { price } = req.body;
+  const item = STORE_ITEMS.find(i => i.id === id);
+  if (!item) { res.status(404).json({ error: "Item not found" }); return; }
+  const parsedPrice = parseInt(price);
+  if (isNaN(parsedPrice) || parsedPrice < 0) { res.status(400).json({ error: "Invalid price" }); return; }
+  const settings = getSettings();
+  settings.storePriceOverrides[id] = parsedPrice;
+  saveSettings(settings);
+  res.json({ success: true });
+});
+
+// ─── Fee / Platform Settings ──────────────────────────────────────────────────
+router.get("/admin/settings", requireAdmin, async (req: Request, res: Response) => {
+  res.json(getSettings());
+});
+
+router.post("/admin/settings", requireAdmin, async (req: Request, res: Response) => {
+  const { platformFeePercent } = req.body;
+  const settings = getSettings();
+  if (platformFeePercent !== undefined) {
+    const fee = parseFloat(platformFeePercent);
+    if (isNaN(fee) || fee < 0 || fee > 50) { res.status(400).json({ error: "Fee must be between 0 and 50" }); return; }
+    settings.platformFeePercent = fee;
+  }
+  saveSettings(settings);
+  res.json({ success: true, settings });
+});
+
+// ─── Banned Users ─────────────────────────────────────────────────────────────
+router.get("/admin/banned", requireAdmin, async (req: Request, res: Response) => {
+  const banned = await db.select().from(usersTable).where(eq(usersTable.status, "banned")).orderBy(desc(usersTable.createdAt));
+  res.json(banned.map(u => ({
+    id: u.id, name: u.name, email: u.email, handle: u.handle,
+    avatar: u.avatar, role: u.role, trustScore: u.trustScore,
+    createdAt: u.createdAt?.toISOString(),
+  })));
+});
+
+router.post("/admin/players/:id/unban", requireAdmin, async (req: Request, res: Response) => {
+  await db.update(usersTable).set({ status: "active" }).where(eq(usersTable.id, Number(req.params.id)));
+  res.json({ success: true });
 });
 
 export default router;
