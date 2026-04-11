@@ -34,6 +34,26 @@ const DEFAULT_ACCOUNTS = [
     avatar: "👑",
     role: "admin" as const,
   },
+  {
+    email: "player@ff.test",
+    password: "Test@1234",
+    name: "DragonX",
+    handle: "dragonx_ff",
+    avatar: "🔥",
+    role: "player" as const,
+    game: "Free Fire",
+    balance: "500",
+  },
+  {
+    email: "host@ff.test",
+    password: "Test@1234",
+    name: "FF TournaHost",
+    handle: "ffhost_pro",
+    avatar: "👑",
+    role: "host" as const,
+    game: "Free Fire",
+    balance: "2000",
+  },
 ];
 
 const DEFAULT_GAMES = [
@@ -75,7 +95,7 @@ export async function seedDefaults() {
         isEsportsPlayer: (account as any).isEsportsPlayer ?? false,
         status: "active",
         profileSetup: true,
-        balance: "0",
+        balance: (account as any).balance ?? "0",
         followersCount: 0,
         followingCount: 0,
         recommended: false,
