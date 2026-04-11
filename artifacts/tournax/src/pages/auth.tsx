@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { Eye, EyeOff, ArrowLeft, Mail, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Mail, RefreshCw, ShieldCheck, BadgeCheck, Zap, Gamepad2, Headphones } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,16 @@ type Screen =
   | "forgot-email"
   | "forgot-otp"
   | "forgot-newpass";
+
+const TRUST_POINTS = [
+  { icon: ShieldCheck, label: "Secure wallet" },
+  { icon: BadgeCheck, label: "Verified hosts" },
+  { icon: Zap, label: "Fast prize distribution" },
+  { icon: Gamepad2, label: "BGMI / Free Fire tournaments" },
+];
+
+const SUPPORT_EMAIL = "support@tournax.com";
+const APP_VERSION = "v0.0.0";
 
 interface OtpInputsProps {
   otpDigits: string[];
@@ -64,6 +74,39 @@ function OtpInputs({ otpDigits, otpInputRef, onInput, onPaste }: OtpInputsProps)
             : "")}
         </div>
       ))}
+    </div>
+  );
+}
+
+function AuthTrustFooter() {
+  return (
+    <div className="mt-5 space-y-4 border-t border-border/70 pt-4">
+      <div className="grid grid-cols-2 gap-2">
+        {TRUST_POINTS.map(({ icon: Icon, label }) => (
+          <div key={label} className="flex items-center gap-1.5 rounded-xl bg-primary/5 border border-primary/10 px-2.5 py-2">
+            <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="text-[11px] font-medium leading-tight text-foreground/85">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2 text-center">
+        <a
+          href={`mailto:${SUPPORT_EMAIL}`}
+          className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-primary hover:underline"
+        >
+          <Headphones className="h-3.5 w-3.5" />
+          Contact support
+        </a>
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          <a href="/terms" className="hover:text-primary hover:underline">Terms</a>
+          <a href="/privacy" className="hover:text-primary hover:underline">Privacy</a>
+          <a href="/refund-policy" className="hover:text-primary hover:underline">Refund/Withdrawal Policy</a>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          {APP_VERSION} · {SUPPORT_EMAIL}
+        </p>
+      </div>
     </div>
   );
 }
@@ -701,6 +744,7 @@ export default function AuthPage() {
               </form>
             </TabsContent>
           </Tabs>
+          <AuthTrustFooter />
         </div>
       </div>
     </div>

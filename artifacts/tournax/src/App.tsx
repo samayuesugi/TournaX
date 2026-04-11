@@ -49,6 +49,7 @@ import SettingsPage from "@/pages/settings";
 import CoachPage from "@/pages/coach";
 import ClansPage from "@/pages/clans";
 import NotFound from "@/pages/not-found";
+import PolicyPage from "@/pages/policy";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -126,6 +127,18 @@ function Router() {
 
       <Route path="/auth/callback">
         <AuthCallbackPage />
+      </Route>
+
+      <Route path="/terms">
+        <PolicyPage type="terms" />
+      </Route>
+
+      <Route path="/privacy">
+        <PolicyPage type="privacy" />
+      </Route>
+
+      <Route path="/refund-policy">
+        <PolicyPage type="refund-policy" />
       </Route>
 
       <Route path="/setup-profile">
