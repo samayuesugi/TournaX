@@ -26,7 +26,6 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  referralCode?: string;
 }
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
@@ -60,11 +59,11 @@ export interface User {
   followersCount?: number;
   followingCount?: number;
   profileSetup: boolean;
-  instagram?: string | null;
-  discord?: string | null;
-  x?: string | null;
-  youtube?: string | null;
-  twitch?: string | null;
+  trustScore?: number;
+  trustTier?: string;
+  hostRatingAvg?: number;
+  hostRatingCount?: number;
+  hostBadge?: string;
 }
 
 export interface AuthResponse {
@@ -75,23 +74,15 @@ export interface AuthResponse {
 export interface SetupProfileRequest {
   avatar: string;
   game: string;
-  ign?: string;
+  ign: string;
   handle: string;
-  gameUid?: string;
-  name?: string;
+  gameUid: string;
 }
 
 export interface UpdateProfileRequest {
   name?: string;
   handle?: string;
   avatar?: string;
-  instagram?: string;
-  discord?: string;
-  x?: string;
-  youtube?: string;
-  twitch?: string;
-  game?: string;
-  gameUid?: string;
 }
 
 export type MatchStatus = (typeof MatchStatus)[keyof typeof MatchStatus];
@@ -100,6 +91,16 @@ export const MatchStatus = {
   upcoming: "upcoming",
   live: "live",
   completed: "completed",
+} as const;
+
+export type MatchEscrowStatus =
+  (typeof MatchEscrowStatus)[keyof typeof MatchEscrowStatus];
+
+export const MatchEscrowStatus = {
+  pending: "pending",
+  locked: "locked",
+  distributed: "distributed",
+  refunded: "refunded",
 } as const;
 
 export interface Match {
@@ -124,6 +125,15 @@ export interface Match {
   roomPassword?: string;
   roomReleased?: boolean;
   hostId: number;
+  hostRating?: number;
+  hostReviewCount?: number;
+  hostBadge?: string;
+  hostStake?: number;
+  hostCommissionPercent?: number;
+  escrowBalance?: number;
+  escrowStatus?: MatchEscrowStatus;
+  prizeDistributedAt?: string | null;
+  minTrustScore?: number;
 }
 
 export interface CreateMatchRequest {
@@ -133,6 +143,8 @@ export interface CreateMatchRequest {
   entryFee: number;
   slots: number;
   startTime: string;
+  hostStake?: number;
+  minTrustScore?: number;
 }
 
 export interface JoinPlayer {
@@ -170,6 +182,59 @@ export interface SubmitResultRequest {
   results: SubmitResultRequestResultsItem[];
 }
 
+export interface HostReviewRequest {
+  prizeOnTime: boolean;
+  roomCodeOnTime: boolean;
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  overallRating: number;
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  rating?: number;
+  comment?: string;
+}
+
+export interface AnalyzeScreenshotRequest {
+  imageBase64: string;
+  mimeType?: string;
+  participants?: string[];
+  game?: string;
+}
+
+export type AnalyzeScreenshotResponsePlayersItem = { [key: string]: unknown };
+
+export type AnalyzeScreenshotResponseRecommendedResultsItem = {
+  [key: string]: unknown;
+};
+
+export interface AnalyzeScreenshotResponse {
+  game?: string;
+  mode?: string | null;
+  map?: string | null;
+  players?: AnalyzeScreenshotResponsePlayersItem[];
+  winner?: string;
+  recommendedResults?: AnalyzeScreenshotResponseRecommendedResultsItem[];
+  suspicious?: boolean;
+  suspiciousReason?: string | null;
+  confidence?: number;
+  notes?: string;
+}
+
+export type CoachRequestContext = { [key: string]: unknown };
+
+export interface CoachRequest {
+  message: string;
+  context?: CoachRequestContext;
+}
+
+export interface CoachResponse {
+  reply: string;
+}
+
 export interface RoomCredentialsRequest {
   roomId: string;
   roomPassword: string;
@@ -204,13 +269,11 @@ export interface SquadMember {
   id: number;
   name: string;
   uid: string;
-  game?: string | null;
 }
 
 export interface AddSquadMemberRequest {
   name: string;
   uid: string;
-  game?: string;
 }
 
 export type WalletTransactionStatus =

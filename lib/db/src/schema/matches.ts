@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const matchStatusEnum = pgEnum("match_status", ["upcoming", "live", "completed"]);
+export const escrowStatusEnum = pgEnum("escrow_status", ["pending", "locked", "distributed", "refunded"]);
 
 export const matchesTable = pgTable("matches", {
   id: serial("id").primaryKey(),
@@ -23,6 +24,12 @@ export const matchesTable = pgTable("matches", {
   description: text("description"),
   thumbnailImage: text("thumbnail_image"),
   hostContribution: numeric("host_contribution", { precision: 10, scale: 2 }).notNull().default("0"),
+  escrowBalance: numeric("escrow_balance", { precision: 10, scale: 2 }).notNull().default("0"),
+  hostStake: numeric("host_stake", { precision: 10, scale: 2 }).notNull().default("0"),
+  hostCommissionPercent: numeric("host_commission_percent", { precision: 5, scale: 2 }).notNull().default("10"),
+  escrowStatus: escrowStatusEnum("escrow_status").notNull().default("pending"),
+  prizeDistributedAt: timestamp("prize_distributed_at"),
+  minTrustScore: integer("min_trust_score").notNull().default(0),
   category: text("category"),
   map: text("map"),
   resultScreenshotUrl: text("result_screenshot_url"),
@@ -31,6 +38,15 @@ export const matchesTable = pgTable("matches", {
   resultSkipReason: text("result_skip_reason"),
   rewardDistribution: text("reward_distribution"),
   isEsportsOnly: boolean("is_esports_only").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const matchEscrowTransactionsTable = pgTable("match_escrow_transactions", {
+  id: serial("id").primaryKey(),
+  matchId: integer("match_id").notNull(),
+  userId: integer("user_id"),
+  type: text("type").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

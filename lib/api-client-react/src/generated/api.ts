@@ -26,8 +26,12 @@ import type {
   AdminListPlayersParams,
   AdminListWithdrawalsParams,
   AdminPlayer,
+  AnalyzeScreenshotRequest,
+  AnalyzeScreenshotResponse,
   AuthResponse,
   ChatMessage,
+  CoachRequest,
+  CoachResponse,
   Complaint,
   ComplaintRequest,
   Conversation,
@@ -38,6 +42,7 @@ import type {
   ExploreUsersParams,
   FinanceRequest,
   HealthStatus,
+  HostReviewRequest,
   JoinMatchRequest,
   ListMatchesParams,
   LoginRequest,
@@ -1157,6 +1162,247 @@ export const useSubmitResult = <
   TContext
 > => {
   return useMutation(getSubmitResultMutationOptions(options));
+};
+
+export const getSubmitHostReviewUrl = (id: number) => {
+  return `/api/matches/${id}/host-review`;
+};
+
+export const submitHostReview = async (
+  id: number,
+  hostReviewRequest: HostReviewRequest,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getSubmitHostReviewUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(hostReviewRequest),
+  });
+};
+
+export const getSubmitHostReviewMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitHostReview>>,
+    TError,
+    { id: number; data: BodyType<HostReviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitHostReview>>,
+  TError,
+  { id: number; data: BodyType<HostReviewRequest> },
+  TContext
+> => {
+  const mutationKey = ["submitHostReview"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitHostReview>>,
+    { id: number; data: BodyType<HostReviewRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return submitHostReview(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitHostReviewMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitHostReview>>
+>;
+export type SubmitHostReviewMutationBody = BodyType<HostReviewRequest>;
+export type SubmitHostReviewMutationError = ErrorType<unknown>;
+
+export const useSubmitHostReview = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitHostReview>>,
+    TError,
+    { id: number; data: BodyType<HostReviewRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitHostReview>>,
+  TError,
+  { id: number; data: BodyType<HostReviewRequest> },
+  TContext
+> => {
+  return useMutation(getSubmitHostReviewMutationOptions(options));
+};
+
+export const getAnalyzeScreenshotUrl = () => {
+  return `/api/ai/analyze-screenshot`;
+};
+
+export const analyzeScreenshot = async (
+  analyzeScreenshotRequest: AnalyzeScreenshotRequest,
+  options?: RequestInit,
+): Promise<AnalyzeScreenshotResponse> => {
+  return customFetch<AnalyzeScreenshotResponse>(getAnalyzeScreenshotUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeScreenshotRequest),
+  });
+};
+
+export const getAnalyzeScreenshotMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeScreenshot>>,
+    TError,
+    { data: BodyType<AnalyzeScreenshotRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeScreenshot>>,
+  TError,
+  { data: BodyType<AnalyzeScreenshotRequest> },
+  TContext
+> => {
+  const mutationKey = ["analyzeScreenshot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeScreenshot>>,
+    { data: BodyType<AnalyzeScreenshotRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeScreenshot(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeScreenshotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeScreenshot>>
+>;
+export type AnalyzeScreenshotMutationBody = BodyType<AnalyzeScreenshotRequest>;
+export type AnalyzeScreenshotMutationError = ErrorType<unknown>;
+
+export const useAnalyzeScreenshot = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeScreenshot>>,
+    TError,
+    { data: BodyType<AnalyzeScreenshotRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeScreenshot>>,
+  TError,
+  { data: BodyType<AnalyzeScreenshotRequest> },
+  TContext
+> => {
+  return useMutation(getAnalyzeScreenshotMutationOptions(options));
+};
+
+export const getCoachAiUrl = () => {
+  return `/api/ai/coach`;
+};
+
+export const coachAi = async (
+  coachRequest: CoachRequest,
+  options?: RequestInit,
+): Promise<CoachResponse> => {
+  return customFetch<CoachResponse>(getCoachAiUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(coachRequest),
+  });
+};
+
+export const getCoachAiMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof coachAi>>,
+    TError,
+    { data: BodyType<CoachRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof coachAi>>,
+  TError,
+  { data: BodyType<CoachRequest> },
+  TContext
+> => {
+  const mutationKey = ["coachAi"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof coachAi>>,
+    { data: BodyType<CoachRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return coachAi(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CoachAiMutationResult = NonNullable<
+  Awaited<ReturnType<typeof coachAi>>
+>;
+export type CoachAiMutationBody = BodyType<CoachRequest>;
+export type CoachAiMutationError = ErrorType<unknown>;
+
+export const useCoachAi = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof coachAi>>,
+    TError,
+    { data: BodyType<CoachRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof coachAi>>,
+  TError,
+  { data: BodyType<CoachRequest> },
+  TContext
+> => {
+  return useMutation(getCoachAiMutationOptions(options));
 };
 
 export const getGetMatchPlayersUrl = (id: number) => {
@@ -3798,83 +4044,6 @@ export type AdminListMatchesQueryResult = NonNullable<
   Awaited<ReturnType<typeof adminListMatches>>
 >;
 export type AdminListMatchesQueryError = ErrorType<unknown>;
-
-export const getDeletePlayerUrl = (id: number) => {
-  return `/api/admin/players/${id}`;
-};
-
-export const deletePlayer = async (
-  id: number,
-  options?: RequestInit,
-): Promise<SuccessResponse> => {
-  return customFetch<SuccessResponse>(getDeletePlayerUrl(id), {
-    ...options,
-    method: "DELETE",
-  });
-};
-
-export const getDeletePlayerMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deletePlayer>>,
-    TError,
-    { id: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deletePlayer>>,
-  TError,
-  { id: number },
-  TContext
-> => {
-  const mutationKey = ["deletePlayer"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deletePlayer>>,
-    { id: number }
-  > = (props) => {
-    const { id } = props ?? {};
-    return deletePlayer(id, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DeletePlayerMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deletePlayer>>
->;
-
-export type DeletePlayerMutationError = ErrorType<unknown>;
-
-export const useDeletePlayer = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deletePlayer>>,
-    TError,
-    { id: number },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof deletePlayer>>,
-  TError,
-  { id: number },
-  TContext
-> => {
-  return useMutation(getDeletePlayerMutationOptions(options));
-};
 
 export function useAdminListMatches<
   TData = Awaited<ReturnType<typeof adminListMatches>>,

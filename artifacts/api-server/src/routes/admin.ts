@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   usersTable, matchesTable, matchParticipantsTable, matchPlayersTable,
   addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable,
-  platformEarningsTable, hostEarningsTable,
+  platformEarningsTable, hostEarningsTable, trustScoreEventsTable,
   auctionsTable, auctionTeamsTable, auctionPlayersTable, auctionBidsTable, auctionResultsTable
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, gte, desc } from "drizzle-orm";
@@ -38,6 +38,8 @@ router.get("/admin/dashboard", requireAdmin, async (req: Request, res: Response)
   const liveMatches = allMatches.filter(m => m.status === "live");
   const pendingWithdrawals = await db.select().from(withdrawalRequestsTable).where(eq(withdrawalRequestsTable.status, "pending"));
   const complaints = await db.select().from(complaintsTable);
+  const flaggedPlayers = allPlayers.filter(p => (p.trustScore ?? 500) < 300 || p.status === "banned");
+  const flaggedHosts = hosts.filter(h => h.hostBadge === "Flagged Host");
 
   const completedMatches = allMatches.filter(m => m.status === "completed");
   const totalRevenue = completedMatches.reduce((sum, m) => {
@@ -64,7 +66,9 @@ router.get("/admin/dashboard", requireAdmin, async (req: Request, res: Response)
     platformFees,
     complaintsCount: complaints.length,
     adminList: admins.map(a => ({ id: a.id, email: a.email, name: a.name, role: a.role })),
-    hostList: hosts.map(h => ({ id: h.id, email: h.email, name: h.name, role: h.role, game: h.game, recommended: h.recommended })),
+    flaggedPlayers: flaggedPlayers.map(p => ({ id: p.id, email: p.email, name: p.name, handle: p.handle, trustScore: p.trustScore, trustTier: p.trustTier, status: p.status })),
+    flaggedHosts: flaggedHosts.map(h => ({ id: h.id, email: h.email, name: h.name, handle: h.handle, hostRatingAvg: parseFloat((h.hostRatingAvg as string) ?? "0"), hostRatingCount: h.hostRatingCount, hostBadge: h.hostBadge })),
+    hostList: hosts.map(h => ({ id: h.id, email: h.email, name: h.name, role: h.role, game: h.game, recommended: h.recommended, hostRatingAvg: parseFloat((h.hostRatingAvg as string) ?? "0"), hostRatingCount: h.hostRatingCount, hostBadge: h.hostBadge })),
   });
 });
 
@@ -97,7 +101,13 @@ router.post("/admin/players/:id/verify", requireAdmin, async (req: Request, res:
 });
 
 router.post("/admin/players/:id/ban", requireAdmin, async (req: Request, res: Response) => {
-  await db.update(usersTable).set({ status: "banned" }).where(eq(usersTable.id, Number(req.params.id)));
+  const userId = Number(req.params.id);
+  await db.transaction(async (tx) => {
+    const [player] = await tx.select({ trustScore: usersTable.trustScore }).from(usersTable).where(eq(usersTable.id, userId));
+    const nextScore = Math.max(0, Math.min(1000, Number(player?.trustScore ?? 500) - 200));
+    await tx.update(usersTable).set({ status: "banned", trustScore: nextScore, trustTier: nextScore < 300 ? "Risky" : nextScore < 500 ? "Beginner" : nextScore < 700 ? "Trusted" : nextScore < 900 ? "Veteran" : "Elite" }).where(eq(usersTable.id, userId));
+    await tx.insert(trustScoreEventsTable).values({ userId, eventType: "admin_ban", pointChange: -200, reason: "Banned by admin" });
+  });
   res.json({ success: true });
 });
 

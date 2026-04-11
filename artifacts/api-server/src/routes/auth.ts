@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, referralsTable } from "@workspace/db/schema";
+import { usersTable, referralsTable, trustScoreEventsTable } from "@workspace/db/schema";
 import { eq, sql, ilike, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -90,6 +90,11 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     equippedBadge: user.equippedBadge ?? null,
     equippedHandleColor: user.equippedHandleColor ?? null,
     isEsportsPlayer: user.isEsportsPlayer ?? false,
+    trustScore: user.trustScore ?? 500,
+    trustTier: user.trustTier ?? "Trusted",
+    hostRatingAvg: user.hostRatingAvg ? parseFloat(user.hostRatingAvg as string) : 0,
+    hostRatingCount: user.hostRatingCount ?? 0,
+    hostBadge: user.hostBadge ?? "New Host",
     bio: user.bio ?? null,
     ingameRole: user.ingameRole ?? null,
     profileAnimation: user.profileAnimation ?? null,
@@ -492,15 +497,31 @@ router.post("/auth/setup-profile", requireAuth, async (req: Request, res: Respon
     return;
   }
   const referralCode = `Tx-${handle}${user.id.toString().padStart(3, "0")}`;
-  const [updated] = await db.update(usersTable).set({
-    avatar: avatar || "🔥",
-    name,
-    game,
-    handle,
-    referralCode,
-    profileSetup: true,
-    status: "active",
-  }).where(eq(usersTable.id, user.id)).returning();
+  const [updated] = await db.transaction(async (tx) => {
+    const bonus = user.profileSetup ? 0 : 20;
+    const trustScore = Math.min(1000, (user.trustScore ?? 500) + bonus);
+    const trustTier = trustScore < 300 ? "Risky" : trustScore < 500 ? "Beginner" : trustScore < 700 ? "Trusted" : trustScore < 900 ? "Veteran" : "Elite";
+    const [profile] = await tx.update(usersTable).set({
+      avatar: avatar || "🔥",
+      name,
+      game,
+      handle,
+      referralCode,
+      profileSetup: true,
+      status: "active",
+      trustScore,
+      trustTier,
+    }).where(eq(usersTable.id, user.id)).returning();
+    if (bonus > 0) {
+      await tx.insert(trustScoreEventsTable).values({
+        userId: user.id,
+        eventType: "profile_completed",
+        pointChange: bonus,
+        reason: "Profile completed",
+      });
+    }
+    return [profile];
+  });
   res.json(serializeUser(updated));
 });
 

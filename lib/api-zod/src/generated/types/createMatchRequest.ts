@@ -13,4 +13,6 @@ export interface CreateMatchRequest {
   entryFee: number;
   slots: number;
   startTime: string;
+  hostStake?: number;
+  minTrustScore?: number;
 }

@@ -42,10 +42,25 @@ export const usersTable = pgTable("users", {
   equippedBadge: text("equipped_badge"),
   equippedHandleColor: text("equipped_handle_color"),
   isEsportsPlayer: boolean("is_esports_player").notNull().default(false),
+  trustScore: integer("trust_score").notNull().default(500),
+  trustTier: text("trust_tier").notNull().default("Trusted"),
+  hostRatingAvg: numeric("host_rating_avg", { precision: 3, scale: 2 }).notNull().default("0"),
+  hostRatingCount: integer("host_rating_count").notNull().default(0),
+  hostBadge: text("host_badge").notNull().default("New Host"),
   bio: text("bio"),
   ingameRole: text("ingame_role"),
   profileAnimation: text("profile_animation"),
   profileColor: text("profile_color"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const trustScoreEventsTable = pgTable("trust_score_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  eventType: text("event_type").notNull(),
+  pointChange: integer("point_change").notNull(),
+  reason: text("reason").notNull(),
+  matchId: integer("match_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

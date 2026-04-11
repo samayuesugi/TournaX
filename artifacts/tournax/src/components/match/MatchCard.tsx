@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Clock, Users, Trophy, Star, Swords } from "lucide-react";
+import { Clock, Users, Trophy, Star, Swords, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoinIcon } from "@/components/ui/Coins";
 import type { Match } from "@workspace/api-client-react";
@@ -142,6 +142,9 @@ export function MatchCard({ match, className }: MatchCardProps) {
   const hostReviewCount: number = (match as any).hostReviewCount ?? 0;
   const hostAvatar: string = (match as any).hostAvatar ?? "🛡️";
   const hostHandle: string = (match as any).hostHandle ?? "";
+  const hostBadge: string = (match as any).hostBadge ?? "New Host";
+  const escrowStatus: string = (match as any).escrowStatus ?? "pending";
+  const minTrustScore: number = (match as any).minTrustScore ?? 0;
   const matchMap: string | null = (match as any).map ?? null;
   const teamSizeLabel = match.teamSize === 1 ? "Solo" : match.teamSize === 2 ? "Duo" : match.teamSize === 4 ? "Squad" : `${match.teamSize}v${match.teamSize}`;
 
@@ -260,6 +263,17 @@ export function MatchCard({ match, className }: MatchCardProps) {
             </div>
           )}
 
+          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 border border-green-500/20 px-2 py-0.5 text-[10px] font-bold text-green-400">
+              <ShieldCheck className="w-3 h-3" /> Escrow {escrowStatus}
+            </span>
+            {minTrustScore > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 text-[10px] font-bold text-violet-300">
+                TX {minTrustScore}+
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-1 min-w-0">
               <Clock className="w-3 h-3 shrink-0" />
@@ -305,6 +319,9 @@ export function MatchCard({ match, className }: MatchCardProps) {
             </div>
             <span className="text-[11px] text-muted-foreground shrink-0">
               {hostHandle ? `@${hostHandle}` : "Host"}
+            </span>
+            <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary truncate">
+              {hostBadge}
             </span>
             {hostRating !== null && hostReviewCount > 0 && (
               <>

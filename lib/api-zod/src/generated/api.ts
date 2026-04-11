@@ -35,6 +35,11 @@ export const LoginResponse = zod.object({
     followersCount: zod.number().optional(),
     followingCount: zod.number().optional(),
     profileSetup: zod.boolean(),
+    trustScore: zod.number().optional(),
+    trustTier: zod.string().optional(),
+    hostRatingAvg: zod.number().optional(),
+    hostRatingCount: zod.number().optional(),
+    hostBadge: zod.string().optional(),
   }),
   token: zod.string(),
 });
@@ -60,6 +65,11 @@ export const RegisterResponse = zod.object({
     followersCount: zod.number().optional(),
     followingCount: zod.number().optional(),
     profileSetup: zod.boolean(),
+    trustScore: zod.number().optional(),
+    trustTier: zod.string().optional(),
+    hostRatingAvg: zod.number().optional(),
+    hostRatingCount: zod.number().optional(),
+    hostBadge: zod.string().optional(),
   }),
   token: zod.string(),
 });
@@ -79,6 +89,11 @@ export const GetMeResponse = zod.object({
   followersCount: zod.number().optional(),
   followingCount: zod.number().optional(),
   profileSetup: zod.boolean(),
+  trustScore: zod.number().optional(),
+  trustTier: zod.string().optional(),
+  hostRatingAvg: zod.number().optional(),
+  hostRatingCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
 });
 
 export const LogoutResponse = zod.object({
@@ -109,6 +124,11 @@ export const SetupProfileResponse = zod.object({
   followersCount: zod.number().optional(),
   followingCount: zod.number().optional(),
   profileSetup: zod.boolean(),
+  trustScore: zod.number().optional(),
+  trustTier: zod.string().optional(),
+  hostRatingAvg: zod.number().optional(),
+  hostRatingCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
 });
 
 export const ListMatchesQueryParams = zod.object({
@@ -138,6 +158,17 @@ export const ListMatchesResponseItem = zod.object({
   roomPassword: zod.string().optional(),
   roomReleased: zod.boolean().optional(),
   hostId: zod.number(),
+  hostRating: zod.number().optional(),
+  hostReviewCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
+  hostStake: zod.number().optional(),
+  hostCommissionPercent: zod.number().optional(),
+  escrowBalance: zod.number().optional(),
+  escrowStatus: zod
+    .enum(["pending", "locked", "distributed", "refunded"])
+    .optional(),
+  prizeDistributedAt: zod.string().nullish(),
+  minTrustScore: zod.number().optional(),
 });
 export const ListMatchesResponse = zod.array(ListMatchesResponseItem);
 
@@ -148,6 +179,8 @@ export const CreateMatchBody = zod.object({
   entryFee: zod.number(),
   slots: zod.number(),
   startTime: zod.string(),
+  hostStake: zod.number().optional(),
+  minTrustScore: zod.number().optional(),
 });
 
 export const CreateMatchResponse = zod.object({
@@ -172,6 +205,17 @@ export const CreateMatchResponse = zod.object({
   roomPassword: zod.string().optional(),
   roomReleased: zod.boolean().optional(),
   hostId: zod.number(),
+  hostRating: zod.number().optional(),
+  hostReviewCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
+  hostStake: zod.number().optional(),
+  hostCommissionPercent: zod.number().optional(),
+  escrowBalance: zod.number().optional(),
+  escrowStatus: zod
+    .enum(["pending", "locked", "distributed", "refunded"])
+    .optional(),
+  prizeDistributedAt: zod.string().nullish(),
+  minTrustScore: zod.number().optional(),
 });
 
 export const GetMatchParams = zod.object({
@@ -200,6 +244,17 @@ export const GetMatchResponse = zod.object({
   roomPassword: zod.string().optional(),
   roomReleased: zod.boolean().optional(),
   hostId: zod.number(),
+  hostRating: zod.number().optional(),
+  hostReviewCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
+  hostStake: zod.number().optional(),
+  hostCommissionPercent: zod.number().optional(),
+  escrowBalance: zod.number().optional(),
+  escrowStatus: zod
+    .enum(["pending", "locked", "distributed", "refunded"])
+    .optional(),
+  prizeDistributedAt: zod.string().nullish(),
+  minTrustScore: zod.number().optional(),
 });
 
 export const DeleteMatchParams = zod.object({
@@ -272,6 +327,58 @@ export const SubmitResultResponse = zod.object({
   message: zod.string().optional(),
 });
 
+export const SubmitHostReviewParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const submitHostReviewBodyOverallRatingMax = 5;
+
+export const submitHostReviewBodyRatingMax = 5;
+
+export const SubmitHostReviewBody = zod.object({
+  prizeOnTime: zod.boolean(),
+  roomCodeOnTime: zod.boolean(),
+  overallRating: zod.number().min(1).max(submitHostReviewBodyOverallRatingMax),
+  rating: zod.number().min(1).max(submitHostReviewBodyRatingMax).optional(),
+  comment: zod.string().optional(),
+});
+
+export const SubmitHostReviewResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string().optional(),
+});
+
+export const AnalyzeScreenshotBody = zod.object({
+  imageBase64: zod.string(),
+  mimeType: zod.string().optional(),
+  participants: zod.array(zod.string()).optional(),
+  game: zod.string().optional(),
+});
+
+export const AnalyzeScreenshotResponse = zod.object({
+  game: zod.string().optional(),
+  mode: zod.string().nullish(),
+  map: zod.string().nullish(),
+  players: zod.array(zod.record(zod.string(), zod.unknown())).optional(),
+  winner: zod.string().optional(),
+  recommendedResults: zod
+    .array(zod.record(zod.string(), zod.unknown()))
+    .optional(),
+  suspicious: zod.boolean().optional(),
+  suspiciousReason: zod.string().nullish(),
+  confidence: zod.number().optional(),
+  notes: zod.string().optional(),
+});
+
+export const CoachAiBody = zod.object({
+  message: zod.string(),
+  context: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+export const CoachAiResponse = zod.object({
+  reply: zod.string(),
+});
+
 export const GetMatchPlayersParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -316,6 +423,17 @@ export const GetMyMatchesResponse = zod.object({
       roomPassword: zod.string().optional(),
       roomReleased: zod.boolean().optional(),
       hostId: zod.number(),
+      hostRating: zod.number().optional(),
+      hostReviewCount: zod.number().optional(),
+      hostBadge: zod.string().optional(),
+      hostStake: zod.number().optional(),
+      hostCommissionPercent: zod.number().optional(),
+      escrowBalance: zod.number().optional(),
+      escrowStatus: zod
+        .enum(["pending", "locked", "distributed", "refunded"])
+        .optional(),
+      prizeDistributedAt: zod.string().nullish(),
+      minTrustScore: zod.number().optional(),
     }),
   ),
   history: zod.array(
@@ -341,6 +459,17 @@ export const GetMyMatchesResponse = zod.object({
       roomPassword: zod.string().optional(),
       roomReleased: zod.boolean().optional(),
       hostId: zod.number(),
+      hostRating: zod.number().optional(),
+      hostReviewCount: zod.number().optional(),
+      hostBadge: zod.string().optional(),
+      hostStake: zod.number().optional(),
+      hostCommissionPercent: zod.number().optional(),
+      escrowBalance: zod.number().optional(),
+      escrowStatus: zod
+        .enum(["pending", "locked", "distributed", "refunded"])
+        .optional(),
+      prizeDistributedAt: zod.string().nullish(),
+      minTrustScore: zod.number().optional(),
     }),
   ),
 });
@@ -385,6 +514,17 @@ export const ExploreUsersResponse = zod.object({
           roomPassword: zod.string().optional(),
           roomReleased: zod.boolean().optional(),
           hostId: zod.number(),
+          hostRating: zod.number().optional(),
+          hostReviewCount: zod.number().optional(),
+          hostBadge: zod.string().optional(),
+          hostStake: zod.number().optional(),
+          hostCommissionPercent: zod.number().optional(),
+          escrowBalance: zod.number().optional(),
+          escrowStatus: zod
+            .enum(["pending", "locked", "distributed", "refunded"])
+            .optional(),
+          prizeDistributedAt: zod.string().nullish(),
+          minTrustScore: zod.number().optional(),
         }),
       ),
       activeMatches: zod.array(
@@ -410,6 +550,17 @@ export const ExploreUsersResponse = zod.object({
           roomPassword: zod.string().optional(),
           roomReleased: zod.boolean().optional(),
           hostId: zod.number(),
+          hostRating: zod.number().optional(),
+          hostReviewCount: zod.number().optional(),
+          hostBadge: zod.string().optional(),
+          hostStake: zod.number().optional(),
+          hostCommissionPercent: zod.number().optional(),
+          escrowBalance: zod.number().optional(),
+          escrowStatus: zod
+            .enum(["pending", "locked", "distributed", "refunded"])
+            .optional(),
+          prizeDistributedAt: zod.string().nullish(),
+          minTrustScore: zod.number().optional(),
         }),
       ),
     }),
@@ -449,6 +600,17 @@ export const ExploreUsersResponse = zod.object({
           roomPassword: zod.string().optional(),
           roomReleased: zod.boolean().optional(),
           hostId: zod.number(),
+          hostRating: zod.number().optional(),
+          hostReviewCount: zod.number().optional(),
+          hostBadge: zod.string().optional(),
+          hostStake: zod.number().optional(),
+          hostCommissionPercent: zod.number().optional(),
+          escrowBalance: zod.number().optional(),
+          escrowStatus: zod
+            .enum(["pending", "locked", "distributed", "refunded"])
+            .optional(),
+          prizeDistributedAt: zod.string().nullish(),
+          minTrustScore: zod.number().optional(),
         }),
       ),
       activeMatches: zod.array(
@@ -474,6 +636,17 @@ export const ExploreUsersResponse = zod.object({
           roomPassword: zod.string().optional(),
           roomReleased: zod.boolean().optional(),
           hostId: zod.number(),
+          hostRating: zod.number().optional(),
+          hostReviewCount: zod.number().optional(),
+          hostBadge: zod.string().optional(),
+          hostStake: zod.number().optional(),
+          hostCommissionPercent: zod.number().optional(),
+          escrowBalance: zod.number().optional(),
+          escrowStatus: zod
+            .enum(["pending", "locked", "distributed", "refunded"])
+            .optional(),
+          prizeDistributedAt: zod.string().nullish(),
+          minTrustScore: zod.number().optional(),
         }),
       ),
     }),
@@ -518,6 +691,17 @@ export const GetUserProfileResponse = zod.object({
       roomPassword: zod.string().optional(),
       roomReleased: zod.boolean().optional(),
       hostId: zod.number(),
+      hostRating: zod.number().optional(),
+      hostReviewCount: zod.number().optional(),
+      hostBadge: zod.string().optional(),
+      hostStake: zod.number().optional(),
+      hostCommissionPercent: zod.number().optional(),
+      escrowBalance: zod.number().optional(),
+      escrowStatus: zod
+        .enum(["pending", "locked", "distributed", "refunded"])
+        .optional(),
+      prizeDistributedAt: zod.string().nullish(),
+      minTrustScore: zod.number().optional(),
     }),
   ),
   activeMatches: zod.array(
@@ -543,6 +727,17 @@ export const GetUserProfileResponse = zod.object({
       roomPassword: zod.string().optional(),
       roomReleased: zod.boolean().optional(),
       hostId: zod.number(),
+      hostRating: zod.number().optional(),
+      hostReviewCount: zod.number().optional(),
+      hostBadge: zod.string().optional(),
+      hostStake: zod.number().optional(),
+      hostCommissionPercent: zod.number().optional(),
+      escrowBalance: zod.number().optional(),
+      escrowStatus: zod
+        .enum(["pending", "locked", "distributed", "refunded"])
+        .optional(),
+      prizeDistributedAt: zod.string().nullish(),
+      minTrustScore: zod.number().optional(),
     }),
   ),
 });
@@ -604,6 +799,11 @@ export const UpdateMyProfileResponse = zod.object({
   followersCount: zod.number().optional(),
   followingCount: zod.number().optional(),
   profileSetup: zod.boolean(),
+  trustScore: zod.number().optional(),
+  trustTier: zod.string().optional(),
+  hostRatingAvg: zod.number().optional(),
+  hostRatingCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
 });
 
 export const GetWalletResponse = zod.object({
@@ -933,5 +1133,16 @@ export const AdminListMatchesResponseItem = zod.object({
   roomPassword: zod.string().optional(),
   roomReleased: zod.boolean().optional(),
   hostId: zod.number(),
+  hostRating: zod.number().optional(),
+  hostReviewCount: zod.number().optional(),
+  hostBadge: zod.string().optional(),
+  hostStake: zod.number().optional(),
+  hostCommissionPercent: zod.number().optional(),
+  escrowBalance: zod.number().optional(),
+  escrowStatus: zod
+    .enum(["pending", "locked", "distributed", "refunded"])
+    .optional(),
+  prizeDistributedAt: zod.string().nullish(),
+  minTrustScore: zod.number().optional(),
 });
 export const AdminListMatchesResponse = zod.array(AdminListMatchesResponseItem);

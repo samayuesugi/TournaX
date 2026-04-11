@@ -39,6 +39,7 @@ import AdminAuctionDetailPage from "@/pages/admin/auction-detail";
 import AdminEarningsPage from "@/pages/admin/earnings";
 import StorePage from "@/pages/store";
 import SettingsPage from "@/pages/settings";
+import CoachPage from "@/pages/coach";
 import NotFound from "@/pages/not-found";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { DailyBonusDialog } from "@/components/DailyBonusDialog";
@@ -165,6 +166,12 @@ function Router() {
       <Route path="/explore">
         <ProtectedRoute roles={["player", "host"]}>
           <ExplorePage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/coach">
+        <ProtectedRoute roles={["player", "host"]}>
+          <CoachPage />
         </ProtectedRoute>
       </Route>
 

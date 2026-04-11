@@ -287,6 +287,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
 
+  /matches/{id}/host-review:
+    post:
+      operationId: submitHostReview
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HostReviewRequest"
+      responses:
+        "200":
+          description: Host review submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /ai/analyze-screenshot:
+    post:
+      operationId: analyzeScreenshot
+      tags: [ai]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeScreenshotRequest"
+      responses:
+        "200":
+          description: Screenshot analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeScreenshotResponse"
+
+  /ai/coach:
+    post:
+      operationId: coachAi
+      tags: [ai]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoachRequest"
+      responses:
+        "200":
+          description: Coach reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachResponse"
+
   /matches/{id}/players:
     get:
       operationId: getMatchPlayers
@@ -984,6 +1044,16 @@ components:
           type: integer
         profileSetup:
           type: boolean
+        trustScore:
+          type: integer
+        trustTier:
+          type: string
+        hostRatingAvg:
+          type: number
+        hostRatingCount:
+          type: integer
+        hostBadge:
+          type: string
       required: [id, email, role, balance, silverCoins, status, profileSetup]
 
     UpdateProfileRequest:
@@ -1042,6 +1112,26 @@ components:
           type: boolean
         hostId:
           type: integer
+        hostRating:
+          type: number
+        hostReviewCount:
+          type: integer
+        hostBadge:
+          type: string
+        hostStake:
+          type: number
+        hostCommissionPercent:
+          type: number
+        escrowBalance:
+          type: number
+        escrowStatus:
+          type: string
+          enum: [pending, locked, distributed, refunded]
+        prizeDistributedAt:
+          type: string
+          nullable: true
+        minTrustScore:
+          type: integer
       required: [id, code, game, mode, teamSize, entryFee, prizePool, startTime, status, slots, filledSlots, hostId]
 
     CreateMatchRequest:
@@ -1059,6 +1149,10 @@ components:
           type: integer
         startTime:
           type: string
+        hostStake:
+          type: number
+        minTrustScore:
+          type: integer
       required: [game, mode, teamSize, entryFee, slots, startTime]
 
     JoinMatchRequest:
@@ -1116,6 +1210,90 @@ components:
                 type: number
             required: [participantId, rank, reward]
       required: [results]
+
+    HostReviewRequest:
+      type: object
+      properties:
+        prizeOnTime:
+          type: boolean
+        roomCodeOnTime:
+          type: boolean
+        overallRating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+      required: [prizeOnTime, roomCodeOnTime, overallRating]
+
+    AnalyzeScreenshotRequest:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+        mimeType:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        game:
+          type: string
+      required: [imageBase64]
+
+    AnalyzeScreenshotResponse:
+      type: object
+      properties:
+        game:
+          type: string
+        mode:
+          type: string
+          nullable: true
+        map:
+          type: string
+          nullable: true
+        players:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        winner:
+          type: string
+        recommendedResults:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        suspicious:
+          type: boolean
+        suspiciousReason:
+          type: string
+          nullable: true
+        confidence:
+          type: integer
+        notes:
+          type: string
+
+    CoachRequest:
+      type: object
+      properties:
+        message:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+      required: [message]
+
+    CoachResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+      required: [reply]
 
     ParticipantPlayer:
       type: object

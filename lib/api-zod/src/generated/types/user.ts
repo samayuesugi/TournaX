@@ -23,4 +23,9 @@ export interface User {
   followersCount?: number;
   followingCount?: number;
   profileSetup: boolean;
+  trustScore?: number;
+  trustTier?: string;
+  hostRatingAvg?: number;
+  hostRatingCount?: number;
+  hostBadge?: string;
 }

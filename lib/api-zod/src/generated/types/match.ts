@@ -5,6 +5,7 @@
  * TournaX Gaming Tournament API
  * OpenAPI spec version: 0.1.0
  */
+import type { MatchEscrowStatus } from "./matchEscrowStatus";
 import type { MatchStatus } from "./matchStatus";
 
 export interface Match {
@@ -29,4 +30,13 @@ export interface Match {
   roomPassword?: string;
   roomReleased?: boolean;
   hostId: number;
+  hostRating?: number;
+  hostReviewCount?: number;
+  hostBadge?: string;
+  hostStake?: number;
+  hostCommissionPercent?: number;
+  escrowBalance?: number;
+  escrowStatus?: MatchEscrowStatus;
+  prizeDistributedAt?: string | null;
+  minTrustScore?: number;
 }

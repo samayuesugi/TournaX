@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, referralsTable, tournamentBracketsTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, hostRatingsTable, referralsTable, tournamentBracketsTable, matchEscrowTransactionsTable, trustScoreEventsTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { notify } from "../lib/notify";
@@ -15,6 +15,41 @@ function generateCode(): string {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
+}
+
+function getTrustTier(score: number): string {
+  if (score < 300) return "Risky";
+  if (score < 500) return "Beginner";
+  if (score < 700) return "Trusted";
+  if (score < 900) return "Veteran";
+  return "Elite";
+}
+
+function getHostBadge(matchesHosted: number, avgRating: number): string {
+  if (matchesHosted < 5) return "New Host";
+  if (avgRating < 3) return "Flagged Host";
+  if (matchesHosted >= 50 && avgRating >= 4.8) return "Elite Organizer";
+  if (matchesHosted >= 20 && avgRating >= 4.5) return "Trusted Organizer";
+  if (matchesHosted >= 5 && avgRating >= 4) return "Verified Organizer";
+  return "New Host";
+}
+
+async function addTrustScoreEvent(tx: any, userId: number, eventType: string, pointChange: number, reason: string, matchId?: number) {
+  const [current] = await tx.select({ trustScore: usersTable.trustScore }).from(usersTable).where(eq(usersTable.id, userId));
+  const nextScore = Math.max(0, Math.min(1000, Number(current?.trustScore ?? 500) + pointChange));
+  await tx.update(usersTable).set({ trustScore: nextScore, trustTier: getTrustTier(nextScore) }).where(eq(usersTable.id, userId));
+  await tx.insert(trustScoreEventsTable).values({ userId, eventType, pointChange, reason, matchId: matchId ?? null });
+}
+
+async function recomputeHostRating(tx: any, hostId: number) {
+  const ratings = await tx.select().from(hostRatingsTable).where(eq(hostRatingsTable.hostId, hostId));
+  const avgRating = ratings.length ? ratings.reduce((sum: number, rating: typeof hostRatingsTable.$inferSelect) => sum + rating.overallRating, 0) / ratings.length : 0;
+  const hostedMatches = await tx.select({ id: matchesTable.id }).from(matchesTable).where(and(eq(matchesTable.hostId, hostId), eq(matchesTable.status, "completed")));
+  await tx.update(usersTable).set({
+    hostRatingAvg: avgRating.toFixed(2),
+    hostRatingCount: ratings.length,
+    hostBadge: getHostBadge(hostedMatches.length, avgRating),
+  }).where(eq(usersTable.id, hostId));
 }
 
 async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: number) {
@@ -42,12 +77,15 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
   const entryFee = parseFloat(match.entryFee as string);
   const showcasePrizePool = parseFloat((match.showcasePrizePool as string) ?? "0");
   const hostContribution = parseFloat((match.hostContribution as string) ?? "0");
+  const hostStake = parseFloat(((match as any).hostStake as string) ?? "0");
+  const hostCommissionPercent = parseFloat(((match as any).hostCommissionPercent as string) ?? "10");
+  const escrowBalance = parseFloat(((match as any).escrowBalance as string) ?? "0");
 
   const entryFeePool = match.filledSlots * entryFee;
   const totalPool = entryFeePool + hostContribution;
   const isLargePool = match.filledSlots >= 8;
   const winnersPercent = isLargePool ? 0.85 : 0.90;
-  const hostPercent = isLargePool ? 0.10 : 0.05;
+  const hostPercent = hostCommissionPercent / 100;
   const platformPercent = 0.05;
   const livePrizePool = entryFeePool * winnersPercent + hostContribution;
   const hostCut = entryFeePool * hostPercent;
@@ -83,6 +121,12 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     entryFee,
     showcasePrizePool,
     hostContribution,
+    hostStake,
+    hostCommissionPercent,
+    escrowBalance,
+    escrowStatus: (match as any).escrowStatus ?? "pending",
+    prizeDistributedAt: (match as any).prizeDistributedAt ? (match as any).prizeDistributedAt.toISOString() : null,
+    minTrustScore: (match as any).minTrustScore ?? 0,
     livePrizePool,
     hostCut,
     platformCut,
@@ -98,8 +142,9 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     hostName: host?.name || "Host",
     hostAvatar: host?.avatar || "🛡️",
     hostFollowers: host?.followersCount || 0,
-    hostRating,
-    hostReviewCount,
+    hostRating: host?.hostRatingCount ? parseFloat((host.hostRatingAvg as string) ?? "0") : hostRating,
+    hostReviewCount: host?.hostRatingCount ?? hostReviewCount,
+    hostBadge: host?.hostBadge ?? "New Host",
     isFollowingHost,
     isRecommended: !isFollowingHost && !!host?.recommended,
     isJoined,
@@ -180,7 +225,7 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Only hosts can create matches" });
     return;
   }
-  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, category, map: matchMap, rewardDistribution, isEsportsOnly } = req.body;
+  const { game, mode, teamSize, entryFee, slots, startTime, showcasePrizePool, description, thumbnailImage, hostContribution, hostStake, minTrustScore, category, map: matchMap, rewardDistribution, isEsportsOnly } = req.body;
   const resolvedGame = game || user.game;
   if (!resolvedGame || !mode || !startTime) {
     res.status(400).json({ error: "game, mode, and startTime are required" }); return;
@@ -206,14 +251,19 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
   }
 
   const parsedContribution = hostContribution != null ? Number(hostContribution) : 0;
-  if (isNaN(parsedContribution) || parsedContribution < 0) {
-    res.status(400).json({ error: "hostContribution must be a non-negative number" }); return;
+  const parsedHostStake = hostStake != null ? Number(hostStake) : parsedContribution;
+  const parsedMinTrustScore = minTrustScore != null ? Number(minTrustScore) : 0;
+  if (isNaN(parsedContribution) || parsedContribution < 0 || isNaN(parsedHostStake) || parsedHostStake < 0) {
+    res.status(400).json({ error: "host stake must be a non-negative number" }); return;
+  }
+  if (!Number.isInteger(parsedMinTrustScore) || parsedMinTrustScore < 0 || parsedMinTrustScore > 1000) {
+    res.status(400).json({ error: "minTrustScore must be between 0 and 1000" }); return;
   }
 
-  if (parsedContribution > 0) {
+  if (parsedHostStake > 0) {
     const hostBalance = parseFloat(user.balance as string);
-    if (hostBalance < parsedContribution) {
-      res.status(400).json({ error: `Insufficient balance. You have ${hostBalance.toFixed(0)} GC but tried to contribute ${parsedContribution} GC.` }); return;
+    if (hostBalance < parsedHostStake) {
+      res.status(400).json({ error: `Insufficient balance. You have ${hostBalance.toFixed(0)} GC but tried to stake ${parsedHostStake} GC.` }); return;
     }
   }
 
@@ -221,8 +271,8 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
   let match: typeof matchesTable.$inferSelect;
 
   await db.transaction(async (tx) => {
-    if (parsedContribution > 0) {
-      await tx.execute(sql`UPDATE users SET balance = balance - ${parsedContribution} WHERE id = ${user.id}`);
+    if (parsedHostStake > 0) {
+      await tx.execute(sql`UPDATE users SET balance = balance - ${parsedHostStake} WHERE id = ${user.id}`);
     }
     const [inserted] = await tx.insert(matchesTable).values({
       code,
@@ -237,6 +287,11 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       filledSlots: 0,
       showcasePrizePool: showcasePrizePool != null ? String(Number(showcasePrizePool)) : "0",
       hostContribution: String(parsedContribution),
+      hostStake: String(parsedHostStake),
+      escrowBalance: String(parsedHostStake),
+      hostCommissionPercent: "10",
+      escrowStatus: parsedHostStake > 0 ? "locked" : "pending",
+      minTrustScore: parsedMinTrustScore,
       roomReleased: false,
       description: description ? String(description).trim() : null,
       thumbnailImage: thumbnailImage ? String(thumbnailImage).trim() : null,
@@ -246,6 +301,14 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       isEsportsOnly: isEsportsOnly === true || isEsportsOnly === "true",
     } as any).returning();
     match = inserted;
+    if (parsedHostStake > 0) {
+      await tx.insert(matchEscrowTransactionsTable).values({
+        matchId: inserted.id,
+        userId: user.id,
+        type: "host_stake",
+        amount: String(parsedHostStake),
+      });
+    }
   });
 
   const serialized = await serializeMatch(match!, user.id);
@@ -283,6 +346,24 @@ router.delete("/matches/:id", requireAuth, async (req: Request, res: Response) =
     const fee = parseFloat(match.entryFee as string) * match.teamSize;
     for (const p of participants) {
       await tx.execute(sql`UPDATE users SET balance = balance + ${fee} WHERE id = ${p.userId}`);
+      if (fee > 0) {
+        await tx.insert(matchEscrowTransactionsTable).values({
+          matchId: match.id,
+          userId: p.userId,
+          type: "refund",
+          amount: String(fee),
+        });
+      }
+    }
+    const hostStake = parseFloat(((match as any).hostStake as string) ?? "0");
+    if (hostStake > 0) {
+      await tx.execute(sql`UPDATE users SET balance = balance + ${hostStake} WHERE id = ${match.hostId}`);
+      await tx.insert(matchEscrowTransactionsTable).values({
+        matchId: match.id,
+        userId: match.hostId,
+        type: "refund",
+        amount: String(hostStake),
+      });
     }
     await tx.delete(matchPlayersTable).where(eq(matchPlayersTable.matchId, match.id));
     await tx.delete(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
@@ -297,6 +378,9 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, Number(req.params.id)));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   if (match.status !== "upcoming") { res.status(400).json({ error: "Match is not joinable" }); return; }
+  if (((match as any).minTrustScore ?? 0) > (user.trustScore ?? 500)) {
+    res.status(403).json({ error: `This match requires ${((match as any).minTrustScore ?? 0)}+ Trust Score. Your score is ${user.trustScore ?? 500}.` }); return;
+  }
 
   const existing = await db.select().from(matchParticipantsTable).where(
     and(eq(matchParticipantsTable.matchId, match.id), eq(matchParticipantsTable.userId, user.id))
@@ -347,7 +431,7 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
       }
 
       const slotResult = await tx.execute(
-        sql`UPDATE matches SET filled_slots = filled_slots + ${match.teamSize}
+        sql`UPDATE matches SET filled_slots = filled_slots + ${match.teamSize}, escrow_balance = escrow_balance + ${totalFee}
         WHERE id = ${match.id} AND filled_slots + ${match.teamSize} <= slots
         RETURNING filled_slots`
       );
@@ -378,6 +462,16 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
 
       const today = new Date().toISOString().slice(0, 10);
       if (totalFee > 0) {
+        await tx.insert(matchEscrowTransactionsTable).values({
+          matchId: match.id,
+          userId: user.id,
+          type: "entry_fee",
+          amount: String(totalFee),
+        });
+      }
+      await addTrustScoreEvent(tx, user.id, "match_joined", 10, "Joined a tournament match", match.id);
+      if (totalFee > 0) {
+        await addTrustScoreEvent(tx, user.id, "match_fee_paid", 30, "Entry fee paid on time", match.id);
         const newPaidMatchesResult = await tx.execute(
           sql`UPDATE users SET paid_matches_played = paid_matches_played + 1 WHERE id = ${user.id} RETURNING paid_matches_played`
         );
@@ -478,7 +572,7 @@ router.post("/matches/:id/go-live", requireAuth, async (req: Request, res: Respo
   if (match.hostId !== user.id && user.role !== "admin") {
     res.status(403).json({ error: "Unauthorized" }); return;
   }
-  await db.update(matchesTable).set({ status: "live" }).where(eq(matchesTable.id, match.id));
+  await db.update(matchesTable).set({ status: "live", escrowStatus: "locked" } as any).where(eq(matchesTable.id, match.id));
   res.json({ success: true, message: "Match is now live" });
 });
 
@@ -508,16 +602,20 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   }
 
   const entryFeeNum = parseFloat(match.entryFee as string);
-  const hostContributionNum = parseFloat((match.hostContribution as string) ?? "0");
+  const hostStakeNum = parseFloat(((match as any).hostStake as string) ?? "0");
+  const escrowBalanceNum = parseFloat(((match as any).escrowBalance as string) ?? "0");
   const entryFeePool = match.filledSlots * entryFeeNum;
-  const totalPool = entryFeePool + hostContributionNum;
-  const winnersPercent = match.filledSlots >= 8 ? 0.85 : 0.90;
-  const hostPercent = match.filledSlots >= 8 ? 0.10 : 0.05;
-  const maxWinnersPool = entryFeePool * winnersPercent + hostContributionNum;
+  const hostPercent = parseFloat(((match as any).hostCommissionPercent as string) ?? "10") / 100;
+  const platformPercent = 0.05;
+  const maxWinnersPool = Math.max(0, entryFeePool - entryFeePool * hostPercent - entryFeePool * platformPercent);
   const hostCut = parseFloat((entryFeePool * hostPercent).toFixed(2));
+  const platformCut = parseFloat((entryFeePool * platformPercent).toFixed(2));
   const totalReward = results.reduce((sum, r) => sum + r.reward, 0);
   if (totalReward > maxWinnersPool + 0.01) {
     res.status(400).json({ error: `Total rewards (${totalReward} GC) exceed the winners pool (${maxWinnersPool.toFixed(2)} GC)` }); return;
+  }
+  if (totalReward + hostCut + platformCut + hostStakeNum > escrowBalanceNum + 0.01) {
+    res.status(400).json({ error: "Escrow balance is not enough for this distribution" }); return;
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -539,11 +637,22 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
           RETURNING id, daily_tournament_wins`
         );
         const winRow = winResult.rows[0] as any;
+        await tx.insert(matchEscrowTransactionsTable).values({
+          matchId: match.id,
+          userId: winRow?.id ?? null,
+          type: "prize_payout",
+          amount: String(r.reward),
+        });
         // Award 10 Silver Coins when daily 5-tournament-wins task first completes
         if (winRow && winRow.daily_tournament_wins === 5) {
           await tx.execute(sql`UPDATE users SET silver_coins = silver_coins + 10 WHERE id = ${winRow.id}`);
         }
       }
+    }
+
+    const completedParticipants = await tx.select({ userId: matchParticipantsTable.userId }).from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
+    for (const participant of completedParticipants) {
+      await addTrustScoreEvent(tx, participant.userId, "match_completed", 50, "Completed match without dispute", match.id);
     }
 
     if (hostCut > 0) {
@@ -554,15 +663,36 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
         matchCode: match.code,
         amount: String(hostCut),
       });
+      await tx.insert(matchEscrowTransactionsTable).values({
+        matchId: match.id,
+        userId: match.hostId,
+        type: "host_commission",
+        amount: String(hostCut),
+      });
     }
 
-    const platformCut = parseFloat((entryFeePool * 0.05).toFixed(2));
     if (platformCut > 0) {
       await tx.insert(platformEarningsTable).values({
         hostId: match.hostId,
         matchId: match.id,
         matchCode: match.code,
         amount: String(platformCut),
+      });
+      await tx.insert(matchEscrowTransactionsTable).values({
+        matchId: match.id,
+        userId: null,
+        type: "platform_fee",
+        amount: String(platformCut),
+      } as any);
+    }
+
+    if (hostStakeNum > 0) {
+      await tx.execute(sql`UPDATE users SET balance = balance + ${hostStakeNum} WHERE id = ${match.hostId}`);
+      await tx.insert(matchEscrowTransactionsTable).values({
+        matchId: match.id,
+        userId: match.hostId,
+        type: "host_stake",
+        amount: String(hostStakeNum),
       });
     }
 
@@ -572,6 +702,9 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
       status: "completed",
       resultScreenshotUrls: JSON.stringify(screenshotUrls),
       screenshotUploadedAt: new Date(),
+      escrowBalance: "0",
+      escrowStatus: "distributed",
+      prizeDistributedAt: new Date(),
     } as any).where(eq(matchesTable.id, match.id));
   });
 
@@ -674,21 +807,32 @@ router.post("/matches/:id/review", requireAuth, async (req: Request, res: Respon
     and(eq(matchParticipantsTable.matchId, matchId), eq(matchParticipantsTable.userId, user.id))
   );
   if (!participation) { res.status(403).json({ error: "You did not participate in this match" }); return; }
-  const [existing] = await db.select().from(hostReviewsTable).where(
-    and(eq(hostReviewsTable.matchId, matchId), eq(hostReviewsTable.reviewerId, user.id))
+  const [existing] = await db.select().from(hostRatingsTable).where(
+    and(eq(hostRatingsTable.matchId, matchId), eq(hostRatingsTable.raterId, user.id))
   );
   if (existing) { res.status(400).json({ error: "You have already reviewed this match" }); return; }
-  const { rating, comment } = req.body;
-  const parsedRating = parseInt(rating);
+  const { rating, overallRating, comment, prizeOnTime, roomCodeOnTime } = req.body;
+  const parsedRating = parseInt(overallRating ?? rating);
   if (!parsedRating || parsedRating < 1 || parsedRating > 5) {
     res.status(400).json({ error: "Rating must be between 1 and 5" }); return;
   }
-  await db.insert(hostReviewsTable).values({
-    matchId,
-    reviewerId: user.id,
-    hostId: match.hostId,
-    rating: parsedRating,
-    comment: comment?.trim() || null,
+  await db.transaction(async (tx) => {
+    await tx.insert(hostRatingsTable).values({
+      matchId,
+      raterId: user.id,
+      hostId: match.hostId,
+      prizeOnTime: prizeOnTime !== false,
+      roomCodeOnTime: roomCodeOnTime !== false,
+      overallRating: parsedRating,
+    });
+    await tx.insert(hostReviewsTable).values({
+      matchId,
+      reviewerId: user.id,
+      hostId: match.hostId,
+      rating: parsedRating,
+      comment: comment?.trim() || null,
+    });
+    await recomputeHostRating(tx, match.hostId);
   });
   res.json({ success: true });
 });
