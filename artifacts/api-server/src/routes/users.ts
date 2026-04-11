@@ -275,6 +275,39 @@ router.put("/users/me/esports-stats", requireAuth, async (req: Request, res: Res
   res.json({ success: true });
 });
 
+router.get("/users/lft", requireAuth, async (req: Request, res: Response) => {
+  const { game } = req.query;
+  const filter = game
+    ? and(eq(usersTable.isLFT, true), eq(usersTable.role, "player"), eq(usersTable.game, game as string))
+    : and(eq(usersTable.isLFT, true), eq(usersTable.role, "player"));
+  const players = await db.select({
+    id: usersTable.id,
+    name: usersTable.name,
+    handle: usersTable.handle,
+    avatar: usersTable.avatar,
+    game: usersTable.game,
+    ingameRole: usersTable.ingameRole,
+    lftRole: usersTable.lftRole,
+    trustScore: usersTable.trustScore,
+    trustTier: usersTable.trustTier,
+    isGameVerified: usersTable.isGameVerified,
+    isEsportsPlayer: usersTable.isEsportsPlayer,
+    tournamentWins: usersTable.tournamentWins,
+    state: usersTable.state,
+    city: usersTable.city,
+  }).from(usersTable).where(filter).limit(20);
+  res.json(players);
+});
+
+router.post("/users/me/lft", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { isLFT, lftRole } = req.body;
+  const updateData: any = { isLFT: Boolean(isLFT) };
+  if (lftRole !== undefined) updateData.lftRole = lftRole || null;
+  const [updated] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id)).returning();
+  res.json({ isLFT: updated.isLFT, lftRole: updated.lftRole });
+});
+
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio, ingameRole, profileAnimation, profileColor } = req.body;
@@ -612,6 +645,8 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     hostRatingCount: user.hostRatingCount ?? 0,
     hostBadge: user.hostBadge ?? "New Host",
     paidMatchesPlayed: user.paidMatchesPlayed ?? 0,
+    isLFT: user.isLFT ?? false,
+    lftRole: user.lftRole ?? null,
     upcomingMatches: upcomingMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),

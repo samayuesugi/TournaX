@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "./auth.js";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -116,6 +116,13 @@ Important checks for cheating detection:
   }
 });
 
+const TEAM_KEYWORDS = ["team", "teammate", "squad", "player", "dhundh", "chahiye", "lft", "looking for", "sath", "saath", "milao", "milega", "khelo", "khelna", "dunga", "denge", "partner", "member", "bhai", "recruit"];
+
+function isTeamQuery(message: string): boolean {
+  const lower = message.toLowerCase();
+  return TEAM_KEYWORDS.some(k => lower.includes(k));
+}
+
 router.post("/ai/coach", requireAuth, async (req, res) => {
   try {
     const user = (req as any).user;
@@ -123,6 +130,34 @@ router.post("/ai/coach", requireAuth, async (req, res) => {
     if (!message?.trim()) {
       res.status(400).json({ error: "message is required" });
       return;
+    }
+
+    let lftPlayersSection = "";
+    if (isTeamQuery(message)) {
+      const gameFilter = user.game
+        ? and(eq(usersTable.isLFT, true), eq(usersTable.role, "player"), eq(usersTable.game, user.game))
+        : and(eq(usersTable.isLFT, true), eq(usersTable.role, "player"));
+      const lftPlayers = await db.select({
+        name: usersTable.name,
+        handle: usersTable.handle,
+        game: usersTable.game,
+        ingameRole: usersTable.ingameRole,
+        lftRole: usersTable.lftRole,
+        trustScore: usersTable.trustScore,
+        trustTier: usersTable.trustTier,
+        isGameVerified: usersTable.isGameVerified,
+        tournamentWins: usersTable.tournamentWins,
+        state: usersTable.state,
+        city: usersTable.city,
+      }).from(usersTable).where(gameFilter).limit(10);
+
+      if (lftPlayers.length > 0) {
+        lftPlayersSection = `\n\nLFT (Looking for Team) players currently available on TournaX:\n${lftPlayers.map((p, i) =>
+          `${i + 1}. @${p.handle} (${p.name ?? "Player"}) - Game: ${p.game ?? "Unknown"}, Role: ${p.lftRole ?? p.ingameRole ?? "Any"}, Trust: ${p.trustScore}/1000 (${p.trustTier}), Wins: ${p.tournamentWins ?? 0}${p.isGameVerified ? ", ✅ Verified" : ""}${p.city ? `, 📍 ${p.city}` : ""}`
+        ).join("\n")}\n\nRecommend relevant players based on the user's needs. Tell them to visit the player's profile and connect. If the user themselves has LFT active, mention it too.`;
+      } else {
+        lftPlayersSection = `\n\nAbhi koi LFT player available nahi hai ${user.game ? `for ${user.game}` : ""}. User ko suggest karo ki vo apna LFT badge activate kare profile settings mein taaki dusre unhe dhundh sakein.`;
+      }
     }
 
     const prompt = `You are TX Coach AI, a friendly Hinglish gaming buddy for TournaX players.
@@ -133,10 +168,11 @@ Player profile:
 - Trust Score: ${user.trustScore ?? 500}/1000 (${user.trustTier ?? "Trusted"})
 - Balance: ${user.balance ?? "0"} GC
 - Role: ${user.role ?? "player"}
+- LFT Status: ${(user as any).isLFT ? `Active (looking for team, role: ${(user as any).lftRole ?? "Any"})` : "Not active"}
 
-Context: ${context ? JSON.stringify(context) : "none"}
+Context: ${context ? JSON.stringify(context) : "none"}${lftPlayersSection}
 
-Reply in natural Hinglish with short, practical advice. Be motivating but direct. Help with tournament strategy, match preparation, trust score improvement, host selection, result submission, and Free Fire/BGMI gameplay tips. Do not claim to perform wallet transactions or guarantee winnings.
+Reply in natural Hinglish with short, practical advice. Be motivating but direct. Help with tournament strategy, match preparation, trust score improvement, host selection, result submission, Free Fire/BGMI gameplay tips, and team finding. When recommending LFT players, format them clearly with their handle, game, role, and trust score. Do not claim to perform wallet transactions or guarantee winnings.
 
 Player message: ${message}`;
 

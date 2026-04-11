@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { Bot, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,8 @@ export default function CoachPage() {
             trustTier: user?.trustTier,
             role: user?.role,
             game: user?.game,
+            isLFT: (user as any)?.isLFT ?? false,
+            lftRole: (user as any)?.lftRole ?? null,
           },
         },
       } as any);
@@ -81,6 +83,20 @@ export default function CoachPage() {
               <div className="font-bold text-sm">Strategy</div>
               <div className="text-[11px] text-muted-foreground">Free Fire, BGMI, hosting</div>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {[
+              { label: "🤝 Find a Teammate", msg: `Mujhe ${user?.game ?? "mere game"} ke liye ek accha teammate chahiye, kaun LFT hai?` },
+              { label: "📈 Score improve", msg: "Mera Trust Score kaise improve karu?" },
+              { label: "🏆 Match strategy", msg: "Next match ke liye best strategy kya hogi?" },
+              { label: "🎯 Host choose", msg: "Accha host kaise choose karu?" },
+            ].map(({ label, msg }) => (
+              <button key={label} type="button"
+                onClick={() => { setInput(msg); }}
+                className="text-xs px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors">
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 

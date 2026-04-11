@@ -728,10 +728,15 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   );
 }
 
+const LFT_ROLES = ["IGL", "Entry Fragger", "Sniper", "Support", "Rusher", "All-Rounder", "Healer", "Anchor"];
+
 function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean; onClose: () => void; user: any; refreshUser: () => Promise<void> }) {
   const { toast } = useToast();
   const { mutateAsync: updateProfile, isPending } = useUpdateMyProfile();
   const [availableGames, setAvailableGames] = useState<{ id: number; name: string }[]>([]);
+  const [lftToggling, setLftToggling] = useState(false);
+  const [lftActive, setLftActive] = useState<boolean>((user as any)?.isLFT ?? false);
+  const [lftRole, setLftRole] = useState<string>((user as any)?.lftRole ?? "");
   const [form, setForm] = useState({
     name: user?.name ?? "",
     handle: user?.handle ?? "",
@@ -749,6 +754,8 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
   });
   useEffect(() => {
     if (open) {
+      setLftActive((user as any)?.isLFT ?? false);
+      setLftRole((user as any)?.lftRole ?? "");
       setForm({
         name: user?.name ?? "",
         handle: user?.handle ?? "",
@@ -769,6 +776,30 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
       }
     }
   }, [open]);
+
+  const handleLftToggle = async (active: boolean) => {
+    setLftToggling(true);
+    try {
+      await customFetch("/api/users/me/lft", { method: "POST", body: JSON.stringify({ isLFT: active, lftRole: lftRole || null }) });
+      setLftActive(active);
+      await refreshUser();
+      toast({ title: active ? "LFT badge activated!" : "LFT badge removed" });
+    } catch {
+      toast({ title: "Failed to update LFT status", variant: "destructive" });
+    } finally { setLftToggling(false); }
+  };
+
+  const handleLftRoleSave = async () => {
+    if (!lftActive) return;
+    setLftToggling(true);
+    try {
+      await customFetch("/api/users/me/lft", { method: "POST", body: JSON.stringify({ isLFT: true, lftRole: lftRole || null }) });
+      await refreshUser();
+      toast({ title: "LFT role updated!" });
+    } catch {
+      toast({ title: "Failed to update LFT role", variant: "destructive" });
+    } finally { setLftToggling(false); }
+  };
   const handleSave = async () => {
     try {
       await updateProfile({ data: form as any });
@@ -835,6 +866,38 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
               </Select>
               <Input placeholder="Your in-game UID" value={form.gameUid} onChange={(e) => setForm(f => ({ ...f, gameUid: e.target.value }))} />
               <Input placeholder="Your role (e.g. IGL, Entry Fragger, Sniper, Support...)" value={form.ingameRole} onChange={(e) => setForm(f => ({ ...f, ingameRole: e.target.value }))} maxLength={40} />
+            </div>
+          )}
+          {isPlayer && (
+            <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-bold flex items-center gap-1.5">🤝 Looking for Team <span className="text-[10px] font-normal text-muted-foreground">(LFT)</span></div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">TX Coach will recommend you to others finding teammates</div>
+                </div>
+                <button type="button" disabled={lftToggling}
+                  onClick={() => handleLftToggle(!lftActive)}
+                  className={cn("relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 transition-colors focus:outline-none", lftActive ? "bg-yellow-500 border-yellow-500" : "bg-secondary border-border")}>
+                  <span className={cn("inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow transition-transform", lftActive ? "translate-x-5" : "translate-x-0.5")} />
+                </button>
+              </div>
+              {lftActive && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Your preferred role (optional)</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {LFT_ROLES.map(r => (
+                      <button key={r} type="button" onClick={() => setLftRole(prev => prev === r ? "" : r)}
+                        className={cn("text-xs px-2.5 py-1 rounded-full border transition-all", lftRole === r ? "border-yellow-500 bg-yellow-500/20 text-yellow-400 font-semibold" : "border-border bg-secondary/50 text-muted-foreground")}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" onClick={handleLftRoleSave} disabled={lftToggling}
+                    className="text-xs text-yellow-400 underline underline-offset-2 hover:text-yellow-300 transition-colors">
+                    {lftToggling ? "Saving..." : "Save role preference"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {isPlayer && (
@@ -967,6 +1030,11 @@ function OwnProfile() {
                 {isEsports && (
                   <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
                     <ShieldCheck className="w-3 h-3 shrink-0" /> Esports
+                  </span>
+                )}
+                {(user as any).isLFT && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-0.5">
+                    🤝 LFT{(user as any).lftRole ? ` · ${(user as any).lftRole}` : ""}
                   </span>
                 )}
               </div>
@@ -1148,6 +1216,11 @@ function PublicProfile({ handle }: { handle: string }) {
                 {isEsports && (
                   <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
                     <ShieldCheck className="w-3 h-3 shrink-0" /> Esports
+                  </span>
+                )}
+                {(profile as any).isLFT && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-0.5">
+                    🤝 LFT{(profile as any).lftRole ? ` · ${(profile as any).lftRole}` : ""}
                   </span>
                 )}
                 {isHost && (profile as any).rating && (

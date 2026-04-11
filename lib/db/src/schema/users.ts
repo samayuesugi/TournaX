@@ -56,6 +56,8 @@ export const usersTable = pgTable("users", {
   profileColor: text("profile_color"),
   state: text("state"),
   city: text("city"),
+  isLFT: boolean("is_lft").notNull().default(false),
+  lftRole: text("lft_role"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
