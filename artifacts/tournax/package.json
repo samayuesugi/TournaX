@@ -75,7 +75,6 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "modern-screenshot": "^4.6.8",
     "socket.io-client": "^4.8.3"
   }
 }

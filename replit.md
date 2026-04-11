@@ -19,7 +19,6 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Reward Distribution Table**: Battle Royale has customizable position rewards (1st 30%, 2nd 25%, 3rd 15%, MVP 10%; host/platform 10% each locked); Clash Squad/Lone Wolf fully locked (winner 90%, host/platform 5% each)
 - **Mandatory Result Screenshots**: Hosts must upload 1-5 in-game result screenshots when submitting results; auto-deleted after 3 days; stored in `result_screenshot_urls` column
 - **Game Verification Flow**: Players get a unique code (#TX-XXXX), add it to their in-game name, upload a profile screenshot, and AI (Gemini 2.5 Flash) verifies the code + auto-extracts IGN and UID. Verified badge shown on profile.
-- **Shareable Player Card**: Beautiful dark-themed card showing player name, IGN, UID, trust tier, stats, cosmetics, and TournaX watermark. Can be downloaded as PNG or shared via Web Share API. Accessible via "Card" button on own profile.
 - **Trust Score System**: Players start at 500 points; score changes based on match completions, disputes, profile actions; tiers: Risky/Beginner/Trusted/Veteran/Elite
 - **Host Reputation System**: After each match, players rate hosts on prize timeliness, room code sharing, and overall experience (1-5 stars); host badges auto-assigned
 - **Escrow Prize System**: All match prize funds locked in escrow when match goes live; auto-distributed to winners after AI result verification; hosts cannot touch prize pool

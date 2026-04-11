@@ -23,8 +23,6 @@ import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
 import { PostCard, type Post } from "@/components/posts/PostsFeed";
-import { PlayerCardDialog } from "@/components/PlayerCard";
-import { Share2 } from "lucide-react";
 
 function canChat(senderRole: string, recipientRole: string): boolean {
   if (senderRole === "player" && recipientRole === "admin") return false;
@@ -915,7 +913,6 @@ function OwnProfile() {
   const [editOpen, setEditOpen] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
-  const [playerCardOpen, setPlayerCardOpen] = useState(false);
   const { data: myMatches, isLoading: matchesLoading } = useGetMyMatches();
   if (!user) return null;
   const isPlayer = user.role === "player";
@@ -945,11 +942,6 @@ function OwnProfile() {
                 <button onClick={() => setEditOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold border border-border rounded-xl px-3 py-1.5 bg-card hover:bg-secondary/60 transition-colors">
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
-                {isPlayer && (
-                  <button onClick={() => setPlayerCardOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold border border-primary/40 rounded-xl px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                    <Share2 className="w-3.5 h-3.5" /> Card
-                  </button>
-                )}
                 <Link href="/settings">
                   <button className="flex items-center gap-1.5 text-xs font-semibold border border-border rounded-xl px-3 py-1.5 bg-card hover:bg-secondary/60 transition-colors">
                     <Settings className="w-3.5 h-3.5" />
@@ -1038,28 +1030,6 @@ function OwnProfile() {
         {isEsports && tab === "stats" && <EsportsStatsEditor userGame={(user as any).game} />}
       </div>
       <EditProfileDialog open={editOpen} onClose={() => setEditOpen(false)} user={user} refreshUser={refreshUser} />
-      {isPlayer && (
-        <PlayerCardDialog
-          open={playerCardOpen}
-          onClose={() => setPlayerCardOpen(false)}
-          user={{
-            name: user.name,
-            handle: user.handle,
-            avatar: user.avatar,
-            game: (user as any).game,
-            gameIgn: (user as any).gameIgn,
-            gameUid: (user as any).gameUid,
-            isGameVerified: (user as any).isGameVerified,
-            trustScore: (user as any).trustScore,
-            trustTier: (user as any).trustTier,
-            paidMatchesPlayed: user.paidMatchesPlayed,
-            equippedFrame: (user as any).equippedFrame,
-            equippedBadge: (user as any).equippedBadge,
-            balance: user.balance,
-            tournamentWins: (user as any).tournamentWins,
-          }}
-        />
-      )}
     </AppLayout>
   );
 }
