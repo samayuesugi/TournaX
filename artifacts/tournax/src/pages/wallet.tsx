@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 
 function statusBadgeClass(status: string) {
-  if (status === "approved") return "bg-green-500/20 text-green-400 border-green-500/30";
-  if (status === "rejected") return "bg-destructive/20 text-destructive border-destructive/30";
-  return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+  if (status === "approved") return "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30";
+  if (status === "rejected") return "bg-destructive/15 text-destructive border-destructive/30";
+  return "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30";
 }
 
 const UPI_ID = "9971040244@ptaxis";
@@ -368,9 +368,9 @@ function UserWalletHistory({ wallet }: { wallet: any }) {
 
   const filters: { key: TxFilter; label: string; color: string; activeColor: string }[] = [
     { key: "all", label: "All", color: "border-border text-muted-foreground", activeColor: "border-primary bg-primary/15 text-primary" },
-    { key: "won", label: "Won", color: "border-border text-muted-foreground", activeColor: "border-green-500 bg-green-500/15 text-green-400" },
+    { key: "won", label: "Won", color: "border-border text-muted-foreground", activeColor: "border-green-500 bg-green-500/15 text-green-600 dark:text-green-400" },
     { key: "spent", label: "Spent", color: "border-border text-muted-foreground", activeColor: "border-destructive bg-destructive/15 text-destructive" },
-    { key: "deposited", label: "Deposited", color: "border-border text-muted-foreground", activeColor: "border-amber-400 bg-amber-400/15 text-amber-400" },
+    { key: "deposited", label: "Deposited", color: "border-border text-muted-foreground", activeColor: "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400" },
   ];
 
   return (
@@ -409,8 +409,8 @@ function UserWalletHistory({ wallet }: { wallet: any }) {
                     "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
                     isWon ? "bg-green-500/15" : isDeposited ? "bg-amber-400/15" : "bg-destructive/15"
                   )}>
-                    {isWon && <Trophy className="w-4 h-4 text-green-400" />}
-                    {isDeposited && <ArrowDownCircle className="w-4 h-4 text-amber-400" />}
+                    {isWon && <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />}
+                    {isDeposited && <ArrowDownCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                     {isSpent && <Swords className="w-4 h-4 text-destructive" />}
                     {isWithdrawn && <ArrowUpCircle className="w-4 h-4 text-destructive" />}
                   </div>
@@ -427,7 +427,7 @@ function UserWalletHistory({ wallet }: { wallet: any }) {
                 <div className="flex flex-col items-end gap-1">
                   <span className={cn(
                     "font-bold text-sm flex items-center gap-0.5",
-                    isWon ? "text-green-400" : isDeposited ? "text-amber-400" : "text-destructive"
+                    isWon ? "text-green-600 dark:text-green-400" : isDeposited ? "text-amber-600 dark:text-amber-400" : "text-destructive"
                   )}>
                     {isWon || isDeposited ? "+" : "-"}
                     <GoldCoin amount={typeof tx.amount === "number" ? tx.amount.toFixed(2) : tx.amount} />
@@ -492,7 +492,7 @@ export default function WalletPage() {
           <div className="bg-secondary/50 rounded-xl p-3 text-sm text-muted-foreground">
             Available: <span className="font-bold text-foreground"><GoldCoin amount={wallet?.balance?.toFixed(2) ?? "0.00"} /></span>
             <span className="mx-1 text-muted-foreground">=</span>
-            <span className="font-bold text-green-400">₹{wallet?.balance?.toFixed(2) ?? "0.00"}</span>
+            <span className="font-bold text-green-600 dark:text-green-400">₹{wallet?.balance?.toFixed(2) ?? "0.00"}</span>
           </div>
           <div className="space-y-1.5">
             <Label>Amount (₹)</Label>
@@ -530,16 +530,16 @@ export default function WalletPage() {
           <Skeleton className="h-32 rounded-2xl" />
         ) : (
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-2xl p-5 border border-amber-400/30 bg-gradient-to-br from-amber-950/60 via-yellow-900/30 to-amber-950/60">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-yellow-400/5 to-transparent pointer-events-none" />
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl p-5 border border-amber-300/60 dark:border-amber-400/30 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-950/60 dark:via-yellow-900/30 dark:to-amber-950/60">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-200/30 via-yellow-200/10 to-transparent dark:from-amber-500/10 dark:via-yellow-400/5 pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1">
                   <GoldCoinIcon size="md" />
-                  <p className="text-sm text-amber-200/70 font-medium tracking-wide">Gold Coins</p>
+                  <p className="text-sm text-amber-700/80 dark:text-amber-200/70 font-medium tracking-wide">Gold Coins</p>
                 </div>
-                <h2 className="text-4xl font-bold mb-1 text-amber-50">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
-                <p className="text-xs text-amber-200/50 mb-4">1₹ = 1 Gold Coin</p>
+                <h2 className="text-4xl font-bold mb-1 text-amber-900 dark:text-amber-50">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
+                <p className="text-xs text-amber-700/60 dark:text-amber-200/50 mb-4">1₹ = 1 Gold Coin</p>
                 <div className="flex gap-2">
                   <CoinsPackDialog />
                   {withdrawDialog}
@@ -565,14 +565,14 @@ export default function WalletPage() {
                     <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                          <Trophy className="w-4 h-4 text-amber-400" />
+                          <Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div>
                           <div className="font-semibold text-sm">Match #{tx.matchCode}</div>
                           <div className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</div>
                         </div>
                       </div>
-                      <div className="text-sm font-bold text-green-400 flex items-center gap-0.5">
+                      <div className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center gap-0.5">
                         +<GoldCoin amount={tx.amount?.toFixed(2) ?? "0.00"} />
                       </div>
                     </div>

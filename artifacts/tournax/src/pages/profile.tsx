@@ -105,7 +105,7 @@ export function AvatarDisplay({
   if (isImageAvatar(avatar)) {
     return <img src={resolveAvatarSrc(avatar!)} alt="avatar" className={`${className} object-cover bg-secondary`} />;
   }
-  return <div className={`${className} bg-primary/20 flex items-center justify-center`}>{avatar || "🎮"}</div>;
+  return <div className={`${className} bg-secondary dark:bg-primary/25 flex items-center justify-center`}>{avatar || "🎮"}</div>;
 }
 
 function getBannerGradient(color: string | null | undefined, animation: string | null | undefined) {
