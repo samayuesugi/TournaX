@@ -690,6 +690,35 @@ export default function AuthPage() {
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
+
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">demo</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    const res = await login("player@ff.test", "Test@1234");
+                    const u = res.user;
+                    if (!u.profileSetup) navigate("/setup-profile");
+                    else if (u.role === "admin") navigate("/admin");
+                    else navigate("/");
+                  } catch {
+                    toast({ title: "Demo login failed", variant: "destructive" });
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors py-2.5 text-sm font-medium text-primary disabled:opacity-50"
+              >
+                <Gamepad2 className="w-4 h-4" />
+                Try as Demo Player
+              </button>
             </TabsContent>
 
             <TabsContent value="register">
