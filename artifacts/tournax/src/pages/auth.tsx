@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 import { getToken, setToken } from "@/lib/auth";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 type Screen =
   | "auth"
@@ -79,15 +80,48 @@ function OtpInputs({ otpDigits, otpInputRef, onInput, onPaste }: OtpInputsProps)
 }
 
 function AuthTrustFooter() {
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setDirection(1);
+      setIndex((i) => (i + 1) % TRUST_POINTS.length);
+    }, 2200);
+    return () => clearInterval(id);
+  }, []);
+
+  const { icon: Icon, label } = TRUST_POINTS[index];
+
   return (
     <div className="mt-5 space-y-4 border-t border-border/70 pt-4">
-      <div className="grid grid-cols-2 gap-2">
-        {TRUST_POINTS.map(({ icon: Icon, label }) => (
-          <div key={label} className="flex items-center gap-1.5 rounded-xl bg-primary/5 border border-primary/10 px-2.5 py-2">
-            <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
-            <span className="text-[11px] font-medium leading-tight text-foreground/85">{label}</span>
-          </div>
-        ))}
+      <div className="relative h-10 overflow-hidden rounded-xl bg-primary/5 border border-primary/10">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <motion.div
+            key={index}
+            custom={direction}
+            initial={{ x: direction * 60, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction * -60, opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+            className="absolute inset-0 flex items-center justify-center gap-2 px-4"
+          >
+            <Icon className="h-4 w-4 shrink-0 text-primary" />
+            <span className="text-[12px] font-semibold text-foreground/90">{label}</span>
+          </motion.div>
+        </AnimatePresence>
+
+        <div className="absolute bottom-1.5 left-0 right-0 flex justify-center gap-1">
+          {TRUST_POINTS.map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "inline-block h-1 rounded-full transition-all duration-300",
+                i === index ? "w-4 bg-primary" : "w-1 bg-primary/25"
+              )}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2 text-center">
