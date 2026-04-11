@@ -22,6 +22,7 @@ import ExplorePage from "@/pages/explore";
 import NotificationsPage from "@/pages/notifications";
 import CreateMatchPage from "@/pages/host/create-match";
 import HostDashboardPage from "@/pages/host/dashboard";
+import HostEarningsPage from "@/pages/host/earnings";
 import AdminDashboardPage from "@/pages/admin/index";
 import AdminPlayersPage from "@/pages/admin/players";
 import AdminFinancePage from "@/pages/admin/finance";
@@ -199,6 +200,12 @@ function Router() {
       <Route path="/host/create-match">
         <ProtectedRoute roles={["host"]}>
           <CreateMatchPage />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/host/earnings">
+        <ProtectedRoute roles={["host"]}>
+          <HostEarningsPage />
         </ProtectedRoute>
       </Route>
 

@@ -737,12 +737,23 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
     const players = await db.select().from(matchPlayersTable)
       .where(eq(matchPlayersTable.participantId, p.id))
       .orderBy(matchPlayersTable.position);
+    const [userInfo] = await db.select({
+      trustScore: usersTable.trustScore,
+      trustTier: usersTable.trustTier,
+      name: usersTable.name,
+      avatar: usersTable.avatar,
+    }).from(usersTable).where(eq(usersTable.id, p.userId));
     return {
       id: p.id,
+      userId: p.userId,
       teamName: p.teamName,
       teamNumber: p.teamNumber,
       rank: p.rank ?? null,
       reward: p.reward ? parseFloat(p.reward as string) : null,
+      trustScore: userInfo?.trustScore ?? 500,
+      trustTier: userInfo?.trustTier ?? "bronze",
+      userName: userInfo?.name ?? null,
+      userAvatar: userInfo?.avatar ?? null,
       players: players.map(pl => ({
         ign: pl.ign,
         uid: canSeeFullUid ? pl.uid : (pl.uid ? pl.uid.slice(0, 3) + "****" : "****"),
@@ -751,6 +762,44 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
     };
   }));
   res.json(result);
+});
+
+router.delete("/matches/:id/participants/:participantId", requireAuth, async (req: Request, res: Response) => {
+  const requestingUser = (req as any).user;
+  const matchId = Number(req.params.id);
+  const participantId = Number(req.params.participantId);
+
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (requestingUser.id !== match.hostId && requestingUser.role !== "admin") {
+    res.status(403).json({ error: "Only the host can remove players" }); return;
+  }
+  if (match.status === "completed") {
+    res.status(400).json({ error: "Cannot kick players from a completed match" }); return;
+  }
+
+  const [participant] = await db.select().from(matchParticipantsTable)
+    .where(and(eq(matchParticipantsTable.id, participantId), eq(matchParticipantsTable.matchId, matchId)));
+  if (!participant) { res.status(404).json({ error: "Participant not found" }); return; }
+
+  await db.transaction(async (tx) => {
+    const entryFee = parseFloat(String(match.entryFee ?? 0));
+    if (entryFee > 0) {
+      await tx.execute(sql`UPDATE users SET balance = balance + ${entryFee} WHERE id = ${participant.userId}`);
+      await tx.insert(matchEscrowTransactionsTable).values({
+        matchId: match.id,
+        userId: participant.userId,
+        type: "refund",
+        amount: String(entryFee),
+      });
+    }
+    await tx.delete(matchPlayersTable).where(eq(matchPlayersTable.participantId, participantId));
+    await tx.delete(matchParticipantsTable).where(eq(matchParticipantsTable.id, participantId));
+    await tx.execute(sql`UPDATE matches SET filled_slots = GREATEST(0, filled_slots - 1) WHERE id = ${matchId}`);
+  });
+
+  try { getIO().emit("match:updated", { id: matchId }); } catch {}
+  res.json({ success: true, message: "Player kicked and entry fee refunded" });
 });
 
 router.get("/players/:userId/matches", requireAuth, async (req: Request, res: Response) => {

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useListMatches, useGoLive, useUpdateRoomCredentials, useDeleteMatch,
@@ -13,8 +13,45 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Bot, Sparkles, ShieldAlert, CheckCircle2, RefreshCw } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Bot, Sparkles, ShieldAlert, CheckCircle2, RefreshCw, Users, UserX, ShieldCheck, Shield, BookTemplate, History, TrendingUp, CalendarDays } from "lucide-react";
+
+const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
+
+function saveMatchAsTemplate(match: any) {
+  const existing = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || "[]");
+  const template = {
+    id: Date.now(),
+    name: `${match.game} ${match.mode} – ${match.map || ""}`.trim(),
+    game: match.game,
+    mode: match.mode,
+    map: match.map,
+    entryFee: match.entryFee,
+    slots: match.slots,
+    teamSize: match.teamSize,
+    winnersPercent: match.winnersPercent,
+    hostPercent: match.hostPercent,
+    savedAt: new Date().toISOString(),
+  };
+  existing.unshift(template);
+  localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(existing.slice(0, 10)));
+  return template;
+}
+
+function trustTierColor(tier: string) {
+  if (tier === "platinum") return "text-cyan-400 border-cyan-400/40 bg-cyan-400/10";
+  if (tier === "gold") return "text-amber-400 border-amber-400/40 bg-amber-400/10";
+  if (tier === "silver") return "text-slate-300 border-slate-300/40 bg-slate-300/10";
+  return "text-orange-400 border-orange-400/40 bg-orange-400/10";
+}
+
+function trustTierIcon(tier: string) {
+  if (tier === "platinum") return "💎";
+  if (tier === "gold") return "🥇";
+  if (tier === "silver") return "🥈";
+  return "🥉";
+}
 
 function EarningsBreakdownDialog({ matches }: { matches: any[] }) {
   const completedMatches = matches.filter((m) => m.status === "completed" && parseFloat(String(m.hostCut || 0)) > 0);
@@ -551,6 +588,114 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
   );
 }
 
+function PlayerManagementDialog({ match, onAction }: { match: any; onAction: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: participants, isLoading, refetch } = useGetMatchPlayers(match.id, { query: { enabled: open } as any });
+
+  const { mutateAsync: kickPlayer, isPending: isKicking } = useMutation({
+    mutationFn: async (participantId: number) => {
+      const res = await fetch(`/api/matches/${match.id}/participants/${participantId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to kick player");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      onAction();
+    },
+  });
+
+  const handleKick = async (participantId: number, name: string) => {
+    if (!confirm(`Kick "${name}" from this match? Their entry fee will be refunded.`)) return;
+    try {
+      await kickPlayer(participantId);
+      toast({ title: "Player removed", description: "Entry fee has been refunded." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1">
+          <Users className="w-3.5 h-3.5" /> Players
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" />
+            Players — {match.code}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
+            </div>
+          ) : !participants || participants.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              No players joined yet
+            </div>
+          ) : (
+            participants.map((p: any) => {
+              const displayName = p.teamName || p.players?.[0]?.ign || `Team ${p.teamNumber}`;
+              const tierClass = trustTierColor(p.trustTier || "bronze");
+              return (
+                <div key={p.id} className="bg-secondary/50 rounded-xl p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-sm font-semibold truncate">{displayName}</span>
+                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border font-medium shrink-0", tierClass)}>
+                        {trustTierIcon(p.trustTier || "bronze")} {p.trustScore ?? 500}
+                      </span>
+                    </div>
+                    {p.players && p.players.length > 0 && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {p.players.map((pl: any) => pl.ign).join(", ")}
+                      </div>
+                    )}
+                    {p.trustTier && (
+                      <div className={cn("text-[10px] font-medium capitalize mt-0.5", tierClass.split(" ")[0])}>
+                        {p.trustTier} tier
+                      </div>
+                    )}
+                  </div>
+                  {match.status !== "completed" && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-7 w-7 p-0 shrink-0"
+                      onClick={() => handleKick(p.id, displayName)}
+                      disabled={isKicking}
+                      title="Kick player"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground text-center pt-2 shrink-0">
+          {participants?.length ?? 0} / {match.slots} slots filled
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
   const { toast } = useToast();
   const { mutateAsync: goLive, isPending: isGoingLive } = useGoLive();
@@ -656,15 +801,30 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
         )}
       </div>
 
-      <div className="border-t border-card-border px-4 py-3 flex gap-2">
-        <Link href={`/matches/${match.id}`} className="flex-1">
-          <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1">
-            <ChevronRight className="w-3.5 h-3.5" /> View
+      <div className="border-t border-card-border px-4 py-3 space-y-2">
+        <div className="flex gap-2">
+          <Link href={`/matches/${match.id}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1">
+              <ChevronRight className="w-3.5 h-3.5" /> View
+            </Button>
+          </Link>
+          <PlayerManagementDialog match={match} onAction={onAction} />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2 text-xs gap-1 text-muted-foreground"
+            title="Save as Template"
+            onClick={() => {
+              saveMatchAsTemplate(match);
+              toast({ title: "Template saved!", description: "You can reuse these settings when creating a new match." });
+            }}
+          >
+            <BookTemplate className="w-3.5 h-3.5" />
           </Button>
-        </Link>
+        </div>
 
         {match.status !== "completed" && (
-          <>
+          <div className="flex gap-2">
             <Dialog open={roomOpen} onOpenChange={setRoomOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="flex-1 h-8 text-xs gap-1">
@@ -711,7 +871,7 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
             <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={handleDelete} disabled={isDeleting}>
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -720,15 +880,23 @@ function MatchCard({ match, onAction }: { match: any; onAction: () => void }) {
 
 export default function HostDashboardPage() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "live">("all");
   const { data: allMatches, isLoading, refetch } = useListMatches({ status: statusFilter === "all" ? undefined : statusFilter });
   const { data: allMatchesForEarnings } = useListMatches({});
 
   const myMatches = (allMatches?.filter((m: any) => m.hostId === user?.id) ?? []).filter((m: any) => m.status !== "completed");
 
-  const totalEarnings = (allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? [])
-    .filter((m: any) => m.status === "completed")
-    .reduce((sum: number, m: any) => sum + (parseFloat(String(m.hostCut || 0))), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const myAllMatches = (allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? []);
+
+  const todayEarnings = myAllMatches
+    .filter((m: any) => m.status === "completed" && (m.startTime || m.createdAt || "").slice(0, 10) === today)
+    .reduce((sum: number, m: any) => sum + parseFloat(String(m.hostCut || 0)), 0);
+
+  const todayPlayersJoined = myAllMatches
+    .filter((m: any) => (m.createdAt || "").slice(0, 10) === today || (m.startTime || "").slice(0, 10) === today)
+    .reduce((sum: number, m: any) => sum + (m.filledSlots || 0), 0);
 
   const liveCount = myMatches.filter((m: any) => m.status === "live").length;
 
@@ -737,35 +905,52 @@ export default function HostDashboardPage() {
   return (
     <AppLayout title="Host Panel">
       <div className="space-y-4 pb-4">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-card border border-card-border rounded-xl p-3 text-center">
-            <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center mx-auto mb-1.5">
-              <Swords className="w-3.5 h-3.5 text-primary" />
+        <div className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border border-primary/20 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-primary uppercase tracking-wide">Today at a Glance</span>
             </div>
-            <div className="text-xl font-bold">{myMatches.length}</div>
-            <div className="text-[10px] text-muted-foreground">Total</div>
+            <span className="text-[10px] text-muted-foreground">{new Date().toLocaleDateString("en-IN", { dateStyle: "medium" })}</span>
           </div>
-          <div className="bg-card border border-card-border rounded-xl p-3 text-center">
-            <div className="w-7 h-7 rounded-lg bg-green-500/20 flex items-center justify-center mx-auto mb-1.5">
-              <Zap className="w-3.5 h-3.5 text-green-400" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center mx-auto mb-1.5">
+                <Users className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="text-2xl font-bold text-blue-400">{todayPlayersJoined}</div>
+              <div className="text-[10px] text-muted-foreground leading-tight">Players<br/>Today</div>
             </div>
-            <div className="text-xl font-bold text-green-400">{liveCount}</div>
-            <div className="text-[10px] text-muted-foreground">Live Now</div>
-          </div>
-          <div className="bg-card border border-card-border rounded-xl p-3 text-center relative">
-            <div className="w-7 h-7 rounded-lg bg-accent/20 flex items-center justify-center mx-auto mb-1.5">
-              <Trophy className="w-3.5 h-3.5 text-accent" />
+            <div className="text-center">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center mx-auto mb-1.5">
+                <TrendingUp className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="text-2xl font-bold text-amber-400"><GoldCoin amount={todayEarnings.toFixed(0)} /></div>
+              <div className="text-[10px] text-muted-foreground leading-tight">Earned<br/>Today</div>
             </div>
-            <div className="text-xl font-bold"><GoldCoin amount={totalEarnings.toFixed(0)} /></div>
-            <div className="text-[10px] text-muted-foreground">Earned</div>
+            <div className="text-center">
+              <div className="w-8 h-8 rounded-xl bg-green-500/20 flex items-center justify-center mx-auto mb-1.5">
+                <Zap className="w-4 h-4 text-green-400" />
+              </div>
+              <div className="text-2xl font-bold text-green-400">{liveCount}</div>
+              <div className="text-[10px] text-muted-foreground leading-tight">Live<br/>Matches</div>
+            </div>
           </div>
         </div>
 
-        {(allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? []).length > 0 && (
-          <div className="flex justify-end">
-            <EarningsBreakdownDialog matches={allMatchesForEarnings?.filter((m: any) => m.hostId === user?.id) ?? []} />
-          </div>
-        )}
+        <div className="flex gap-2">
+          {myAllMatches.length > 0 && (
+            <EarningsBreakdownDialog matches={myAllMatches} />
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs h-8 flex-1"
+            onClick={() => navigate("/host/earnings")}
+          >
+            <History className="w-3.5 h-3.5" /> Earnings History
+          </Button>
+        </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {STATUS_OPTS.map((s) => (

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck, Tv2 } from "lucide-react";
+import { Gift, ImageIcon, Map, Wallet, Lock, Info, Trophy, Medal, Award, Shield, Settings as SettingsIcon, ShieldCheck, Tv2, BookTemplate, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -19,6 +19,8 @@ import thumb2 from "@assets/81e162153377959.632e6c70effcb_1774695040183.jpg";
 import thumb3 from "@assets/a8f058153377959.632e6c70f10b6_1774695040228.jpg";
 import thumb4 from "@assets/6fa5cd183933069.6549000c19789_1774695040280.png";
 import thumb5 from "@assets/01bf62183933069.6549000c306ac_1775725760171.png";
+
+const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
 
 const THUMBNAIL_OPTIONS = [
   { id: "thumb1", src: thumb1, label: "Warrior" },
@@ -298,6 +300,25 @@ export default function CreateMatchPage() {
     streamLink: "",
   });
 
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const savedTemplates = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || "[]");
+
+  const applyTemplate = (tpl: any) => {
+    if (tpl.mode) {
+      const cat = categories.find(c => c.id === tpl.mode);
+      if (cat) setSelectedCategory(cat.id);
+    }
+    if (tpl.teamSize) setTeamSize(tpl.teamSize);
+    if (tpl.map && maps.includes(tpl.map)) setSelectedMap(tpl.map);
+    setForm(f => ({
+      ...f,
+      entryFee: tpl.entryFee != null ? String(tpl.entryFee) : f.entryFee,
+      slots: tpl.slots != null ? String(tpl.slots) : f.slots,
+    }));
+    setShowTemplatePicker(false);
+    toast({ title: "Template applied!", description: "Fields filled from your saved template." });
+  };
+
   const [distribution, setDistribution] = useState(() => getDefaultRewardRows(categories[0]?.id ?? ""));
 
   useEffect(() => {
@@ -389,6 +410,44 @@ export default function CreateMatchPage() {
   return (
     <AppLayout showBack backHref="/host" title="Create Match">
       <form onSubmit={handleSubmit} className="space-y-4 pb-8">
+        {savedTemplates.length > 0 && (
+          <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/50 transition-colors"
+              onClick={() => setShowTemplatePicker(v => !v)}
+            >
+              <div className="flex items-center gap-2">
+                <BookTemplate className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold">Use a Template</span>
+                <span className="text-xs bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.5 rounded-full font-medium">{savedTemplates.length}</span>
+              </div>
+              {showTemplatePicker ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+            {showTemplatePicker && (
+              <div className="border-t border-card-border px-4 pb-3 pt-2 space-y-2">
+                <p className="text-xs text-muted-foreground">Select a saved template to auto-fill settings</p>
+                {savedTemplates.map((tpl: any) => (
+                  <button
+                    key={tpl.id}
+                    type="button"
+                    className="w-full text-left bg-secondary/60 hover:bg-secondary rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 transition-colors"
+                    onClick={() => applyTemplate(tpl)}
+                  >
+                    <div>
+                      <div className="text-sm font-semibold">{tpl.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {tpl.slots} slots · {tpl.entryFee > 0 ? `${tpl.entryFee} coins entry` : "Free"} · {tpl.map || "Any map"}
+                      </div>
+                    </div>
+                    <span className="text-xs text-primary font-medium shrink-0">Apply</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="bg-card border border-card-border rounded-2xl p-4 space-y-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Match Details</h3>
