@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords, Shield } from "lucide-react";
+import { Home, Compass, LayoutDashboard, Plus, DollarSign, User, Swords } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,6 @@ export function BottomNav() {
   const playerNav = [
     { href: "/", icon: Home, label: t("home") },
     { href: "/explore", icon: Compass, label: t("explore") },
-    { href: "/clans", icon: Shield, label: t("clans") },
     { href: "/my-matches", icon: Swords, label: t("matches") },
     { href: "/profile", icon: User, label: t("profile") },
   ];
@@ -27,7 +26,6 @@ export function BottomNav() {
   const hostNav = [
     { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/host/create-match", icon: Plus, label: t("create") },
-    { href: "/clans", icon: Shield, label: t("clans") },
     { href: "/explore", icon: Compass, label: t("explore") },
     { href: "/profile", icon: User, label: t("profile") },
   ];

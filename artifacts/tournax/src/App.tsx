@@ -47,7 +47,6 @@ import AdminBannedUsersPage from "@/pages/admin/banned-users";
 import StorePage from "@/pages/store";
 import SettingsPage from "@/pages/settings";
 import CoachPage from "@/pages/coach";
-import ClansPage from "@/pages/clans";
 import NotFound from "@/pages/not-found";
 import PolicyPage from "@/pages/policy";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
@@ -197,11 +196,6 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/clans">
-        <ProtectedRoute roles={["player", "host"]}>
-          <ClansPage />
-        </ProtectedRoute>
-      </Route>
 
       <Route path="/store">
         <ProtectedRoute roles={["player", "host"]}><StorePage /></ProtectedRoute>

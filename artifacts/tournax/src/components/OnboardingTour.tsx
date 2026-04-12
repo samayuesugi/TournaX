@@ -3,10 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home,
   Compass,
-  Shield,
   Swords,
   User,
-  Wallet,
   Trophy,
   X,
   ChevronRight,
@@ -51,14 +49,6 @@ const steps = [
     title: "Explore — Community & Feed",
     description:
       "Follow top players and hosts, see achievement posts, and discover the best tournament organizers. Your social gaming hub.",
-  },
-  {
-    icon: Shield,
-    color: "text-green-400",
-    bg: "bg-green-400/10",
-    title: "Clans — Build Your Squad",
-    description:
-      "Create or join a clan to compete together, share strategies, and climb the clan leaderboard as a team.",
   },
   {
     icon: Swords,
