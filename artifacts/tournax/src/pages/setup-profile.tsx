@@ -31,7 +31,7 @@ export default function SetupProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const user = await setupProfile({ data: form });
+      const user = await setupProfile({ data: form as any });
       setUser(user);
       navigate("/");
     } catch (err: any) {

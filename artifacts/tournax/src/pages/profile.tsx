@@ -1172,7 +1172,7 @@ function OwnProfile() {
                 <div className="text-xs text-muted-foreground">Balance</div>
               </div>
             </div>
-            <SocialLinksDisplay instagram={user.instagram} discord={user.discord} x={user.x} youtube={user.youtube} />
+            <SocialLinksDisplay instagram={(user as any).instagram} discord={(user as any).discord} x={(user as any).x} youtube={(user as any).youtube} />
           </div>
         </div>
 

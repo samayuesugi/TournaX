@@ -283,7 +283,7 @@ export default function MatchDetailPage() {
   const { data: players } = useGetMatchPlayers(matchId);
   const { data: squadRaw } = useGetMySquad({ query: { enabled: !!user } as any });
   // Filter squad to only show members matching the match's game
-  const squad = match ? (squadRaw ?? []).filter(m => !m.game || m.game === match.game) : (squadRaw ?? []);
+  const squad = match ? (squadRaw ?? []).filter(m => !(m as any).game || (m as any).game === match.game) : (squadRaw ?? []);
 
   const { mutateAsync: joinMatch, isPending: isJoining } = useJoinMatch();
   const { mutateAsync: updateRoom, isPending: isUpdatingRoom } = useUpdateRoomCredentials();
@@ -897,7 +897,7 @@ export default function MatchDetailPage() {
           </div>
         )}
 
-        {match?.isEsportsOnly && (
+        {(match as any)?.isEsportsOnly && (
           <div className="bg-card border border-card-border rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-4">
               <Trophy className="w-4 h-4 text-yellow-400" />

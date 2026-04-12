@@ -86,6 +86,7 @@ export function OnboardingTour() {
       const timer = setTimeout(() => setVisible(true), 800);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, []);
 
   const dismiss = () => {
