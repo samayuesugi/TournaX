@@ -40,6 +40,7 @@ export const matchesTable = pgTable("matches", {
   isEsportsOnly: boolean("is_esports_only").notNull().default(false),
   streamLink: text("stream_link"),
   customRules: text("custom_rules"),
+  groupId: integer("group_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

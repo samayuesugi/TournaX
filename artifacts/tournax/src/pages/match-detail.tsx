@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy, Tv2, ExternalLink, ListChecks } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy, Tv2, ExternalLink, ListChecks, MessageSquare } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
@@ -609,6 +609,22 @@ export default function MatchDetailPage() {
               <span className="font-semibold">Slot Warning:</span> Slots are fixed as shown. If you join another player's or team's slot, you will be removed from the match.
             </p>
           </div>
+        )}
+
+        {(match.isJoined || canManage) && (match as any).groupId && (
+          <button
+            onClick={() => navigate(`/chat/group/${(match as any).groupId}`)}
+            className="w-full flex items-center gap-3 bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/15 transition-colors rounded-2xl px-4 py-3"
+          >
+            <div className="w-9 h-9 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
+              <MessageSquare className="w-4 h-4 text-violet-400" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-semibold text-violet-400">Match Group Chat</p>
+              <p className="text-xs text-muted-foreground">Chat with other players in this match</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
         )}
 
         {match.roomReleased && match.isJoined && (

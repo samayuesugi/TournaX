@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, hostRatingsTable, referralsTable, tournamentBracketsTable, matchEscrowTransactionsTable, trustScoreEventsTable } from "@workspace/db/schema";
+import { matchesTable, matchParticipantsTable, matchPlayersTable, usersTable, squadMembersTable, hostEarningsTable, platformEarningsTable, followsTable, hostReviewsTable, hostRatingsTable, referralsTable, tournamentBracketsTable, matchEscrowTransactionsTable, trustScoreEventsTable, groupsTable, groupMembersTable } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, inArray, avg, count } from "drizzle-orm";
 import { requireAuth } from "./auth";
 import { notify } from "../lib/notify";
@@ -157,6 +157,7 @@ async function serializeMatch(match: typeof matchesTable.$inferSelect, userId?: 
     screenshotUploadedAt: (match as any).screenshotUploadedAt ? (match as any).screenshotUploadedAt.toISOString() : null,
     streamLink: (match as any).streamLink ?? null,
     customRules: (match as any).customRules ? JSON.parse((match as any).customRules) : [],
+    groupId: (match as any).groupId ?? null,
   };
   if (isJoined && match.roomReleased) {
     result.roomId = match.roomId;
@@ -314,6 +315,21 @@ router.post("/matches", requireAuth, async (req: Request, res: Response) => {
       });
     }
   });
+
+  try {
+    const [group] = await db.insert(groupsTable).values({
+      name: `Match ${match!.code}`,
+      avatar: "🎮",
+      type: "match",
+      createdBy: user.id,
+      maxMembers: match!.slots + 1,
+      messageRetentionDays: 3,
+      isPublic: false,
+    }).returning();
+    await db.insert(groupMembersTable).values({ groupId: group.id, userId: user.id });
+    await db.update(matchesTable).set({ groupId: group.id } as any).where(eq(matchesTable.id, match!.id));
+    (match as any).groupId = group.id;
+  } catch {}
 
   const serialized = await serializeMatch(match!, user.id);
   try { getIO().emit("match:new", { id: match!.id }); } catch {}
@@ -546,7 +562,17 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
     throw err;
   }
 
-  res.json({ success: true, message: "Joined successfully! Check the Room tab for credentials." });
+  if ((match as any).groupId) {
+    try {
+      const alreadyMember = await db.select().from(groupMembersTable)
+        .where(and(eq(groupMembersTable.groupId, (match as any).groupId), eq(groupMembersTable.userId, user.id)));
+      if (alreadyMember.length === 0) {
+        await db.insert(groupMembersTable).values({ groupId: (match as any).groupId, userId: user.id });
+      }
+    } catch {}
+  }
+
+  res.json({ success: true, message: "Joined successfully! Check the Room tab for credentials.", groupId: (match as any).groupId ?? null });
   notify(match.hostId, "match_join", `A player joined your match ${match.code}! 🎮`, `/matches/${match.id}`).catch(() => {});
 });
 
