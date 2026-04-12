@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star, Lock, Clapperboard, ImageIcon } from "lucide-react";
+import { Camera, X, Heart, MessageCircle, Send, UserPlus, UserCheck, ShieldCheck, Star, Clapperboard, ImageIcon } from "lucide-react";
 import { Link } from "wouter";
 import { customFetch, useFollowUser, useUnfollowUser } from "@workspace/api-client-react";
 import type { UserProfile } from "@workspace/api-client-react";
@@ -151,9 +151,6 @@ export function PostCard({ post }: { post: Post }) {
 
       <div className="w-full aspect-video overflow-hidden relative">
         <img src={imageSrc} alt="Post" className="w-full h-full object-cover" />
-        <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-full p-1.5">
-          <Lock className="w-3 h-3 text-yellow-400" />
-        </div>
       </div>
 
       {post.caption && (
@@ -281,7 +278,6 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
         <Button size="sm" className="gap-1.5" variant="outline">
-          <Lock className="w-3 h-3" />
           <Camera className="w-3.5 h-3.5" /> Share
         </Button>
       </DialogTrigger>
