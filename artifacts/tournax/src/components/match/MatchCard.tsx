@@ -177,7 +177,7 @@ export function MatchCard({ match, className }: MatchCardProps) {
               alt="Match thumbnail"
               className="w-full h-full object-cover [object-position:center_20%]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             {isEsportsOnly && (
               <span className="esports-badge absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
                 <Trophy className="w-2.5 h-2.5" /> ESPORTS
