@@ -668,15 +668,16 @@ export default function MatchDetailPage() {
             )}
             {Array.isArray((match as any).customRules) && (match as any).customRules.length > 0 && (
               <div className="mt-3 rounded-xl bg-secondary/40 border border-border px-3 py-3">
-                <div className="flex items-center gap-1.5 mb-2">
+                <div className="flex items-center gap-1.5 mb-2.5">
                   <ListChecks className="w-3.5 h-3.5 text-primary shrink-0" />
                   <p className="text-xs font-semibold text-primary uppercase tracking-wide">Match Rules</p>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-1.5">
                   {(match as any).customRules.map((rule: string, i: number) => (
-                    <span key={i} className="text-xs bg-card border border-border px-2.5 py-1 rounded-full text-foreground">
-                      {rule}
-                    </span>
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                      <span className="text-xs text-foreground leading-snug">{rule}</span>
+                    </div>
                   ))}
                 </div>
               </div>

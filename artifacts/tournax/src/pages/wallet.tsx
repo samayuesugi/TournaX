@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, Swords, Wallet, Package } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, Swords, Wallet, Package, FileText, CheckCircle2, Clock, RefreshCw, Coins, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 
@@ -20,13 +20,13 @@ function statusBadgeClass(status: string) {
 }
 
 const ADD_BALANCE_RULES = [
-  { icon: "⚠️", text: "Submitting a false or already used UTR will result in a 2 Gold Coin penalty." },
-  { icon: "🧾", text: "Attach a clear and readable receipt — blurry or cropped receipts will be rejected." },
-  { icon: "✅", text: "Enter the UTR number exactly as shown in the receipt." },
-  { icon: "⏱️", text: "Request approval can take up to 2 hours." },
-  { icon: "🔁", text: "Minimum add amount is 10 ₹ (Gold Coins)." },
-  { icon: "💰", text: "1₹ = 1 Gold Coin" },
-  { icon: "📵", text: "Do not submit a request with the same UTR twice." },
+  { icon: AlertTriangle, color: "text-destructive", text: "Submitting a false or already used UTR will result in a 2 Gold Coin penalty." },
+  { icon: FileText, color: "text-blue-400", text: "Attach a clear and readable receipt — blurry or cropped receipts will be rejected." },
+  { icon: CheckCircle2, color: "text-green-400", text: "Enter the UTR number exactly as shown in the receipt." },
+  { icon: Clock, color: "text-yellow-400", text: "Request approval can take up to 2 hours." },
+  { icon: RefreshCw, color: "text-primary", text: "Minimum add amount is 10 ₹ (Gold Coins)." },
+  { icon: Coins, color: "text-amber-400", text: "1₹ = 1 Gold Coin" },
+  { icon: Ban, color: "text-orange-400", text: "Do not submit a request with the same UTR twice." },
 ];
 
 const COIN_PACKS = [
@@ -308,7 +308,7 @@ function CoinsPackDialog() {
 
               {ADD_BALANCE_RULES.map((rule, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <span className="text-sm leading-tight shrink-0">{rule.icon}</span>
+                  <rule.icon className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", rule.color)} />
                   <p className="text-xs text-muted-foreground leading-snug">{rule.text}</p>
                 </div>
               ))}

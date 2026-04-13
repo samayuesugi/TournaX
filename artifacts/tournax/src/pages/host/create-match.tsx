@@ -23,16 +23,16 @@ import thumb5 from "@assets/01bf62183933069.6549000c306ac_1775725760171.png";
 const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
 
 const PREDEFINED_RULES = [
-  { id: "no_camping", label: "No Camping", emoji: "🏕️" },
-  { id: "no_teaming", label: "No Teaming", emoji: "⛔" },
-  { id: "no_hacking", label: "No Hacking / Cheating", emoji: "🚫" },
-  { id: "no_crouch_spam", label: "No Crouch Spam", emoji: "🦆" },
-  { id: "no_emote", label: "No Emote During Match", emoji: "✋" },
-  { id: "fair_play", label: "Fair Play Only", emoji: "🤝" },
-  { id: "no_abuse", label: "No Verbal Abuse (Chat)", emoji: "💬" },
-  { id: "no_vpn", label: "No VPN", emoji: "🔒" },
-  { id: "screenshot_mandatory", label: "Screenshot Mandatory", emoji: "📸" },
-  { id: "no_rush_zone", label: "No Rush in First Zone", emoji: "🏃" },
+  { id: "no_camping", label: "No Camping" },
+  { id: "no_teaming", label: "No Teaming" },
+  { id: "no_hacking", label: "No Hacking / Cheating" },
+  { id: "no_crouch_spam", label: "No Crouch Spam" },
+  { id: "no_emote", label: "No Emote During Match" },
+  { id: "fair_play", label: "Fair Play Only" },
+  { id: "no_abuse", label: "No Verbal Abuse (Chat)" },
+  { id: "no_vpn", label: "No VPN" },
+  { id: "screenshot_mandatory", label: "Screenshot Mandatory" },
+  { id: "no_rush_zone", label: "No Rush in First Zone" },
 ];
 
 const THUMBNAIL_OPTIONS = [
@@ -333,7 +333,7 @@ export default function CreateMatchPage() {
   };
 
   const allSelectedRules = [
-    ...PREDEFINED_RULES.filter(r => selectedRules.includes(r.id)).map(r => `${r.emoji} ${r.label}`),
+    ...PREDEFINED_RULES.filter(r => selectedRules.includes(r.id)).map(r => r.label),
     ...customRulesList,
   ];
 
@@ -649,7 +649,6 @@ export default function CreateMatchPage() {
                       : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                   )}
                 >
-                  <span className="text-base shrink-0">{rule.emoji}</span>
                   <span className="text-xs font-medium leading-tight">{rule.label}</span>
                   {active && <span className="ml-auto text-primary text-[10px] font-bold shrink-0">✓</span>}
                 </button>
