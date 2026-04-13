@@ -314,7 +314,7 @@ router.post("/users/me/lft", requireAuth, async (req: Request, res: Response) =>
 
 router.put("/users/me/profile", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio, ingameRole, profileAnimation, profileColor } = req.body;
+  const { name, handle, avatar, instagram, discord, x, youtube, twitch, game, gameUid, isEsportsPlayer, bio, ingameRole, profileAnimation, profileColor, state } = req.body;
   const updateData: any = {};
   if (name) updateData.name = name;
   if (handle) updateData.handle = handle;
@@ -323,6 +323,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
   updateData.discord = discord ?? null;
   updateData.x = x ?? null;
   updateData.bio = bio ?? null;
+  updateData.state = state ?? null;
   if (profileAnimation !== undefined) updateData.profileAnimation = profileAnimation || null;
   if (profileColor !== undefined) updateData.profileColor = profileColor || null;
   if (user.role === "host" || user.role === "admin") {
@@ -347,6 +348,7 @@ router.put("/users/me/profile", requireAuth, async (req: Request, res: Response)
     isEsportsPlayer: updated.isEsportsPlayer ?? false,
     bio: updated.bio ?? null,
     ingameRole: updated.ingameRole ?? null,
+    state: updated.state ?? null,
     profileAnimation: updated.profileAnimation ?? null,
     profileColor: updated.profileColor ?? null,
   });
@@ -658,6 +660,7 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     paidMatchesPlayed: user.paidMatchesPlayed ?? 0,
     isLFT: user.isLFT ?? false,
     lftRole: user.lftRole ?? null,
+    state: user.state ?? null,
     upcomingMatches: upcomingMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),
