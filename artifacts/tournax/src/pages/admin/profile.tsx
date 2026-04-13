@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle, ImageIcon, ChevronDown, ChevronUp,
-  Wallet, Swords, User, Mail, LogOut, Flag, ShieldCheck, Settings,
+  Wallet, Swords, User, Mail, Flag, ShieldCheck, Settings,
   IndianRupee, Trash2,
 } from "lucide-react";
 
@@ -315,7 +315,7 @@ function ComplaintCard({ c }: { c: any }) {
 }
 
 export default function AdminProfilePage() {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const { data: complaints, isLoading } = useAdminListComplaints();
   const [editOpen, setEditOpen] = useState(false);
@@ -411,15 +411,6 @@ export default function AdminProfilePage() {
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={logout}
-                title="Logout"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </Button>
             </div>
           </div>
 
