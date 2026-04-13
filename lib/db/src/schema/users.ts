@@ -115,6 +115,8 @@ export const squadRequestsTable = pgTable("squad_requests", {
   toUserId: integer("to_user_id").notNull(),
   game: text("game").notNull(),
   role: text("role"),
+  uid: text("uid"),
+  ign: text("ign"),
   isBackup: boolean("is_backup").notNull().default(false),
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -198,7 +198,7 @@ router.get("/users/me/squad-requests", requireAuth, async (req: Request, res: Re
 router.post("/users/:handle/squad-request", requireAuth, async (req: Request, res: Response) => {
   const currentUser = (req as any).user;
   const { handle } = req.params;
-  const { game, role, isBackup } = req.body;
+  const { game, role, isBackup, uid, ign } = req.body;
   if (!game) { res.status(400).json({ error: "Game is required" }); return; }
   const [target] = await db.select().from(usersTable).where(eq(usersTable.handle, handle));
   if (!target) { res.status(404).json({ error: "User not found" }); return; }
@@ -207,7 +207,7 @@ router.post("/users/:handle/squad-request", requireAuth, async (req: Request, re
     and(eq(squadRequestsTable.fromUserId, currentUser.id), eq(squadRequestsTable.toUserId, target.id), eq(squadRequestsTable.status, "pending"))
   );
   if (existing.length > 0) { res.status(400).json({ error: "Already sent a pending invite to this player" }); return; }
-  await db.insert(squadRequestsTable).values({ fromUserId: currentUser.id, toUserId: target.id, game, role: role ?? null, isBackup: isBackup ?? false, status: "pending" });
+  await db.insert(squadRequestsTable).values({ fromUserId: currentUser.id, toUserId: target.id, game, role: role ?? null, uid: uid ?? null, ign: ign ?? null, isBackup: isBackup ?? false, status: "pending" });
   notify(target.id, "squad_invite", `🤝 ${currentUser.name || currentUser.handle} ne aapko ${game} squad mein invite kiya!`, `/notifications`).catch(() => {});
   res.json({ success: true });
 });
@@ -232,7 +232,9 @@ router.put("/users/me/squad-requests/:requestId", requireAuth, async (req: Reque
     if ((request.isBackup && backupCount < 2) || (!request.isBackup && mainCount < 4)) {
       await db.insert(squadMembersTable).values({
         userId: request.fromUserId, name: user.name || user.handle || "Player",
-        uid: user.gameUid || "—", ign: user.gameIgn || null, game: request.game, role: request.role ?? null,
+        uid: request.uid || user.gameUid || "—",
+        ign: request.ign || user.gameIgn || null,
+        game: request.game, role: request.role ?? null,
         isIgl: false, isBackup: request.isBackup, linkedUserId: user.id,
       });
     }

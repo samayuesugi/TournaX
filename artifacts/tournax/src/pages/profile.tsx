@@ -620,6 +620,7 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [role, setRole] = useState("");
   const [ign, setIgn] = useState("");
+  const [uid, setUid] = useState("");
   const [isIgl, setIsIgl] = useState(false);
   const [isBackup, setIsBackup] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -649,14 +650,19 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
       toast({ title: "Player must have a valid handle", variant: "destructive" });
       return;
     }
+    const uidRequired = !selectedPlayer?.gameUid;
+    if (uidRequired && !uid.trim()) {
+      toast({ title: "UID required", description: "Is player ka UID fill nahi hai. Please UID enter karo.", variant: "destructive" });
+      return;
+    }
     try {
       await customFetch(`/api/users/${selectedPlayer.handle}/squad-request`, {
         method: "POST",
-        body: JSON.stringify({ game: squadGame, role: role || null, ign: ign || null, isIgl, isBackup }),
+        body: JSON.stringify({ game: squadGame, role: role || null, ign: ign || null, uid: uid || selectedPlayer?.gameUid || null, isIgl, isBackup }),
       });
       setAddOpen(false);
       setSelectedPlayer(null);
-      setSearchQ(""); setRole(""); setIgn(""); setIsIgl(false); setIsBackup(false);
+      setSearchQ(""); setRole(""); setIgn(""); setUid(""); setIsIgl(false); setIsBackup(false);
       toast({ title: "Squad invite sent!", description: `${selectedPlayer.name || selectedPlayer.handle} will receive an invite notification.` });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
@@ -787,7 +793,7 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
         )}
       </div>
 
-      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedPlayer(null); setSearchQ(""); setRole(""); setIgn(""); setIsIgl(false); setIsBackup(false); } }}>
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedPlayer(null); setSearchQ(""); setRole(""); setIgn(""); setUid(""); setIsIgl(false); setIsBackup(false); } }}>
         <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>Add {isBackup ? "Backup" : "Squad"} Member — {squadGame}</DialogTitle>
@@ -804,7 +810,7 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
                 <div className="border border-border rounded-xl overflow-hidden">
                   {searchResults.slice(0, 5).map(u => (
                     <button key={u.id} className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-secondary/60 transition-colors border-b last:border-b-0 border-border"
-                      onClick={() => { setSelectedPlayer(u); setSearchQ(u.name || u.handle); setSearchResults([]); }}>
+                      onClick={() => { setSelectedPlayer(u); setSearchQ(u.name || u.handle); setSearchResults([]); setUid(u.gameUid || ""); }}>
                       <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-sm shrink-0">{u.avatar || "🎮"}</div>
                       <div className="min-w-0 text-left">
                         <div className="text-sm font-medium truncate">{u.name}</div>
@@ -835,10 +841,41 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>IGN <span className="text-muted-foreground font-normal">(In-Game Name)</span></Label>
-              <Input placeholder="e.g. xProPlayer#9999" value={ign} onChange={e => setIgn(e.target.value)} />
-              <p className="text-[10px] text-muted-foreground">Leave blank to auto-fill from their profile</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  IGN
+                  <span className="text-muted-foreground font-normal ml-1">(In-Game Name)</span>
+                </Label>
+                <Input
+                  placeholder="e.g. ProPlayer#999"
+                  value={ign}
+                  onChange={e => setIgn(e.target.value)}
+                  className="text-sm"
+                />
+                <p className="text-[10px] text-amber-400 leading-tight">
+                  Exact aur game mein jo naam hai wahi hona chahiye (case sensitive)
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  UID
+                  {selectedPlayer && !selectedPlayer.gameUid && (
+                    <span className="text-destructive ml-1">*</span>
+                  )}
+                </Label>
+                <Input
+                  placeholder={selectedPlayer && !selectedPlayer.gameUid ? "Required" : "Auto-filled"}
+                  value={uid}
+                  onChange={e => setUid(e.target.value)}
+                  className={cn("text-sm", selectedPlayer && !selectedPlayer.gameUid && !uid.trim() ? "border-destructive/60 focus-visible:ring-destructive/40" : "")}
+                />
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  {selectedPlayer && !selectedPlayer.gameUid
+                    ? <span className="text-destructive/80">Player ne UID set nahi kiya — aapko dena hoga</span>
+                    : "Profile se auto-fill"}
+                </p>
+              </div>
             </div>
             <div className="flex items-center justify-between bg-secondary/60 rounded-xl px-3 py-2.5">
               <div className="flex items-center gap-2">
@@ -859,7 +896,13 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
           </div>
           <div className="shrink-0 space-y-2 mt-4">
             <p className="text-xs text-muted-foreground text-center">Player must have an in-app account. They'll receive an invite notification.</p>
-            <Button className="w-full" onClick={handleAddMember} disabled={!selectedPlayer}>Send Squad Invite</Button>
+            <Button
+              className="w-full"
+              onClick={handleAddMember}
+              disabled={!selectedPlayer || (selectedPlayer && !selectedPlayer.gameUid && !uid.trim())}
+            >
+              Send Squad Invite
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
