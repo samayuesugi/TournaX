@@ -92,9 +92,11 @@ export const squadMembersTable = pgTable("squad_members", {
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
   uid: text("uid").notNull(),
+  ign: text("ign"),
   game: text("game"),
   linkedUserId: integer("linked_user_id"),
   role: text("role"),
+  isIgl: boolean("is_igl").notNull().default(false),
   isBackup: boolean("is_backup").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

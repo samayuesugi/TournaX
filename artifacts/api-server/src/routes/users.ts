@@ -139,13 +139,13 @@ router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) =
   const linkedMap = new Map(linkedUsers.map(u => [u.id, u]));
   res.json(squad.map(s => {
     const lu = s.linkedUserId ? linkedMap.get(s.linkedUserId) : null;
-    return { id: s.id, name: s.name, uid: s.uid, game: s.game ?? null, role: s.role ?? null, isBackup: s.isBackup, linkedUserId: s.linkedUserId ?? null, linkedAvatar: lu?.avatar ?? null, linkedHandle: lu?.handle ?? null };
+    return { id: s.id, name: s.name, uid: s.uid, ign: s.ign ?? null, game: s.game ?? null, role: s.role ?? null, isIgl: s.isIgl, isBackup: s.isBackup, linkedUserId: s.linkedUserId ?? null, linkedAvatar: lu?.avatar ?? null, linkedHandle: lu?.handle ?? null };
   }));
 });
 
 router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { name, uid, game, role, isBackup, linkedUserId } = req.body;
+  const { name, uid, ign, game, role, isBackup, isIgl, linkedUserId } = req.body;
   const squadGame = game || user.game || null;
   const existing = await db.select().from(squadMembersTable).where(
     and(eq(squadMembersTable.userId, user.id), eq(squadMembersTable.game, squadGame))
@@ -161,11 +161,13 @@ router.post("/users/me/squad", requireAuth, async (req: Request, res: Response) 
   }
   const [member] = await db.insert(squadMembersTable).values({
     userId: user.id, name: name || linkedUser?.name || "Player",
-    uid: uid || linkedUser?.gameUid || "—", game: squadGame,
-    role: role ?? null, isBackup: isBackup ?? false,
+    uid: uid || linkedUser?.gameUid || "—",
+    ign: ign || linkedUser?.gameIgn || null,
+    game: squadGame,
+    role: role ?? null, isIgl: isIgl ?? false, isBackup: isBackup ?? false,
     linkedUserId: linkedUserId ?? null,
   }).returning();
-  res.json({ id: member.id, name: member.name, uid: member.uid, game: member.game ?? null, role: member.role ?? null, isBackup: member.isBackup, linkedUserId: member.linkedUserId ?? null });
+  res.json({ id: member.id, name: member.name, uid: member.uid, ign: member.ign ?? null, game: member.game ?? null, role: member.role ?? null, isIgl: member.isIgl, isBackup: member.isBackup, linkedUserId: member.linkedUserId ?? null });
 });
 
 router.delete("/users/me/squad/:memberId", requireAuth, async (req: Request, res: Response) => {
@@ -230,8 +232,8 @@ router.put("/users/me/squad-requests/:requestId", requireAuth, async (req: Reque
     if ((request.isBackup && backupCount < 2) || (!request.isBackup && mainCount < 4)) {
       await db.insert(squadMembersTable).values({
         userId: request.fromUserId, name: user.name || user.handle || "Player",
-        uid: user.gameUid || "—", game: request.game, role: request.role ?? null,
-        isBackup: request.isBackup, linkedUserId: user.id,
+        uid: user.gameUid || "—", ign: user.gameIgn || null, game: request.game, role: request.role ?? null,
+        isIgl: false, isBackup: request.isBackup, linkedUserId: user.id,
       });
     }
     await db.insert(notificationsTable).values({ userId: request.fromUserId, type: "squad_accepted", message: `${user.name || user.handle} accepted your squad invite for ${request.game}!` });
@@ -718,7 +720,7 @@ router.get("/users/:handle/squad", requireAuth, async (req: Request, res: Respon
   const linkedMap = new Map(linkedUsers.map(u => [u.id, u]));
   res.json(squad.map(s => {
     const lu = s.linkedUserId ? linkedMap.get(s.linkedUserId) : null;
-    return { id: s.id, name: s.name, uid: s.uid, game: s.game ?? null, role: s.role ?? null, isBackup: s.isBackup, linkedUserId: s.linkedUserId ?? null, linkedAvatar: lu?.avatar ?? null, linkedHandle: lu?.handle ?? null, linkedName: lu?.name ?? null };
+    return { id: s.id, name: s.name, uid: s.uid, ign: s.ign ?? null, game: s.game ?? null, role: s.role ?? null, isIgl: s.isIgl, isBackup: s.isBackup, linkedUserId: s.linkedUserId ?? null, linkedAvatar: lu?.avatar ?? null, linkedHandle: lu?.handle ?? null, linkedName: lu?.name ?? null };
   }));
 });
 

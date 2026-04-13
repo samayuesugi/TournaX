@@ -619,6 +619,8 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [role, setRole] = useState("");
+  const [ign, setIgn] = useState("");
+  const [isIgl, setIsIgl] = useState(false);
   const [isBackup, setIsBackup] = useState(false);
   const [searching, setSearching] = useState(false);
   const searchTimeout = useRef<any>(null);
@@ -650,11 +652,11 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
     try {
       await customFetch(`/api/users/${selectedPlayer.handle}/squad-request`, {
         method: "POST",
-        body: JSON.stringify({ game: squadGame, role: role || null, isBackup }),
+        body: JSON.stringify({ game: squadGame, role: role || null, ign: ign || null, isIgl, isBackup }),
       });
       setAddOpen(false);
       setSelectedPlayer(null);
-      setSearchQ(""); setRole(""); setIsBackup(false);
+      setSearchQ(""); setRole(""); setIgn(""); setIsIgl(false); setIsBackup(false);
       toast({ title: "Squad invite sent!", description: `${selectedPlayer.name || selectedPlayer.handle} will receive an invite notification.` });
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
@@ -672,28 +674,48 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const [memberStatsOpen, setMemberStatsOpen] = useState<any>(null);
 
   const renderMember = (m: any) => (
-    <div key={m.id} className="flex items-center gap-2.5 bg-secondary/40 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-secondary/60 transition-colors" onClick={() => m.linkedHandle && setMemberStatsOpen(m)}>
-      <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-base shrink-0 overflow-hidden">
-        {m.linkedAvatar ? (
-          isImageAvatar(m.linkedAvatar) ? <img src={resolveAvatarSrc(m.linkedAvatar)} alt="" className="w-full h-full object-cover" /> : m.linkedAvatar
-        ) : "🎮"}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold truncate">{m.name}</div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {m.linkedHandle && <span className="text-[10px] text-primary">@{m.linkedHandle}</span>}
-          {m.role && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{m.role}</span>}
-          {m.isBackup && <span className="text-[10px] bg-orange-500/10 text-orange-400 px-1.5 py-0.5 rounded-full">Backup</span>}
-          <span className="text-[10px] text-muted-foreground font-mono">{m.uid}</span>
+    <div key={m.id} className="bg-secondary/40 rounded-xl overflow-hidden hover:bg-secondary/60 transition-colors">
+      <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-1.5 cursor-pointer" onClick={() => m.linkedHandle && setMemberStatsOpen(m)}>
+        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-base shrink-0 overflow-hidden relative">
+          {m.linkedAvatar ? (
+            isImageAvatar(m.linkedAvatar) ? <img src={resolveAvatarSrc(m.linkedAvatar)} alt="" className="w-full h-full object-cover" /> : m.linkedAvatar
+          ) : "🎮"}
+          {m.isIgl && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+              <Crown className="w-2.5 h-2.5 text-yellow-900" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-sm font-bold truncate">{m.name}</span>
+            {m.isIgl && <span className="text-[9px] font-bold bg-yellow-500/15 text-yellow-500 border border-yellow-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide">IGL</span>}
+            {m.isBackup && <span className="text-[9px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Backup</span>}
+          </div>
+          {m.linkedHandle && <div className="text-[10px] text-primary">@{m.linkedHandle}</div>}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {m.linkedHandle && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          {isOwn && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
-        {m.linkedHandle && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-        {isOwn && (
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }}>
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        )}
+      <div className="grid grid-cols-3 gap-px bg-border/30 border-t border-border/30 mx-3 mb-2.5">
+        <div className="bg-secondary/60 rounded-bl-lg px-2 py-1.5">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">IGN</div>
+          <div className="text-[11px] font-semibold truncate text-foreground">{m.ign || <span className="text-muted-foreground/60 italic">Not set</span>}</div>
+        </div>
+        <div className="bg-secondary/60 px-2 py-1.5">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">Role</div>
+          <div className="text-[11px] font-semibold truncate text-foreground">{m.role || <span className="text-muted-foreground/60 italic">No role</span>}</div>
+        </div>
+        <div className="bg-secondary/60 rounded-br-lg px-2 py-1.5">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">UID</div>
+          <div className="text-[11px] font-mono truncate text-foreground">{m.uid || <span className="text-muted-foreground/60 italic">—</span>}</div>
+        </div>
       </div>
     </div>
   );
@@ -765,7 +787,7 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
         )}
       </div>
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedPlayer(null); setSearchQ(""); setRole(""); setIgn(""); setIsIgl(false); setIsBackup(false); } }}>
         <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>Add {isBackup ? "Backup" : "Squad"} Member — {squadGame}</DialogTitle>
@@ -812,6 +834,27 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
                   {SQUAD_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>IGN <span className="text-muted-foreground font-normal">(In-Game Name)</span></Label>
+              <Input placeholder="e.g. xProPlayer#9999" value={ign} onChange={e => setIgn(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground">Leave blank to auto-fill from their profile</p>
+            </div>
+            <div className="flex items-center justify-between bg-secondary/60 rounded-xl px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-yellow-500" />
+                <div>
+                  <div className="text-sm font-semibold">Mark as IGL</div>
+                  <div className="text-[10px] text-muted-foreground">In-Game Leader of the squad</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsIgl(v => !v)}
+                className={cn("w-10 h-6 rounded-full transition-colors relative shrink-0", isIgl ? "bg-yellow-500" : "bg-secondary")}
+              >
+                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform", isIgl ? "translate-x-4" : "translate-x-0.5")} />
+              </button>
             </div>
           </div>
           <div className="shrink-0 space-y-2 mt-4">
