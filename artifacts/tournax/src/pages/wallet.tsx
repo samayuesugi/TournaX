@@ -30,10 +30,10 @@ const ADD_BALANCE_RULES = [
 ];
 
 const COIN_PACKS = [
-  { id: "starter", label: "Starter", coins: 10, price: 10, color: "from-slate-700/60 to-slate-800/50 border-slate-400/25", accent: "bg-slate-400/20", badge: "" },
-  { id: "pro", label: "Popular", coins: 50, price: 50, color: "from-violet-800/60 to-violet-900/50 border-violet-400/30", accent: "bg-primary/20", badge: "Most Popular" },
-  { id: "elite", label: "Best Value", coins: 100, price: 100, color: "from-amber-800/60 to-yellow-900/50 border-amber-400/35", accent: "bg-amber-400/20", badge: "Best Value" },
-  { id: "custom", label: "Custom", coins: 0, price: 0, color: "from-violet-800/60 to-purple-900/50 border-violet-400/25", accent: "bg-violet-400/20", badge: "" },
+  { id: "starter", label: "Starter", coins: 10, price: 10, colorCard: "bg-secondary border-border", colorAccent: "bg-secondary-foreground/10", colorBadge: "", colorLabel: "text-foreground", colorSub: "text-muted-foreground", badge: "" },
+  { id: "pro", label: "Popular", coins: 50, price: 50, colorCard: "bg-violet-500/10 border-violet-500/30 dark:bg-violet-900/40 dark:border-violet-500/40", colorAccent: "bg-violet-500/20", colorBadge: "bg-violet-500/20 text-violet-700 dark:text-violet-300", colorLabel: "text-violet-700 dark:text-violet-200", colorSub: "text-violet-600/70 dark:text-violet-300/60", badge: "Most Popular" },
+  { id: "elite", label: "Best Value", coins: 100, price: 100, colorCard: "bg-amber-500/10 border-amber-500/30 dark:bg-amber-900/40 dark:border-amber-500/40", colorAccent: "bg-amber-500/20", colorBadge: "bg-amber-500/20 text-amber-700 dark:text-amber-300", colorLabel: "text-amber-700 dark:text-amber-200", colorSub: "text-amber-600/70 dark:text-amber-300/60", badge: "Best Value" },
+  { id: "custom", label: "Custom", coins: 0, price: 0, colorCard: "bg-primary/8 border-primary/25 dark:bg-primary/15", colorAccent: "bg-primary/20", colorBadge: "", colorLabel: "text-foreground", colorSub: "text-muted-foreground", badge: "" },
 ];
 
 const RECEIPT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -201,24 +201,23 @@ function CoinsPackDialog() {
                     type="button"
                     onClick={() => handlePackSelect(pack)}
                     className={cn(
-                      "relative overflow-hidden flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border bg-gradient-to-br text-center transition-all hover:scale-[1.02] active:scale-[0.98]",
-                      pack.color
+                      "relative overflow-hidden flex flex-col items-center justify-center gap-1.5 p-4 rounded-2xl border text-center transition-all hover:scale-[1.02] active:scale-[0.98]",
+                      pack.colorCard
                     )}
                   >
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     {pack.badge && (
-                      <span className="absolute top-2 right-2 text-[8px] font-bold bg-white/15 text-white/90 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      <span className={cn("absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap", pack.colorBadge)}>
                         {pack.badge}
                       </span>
                     )}
-                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", pack.accent)}>
+                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", pack.colorAccent)}>
                       <GoldCoinIcon size="md" />
                     </div>
-                    <div className="font-bold text-xl leading-none">
+                    <div className={cn("font-bold text-xl leading-none", pack.colorLabel)}>
                       {pack.id === "custom" ? "∞" : pack.coins}
                     </div>
-                    <div className="text-[10px] text-white/50 font-medium -mt-0.5">Gold Coins</div>
-                    <div className="text-xs font-semibold text-white/80 mt-0.5">
+                    <div className={cn("text-[10px] font-medium -mt-0.5", pack.colorSub)}>Gold Coins</div>
+                    <div className={cn("text-xs font-semibold mt-0.5", pack.colorSub)}>
                       {pack.id === "custom" ? "Any Amount" : `₹${pack.price}`}
                     </div>
                   </button>
