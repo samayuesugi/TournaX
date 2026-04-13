@@ -4,18 +4,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { customFetch } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Swords, DollarSign, Medal, Target, Percent, Gamepad2 } from "lucide-react";
+import { Trophy, Swords, DollarSign, Medal, MapPin, Gamepad2 } from "lucide-react";
 import { GoldCoin } from "@/components/ui/Coins";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 
-const GAMES = ["BGMI", "Free Fire", "COD Mobile", "Valorant", "PUBG PC", "Clash Royale", "Clash of Clans", "Pokemon Unite", "Mobile Legends", "Minecraft"];
+const INDIA_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Delhi", "Jammu & Kashmir", "Ladakh", "Chandigarh",
+];
 
 const STAT_OPTIONS = [
-  { value: "wins",     label: "Wins",          icon: Trophy },
-  { value: "earnings", label: "Earnings",       icon: DollarSign },
-  { value: "matches",  label: "Matches Played", icon: Swords },
+  { value: "wins",     label: "Wins",           icon: Trophy },
+  { value: "earnings", label: "Earnings",        icon: DollarSign },
+  { value: "matches",  label: "Matches Played",  icon: Swords },
 ];
 
 interface LeaderboardEntry {
@@ -25,6 +32,8 @@ interface LeaderboardEntry {
   handle: string;
   avatar: string;
   game: string | null;
+  state: string | null;
+  city: string | null;
   totalMatches: number;
   wins: number;
   totalEarnings: number;
@@ -80,7 +89,7 @@ function LeaderboardList({
 }) {
   if (isLoading) {
     return (
-      <div className="space-y-2 mt-3">
+      <div className="space-y-2 mt-1">
         {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 rounded-xl" />)}
       </div>
     );
@@ -89,23 +98,24 @@ function LeaderboardList({
     return (
       <div className="text-center py-16 text-muted-foreground text-sm">
         <Trophy className="w-8 h-8 mx-auto mb-2 opacity-30" />
-        No data yet. Play some matches to appear here!
+        <p>No players found for this filter.</p>
+        <p className="text-xs mt-1 opacity-70">Play some matches to appear here!</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2 mt-3">
+    <div className="space-y-2 mt-1">
       {data.map((entry) => {
-        const isTop3  = entry.rank <= 3;
-        const isMe    = entry.id === currentUserId;
+        const isTop3 = entry.rank <= 3;
+        const isMe   = entry.id === currentUserId;
         return (
           <div
             key={entry.id}
             className={cn(
               "flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors",
-              isMe      ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
-              : isTop3  ? rankBgs[entry.rank - 1]
+              isMe     ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+              : isTop3 ? rankBgs[entry.rank - 1]
               : "bg-card border-card-border",
             )}
           >
@@ -121,10 +131,19 @@ function LeaderboardList({
                 isMe ? "text-primary" : isTop3 ? rankColors[entry.rank - 1] : "",
               )}>
                 {entry.name}
-                {isMe && <span className="ml-1.5 text-[9px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-bold uppercase">You</span>}
+                {isMe && (
+                  <span className="ml-1.5 text-[9px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-bold uppercase">You</span>
+                )}
               </div>
-              <div className="text-xs text-muted-foreground">
-                @{entry.handle}{entry.game ? ` · ${entry.game}` : ""}
+              <div className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap">
+                <span>@{entry.handle}</span>
+                {entry.state && (
+                  <span className="flex items-center gap-0.5">
+                    <span className="opacity-40">·</span>
+                    <MapPin className="w-2.5 h-2.5 opacity-60" />
+                    <span>{entry.state}</span>
+                  </span>
+                )}
               </div>
             </div>
             <StatValue entry={entry} type={type} />
@@ -137,73 +156,87 @@ function LeaderboardList({
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
-  const userGame = (user as any)?.game as string | undefined;
+  const userGame = (user as any)?.game as string | null | undefined;
 
-  const [game,      setGame]      = useState<string>(userGame ?? GAMES[0]);
   const [timeframe, setTimeframe] = useState("all");
   const [statType,  setStatType]  = useState("wins");
+  const [stateFilter, setStateFilter] = useState("all");
+
+  const apiUrl = `/api/leaderboard?game=${encodeURIComponent(userGame ?? "")}&type=${statType}&timeframe=${timeframe}${stateFilter !== "all" ? `&scope=state&state=${encodeURIComponent(stateFilter)}` : ""}`;
 
   const { data, isLoading } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["leaderboard", game, statType, timeframe],
-    queryFn:  () => customFetch(`/api/leaderboard?game=${encodeURIComponent(game)}&type=${statType}&timeframe=${timeframe}`),
+    queryKey: ["leaderboard", userGame, statType, timeframe, stateFilter],
+    queryFn: () => customFetch(apiUrl),
+    enabled: !!userGame,
   });
 
   const StatIcon = STAT_OPTIONS.find(s => s.value === statType)?.icon ?? Trophy;
+
+  if (!userGame) {
+    return (
+      <AppLayout title="Leaderboard">
+        <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+          <Gamepad2 className="w-12 h-12 text-muted-foreground/40 mb-4" />
+          <p className="font-semibold text-foreground mb-1">Game Select Nahi Kiya</p>
+          <p className="text-sm text-muted-foreground">Profile mein apna game select karo, fir leaderboard dikhega.</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Leaderboard">
       <div className="space-y-3 pb-4">
 
-        {/* ── Hero game banner ── */}
+        {/* ── Game badge (locked to user's game) ── */}
         <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent rounded-2xl px-4 py-3 flex items-center gap-2.5 border border-primary/20">
           <Gamepad2 className="w-5 h-5 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Showing Leaderboard For</p>
-            <p className="text-sm font-bold text-foreground truncate">{game}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Game</p>
+            <p className="text-sm font-bold text-foreground truncate">{userGame}</p>
           </div>
-          {userGame && game !== userGame && (
-            <button
-              onClick={() => setGame(userGame)}
-              className="text-[10px] text-primary border border-primary/30 bg-primary/10 rounded-full px-2.5 py-1 font-semibold hover:bg-primary/20 transition-colors shrink-0"
-            >
-              My Game
-            </button>
-          )}
+          <span className="text-[10px] bg-primary/15 text-primary border border-primary/30 px-2.5 py-1 rounded-full font-semibold shrink-0">
+            My Game
+          </span>
         </div>
 
         {/* ── Filters row ── */}
         <div className="grid grid-cols-3 gap-2">
-          {/* Timeframe */}
-          <div className="col-span-1">
-            <div className="flex bg-secondary rounded-lg p-0.5 h-9">
-              <button
-                onClick={() => setTimeframe("all")}
-                className={`flex-1 rounded-md text-[11px] font-medium transition-all ${timeframe === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                All Time
-              </button>
-              <button
-                onClick={() => setTimeframe("week")}
-                className={`flex-1 rounded-md text-[11px] font-medium transition-all ${timeframe === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Week
-              </button>
-            </div>
+          {/* Timeframe toggle */}
+          <div className="flex bg-secondary rounded-lg p-0.5 h-9">
+            <button
+              onClick={() => setTimeframe("all")}
+              className={`flex-1 rounded-md text-[11px] font-medium transition-all ${timeframe === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              All Time
+            </button>
+            <button
+              onClick={() => setTimeframe("week")}
+              className={`flex-1 rounded-md text-[11px] font-medium transition-all ${timeframe === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Week
+            </button>
           </div>
 
-          {/* Game filter */}
-          <Select value={game} onValueChange={setGame}>
+          {/* State filter */}
+          <Select value={stateFilter} onValueChange={setStateFilter}>
             <SelectTrigger className="h-9 text-xs">
-              <SelectValue />
+              <div className="flex items-center gap-1.5 min-w-0">
+                <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
+                <span className="truncate">
+                  {stateFilter === "all" ? "All States" : stateFilter}
+                </span>
+              </div>
             </SelectTrigger>
-            <SelectContent>
-              {GAMES.map(g => (
-                <SelectItem key={g} value={g}>{g}</SelectItem>
+            <SelectContent className="max-h-64">
+              <SelectItem value="all">All States</SelectItem>
+              {INDIA_STATES.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {/* Stats filter */}
+          {/* Stat type filter */}
           <Select value={statType} onValueChange={setStatType}>
             <SelectTrigger className="h-9 text-xs">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -223,6 +256,17 @@ export default function LeaderboardPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Active state chip */}
+        {stateFilter !== "all" && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/25 text-primary text-xs font-semibold px-3 py-1.5 rounded-full">
+              <MapPin className="w-3 h-3" />
+              {stateFilter}
+              <button onClick={() => setStateFilter("all")} className="ml-1 hover:opacity-70">✕</button>
+            </div>
+          </div>
+        )}
 
         {/* ── List ── */}
         <LeaderboardList
