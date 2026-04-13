@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy, Tv2, ExternalLink, ListChecks, MessageSquare } from "lucide-react";
+import { Users, Gift, Clock, Shield, Copy, Check, Trash2, AlertTriangle, Gamepad2, Hash, Swords, Calendar, Star, ChevronRight, BellRing, Trophy, Tv2, ExternalLink, ListChecks, MessageSquare, Send } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import {
   useGetMatch, useJoinMatch, useGetMatchPlayers, useUpdateRoomCredentials,
-  useGoLive, useDeleteMatch, useGetMySquad
+  useGoLive, useDeleteMatch, useGetMySquad, customFetch
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
+import { useSocket } from "@/contexts/SocketContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +98,180 @@ function CopyButton({ value }: { value: string }) {
     <button onClick={copy} className="text-muted-foreground hover:text-foreground transition-colors">
       {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
     </button>
+  );
+}
+
+interface GroupMessage {
+  id: number;
+  groupId: number;
+  fromUserId: number;
+  senderName: string;
+  senderHandle: string;
+  senderAvatar: string;
+  content: string;
+  createdAt: string;
+}
+
+function MsgAvatar({ avatar }: { avatar?: string | null }) {
+  if (avatar && (avatar.startsWith("/") || avatar.startsWith("http"))) {
+    const src = avatar.startsWith("/objects/") ? `/api/storage${avatar}` : avatar;
+    return <img src={src} alt="avatar" className="w-7 h-7 rounded-full object-cover bg-secondary shrink-0 self-end" />;
+  }
+  return <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 self-end">{avatar || "🔥"}</div>;
+}
+
+function MatchGroupChat({ groupId, currentUser }: { groupId: number; currentUser: any }) {
+  const socket = useSocket();
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<GroupMessage[]>([]);
+  const [optimistic, setOptimistic] = useState<GroupMessage[]>([]);
+  const [text, setText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isFirstLoad = useRef(true);
+
+  const fetchMessages = useCallback(async () => {
+    try {
+      const data = await customFetch<GroupMessage[]>(`/api/groups/${groupId}/messages`);
+      setMessages(data);
+      setLoaded(true);
+    } catch { setLoaded(true); }
+  }, [groupId]);
+
+  useEffect(() => { fetchMessages(); }, [fetchMessages]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit("join:group", { groupId });
+    const handler = (msg: GroupMessage) => {
+      if (msg.groupId !== groupId) return;
+      setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
+      setOptimistic((prev) => prev.filter((o) => !(o.content === msg.content && o.fromUserId === msg.fromUserId)));
+    };
+    socket.on("group:message", handler);
+    return () => { socket.off("group:message", handler); };
+  }, [socket, groupId]);
+
+  const allMsgs = [
+    ...messages,
+    ...optimistic.filter((o) => !messages.some((s) => s.content === o.content && s.fromUserId === o.fromUserId)),
+  ];
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: isFirstLoad.current ? "instant" : "smooth" });
+    isFirstLoad.current = false;
+  }, [allMsgs.length]);
+
+  const handleSend = useCallback(async () => {
+    const trimmed = text.trim();
+    if (!trimmed || isSending) return;
+    setText("");
+    inputRef.current?.focus();
+    const opt: GroupMessage = {
+      id: Date.now(), groupId, fromUserId: currentUser.id,
+      senderName: currentUser.name || currentUser.handle || "",
+      senderHandle: currentUser.handle || "",
+      senderAvatar: currentUser.avatar || "🔥",
+      content: trimmed, createdAt: new Date().toISOString(),
+    };
+    setOptimistic((prev) => [...prev, opt]);
+    setIsSending(true);
+    try {
+      await customFetch(`/api/groups/${groupId}/messages`, { method: "POST", body: JSON.stringify({ content: trimmed }) });
+      if (!socket) { setOptimistic([]); await fetchMessages(); }
+    } catch (err: any) {
+      setOptimistic((prev) => prev.filter((m) => m.id !== opt.id));
+      toast({ title: "Error", description: err?.data?.error || "Failed to send", variant: "destructive" });
+    } finally { setIsSending(false); }
+  }, [text, isSending, groupId, currentUser, socket, fetchMessages, toast]);
+
+  const handleKey = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+
+  let lastDate = "";
+
+  return (
+    <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-card-border bg-violet-500/5">
+        <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
+          <MessageSquare className="w-4 h-4 text-violet-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-violet-400">Match Group Chat</p>
+          <p className="text-[11px] text-muted-foreground">Chat with players in this match</p>
+        </div>
+      </div>
+
+      <div className="h-64 overflow-y-auto px-3 py-3 space-y-2 flex flex-col">
+        {!loaded && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin" />
+          </div>
+        )}
+        {loaded && allMsgs.length === 0 && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+            <MessageSquare className="w-8 h-8 opacity-20" />
+            <p className="text-xs">No messages yet. Say something!</p>
+          </div>
+        )}
+        {loaded && allMsgs.map((msg) => {
+          const isMe = msg.fromUserId === currentUser.id;
+          const msgDate = new Date(msg.createdAt).toLocaleDateString([], { month: "short", day: "numeric" });
+          const showDate = msgDate !== lastDate;
+          lastDate = msgDate;
+          const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          return (
+            <div key={msg.id}>
+              {showDate && (
+                <div className="flex items-center gap-2 my-2">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[10px] text-muted-foreground px-1">{msgDate}</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )}
+              <div className={cn("flex items-end gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
+                {!isMe && <MsgAvatar avatar={msg.senderAvatar} />}
+                <div className={cn("flex flex-col max-w-[72%]", isMe ? "items-end" : "items-start")}>
+                  {!isMe && (
+                    <span className="text-[10px] text-muted-foreground mb-0.5 ml-1">{msg.senderName || msg.senderHandle}</span>
+                  )}
+                  <div className={cn(
+                    "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words",
+                    isMe
+                      ? "bg-violet-600 text-white rounded-br-sm"
+                      : "bg-secondary text-foreground rounded-bl-sm"
+                  )}>
+                    {msg.content}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-0.5 mx-1">{time}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="px-3 pb-3 pt-2 border-t border-card-border flex gap-2 items-center">
+        <Input
+          ref={inputRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="Type a message..."
+          className="flex-1 text-sm h-9 bg-secondary/60 border-0 focus-visible:ring-1 focus-visible:ring-violet-500/50"
+        />
+        <Button
+          size="icon"
+          className="h-9 w-9 shrink-0 bg-violet-600 hover:bg-violet-700"
+          onClick={handleSend}
+          disabled={isSending || !text.trim()}
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -611,20 +786,8 @@ export default function MatchDetailPage() {
           </div>
         )}
 
-        {(match.isJoined || canManage) && (match as any).groupId && (
-          <button
-            onClick={() => navigate(`/chat/group/${(match as any).groupId}`)}
-            className="w-full flex items-center gap-3 bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/15 transition-colors rounded-2xl px-4 py-3"
-          >
-            <div className="w-9 h-9 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
-              <MessageSquare className="w-4 h-4 text-violet-400" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-semibold text-violet-400">Match Group Chat</p>
-              <p className="text-xs text-muted-foreground">Chat with other players in this match</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-          </button>
+        {(match.isJoined || canManage) && (match as any).groupId && user && (
+          <MatchGroupChat groupId={(match as any).groupId} currentUser={user} />
         )}
 
         {match.roomReleased && match.isJoined && (
