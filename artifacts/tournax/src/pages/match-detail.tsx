@@ -23,6 +23,12 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 }
 
+function maskUid(uid: string) {
+  if (!uid) return "";
+  if (uid.length <= 4) return uid;
+  return "•".repeat(uid.length - 4) + uid.slice(-4);
+}
+
 interface LivePrizePoolProps {
   match: {
     filledSlots: number;
@@ -1464,7 +1470,14 @@ export default function MatchDetailPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {p.ign && <span className="text-[11px] text-muted-foreground">IGN: <span className="text-foreground font-medium">{p.ign}</span></span>}
-                        {p.uid && <span className="text-[11px] text-muted-foreground font-mono">{p.uid}</span>}
+                        {p.uid && (
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            UID: <span className="text-foreground">{canManage ? p.uid : maskUid(p.uid)}</span>
+                          </span>
+                        )}
+                        {canManage && p.handle && (
+                          <span className="text-[11px] text-violet-400 font-medium">@{p.handle}</span>
+                        )}
                         {p.teamName && <span className="text-[11px] text-primary/80 font-semibold">[{p.teamName}]</span>}
                       </div>
                     </div>
