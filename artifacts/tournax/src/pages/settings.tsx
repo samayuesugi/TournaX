@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
-import { SilverCoinIcon } from "@/components/ui/Coins";
+import { GoldCoinIcon } from "@/components/ui/Coins";
 
 const COMPLAINT_TOPICS = [
   { id: "Withdrawal Issue", label: "Withdrawal Issue", icon: "💸" },
@@ -61,9 +61,9 @@ const TASK_THEMES: Record<string, { gradient: string; iconBg: string; iconColor:
   invite:  { gradient: "from-pink-500/10 to-rose-500/5",     iconBg: "bg-pink-500/20",   iconColor: "text-pink-500",   bar: "bg-pink-400",   glow: "shadow-pink-500/30" },
 };
 
-function QuestTask({ icon: Icon, title, desc, silverReward, progress, total, claimed, taskKey }: {
+function QuestTask({ icon: Icon, title, desc, progress, total, claimed, taskKey }: {
   icon: React.ComponentType<{ className?: string }>;
-  title: string; desc: string; silverReward: number;
+  title: string; desc: string;
   progress: number; total: number; claimed: boolean; taskKey: keyof typeof TASK_THEMES;
 }) {
   const pct = Math.min(100, (progress / total) * 100);
@@ -106,9 +106,6 @@ function QuestTask({ icon: Icon, title, desc, silverReward, progress, total, cla
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted-foreground font-medium">
             {claimed ? "Completed!" : `${progress} / ${total}`}
-          </span>
-          <span className={cn("flex items-center gap-1 text-xs font-bold", claimed ? "text-green-600 dark:text-green-400" : "text-foreground/70")}>
-            +{silverReward} <SilverCoinIcon size="sm" />
           </span>
         </div>
       </div>
@@ -211,7 +208,7 @@ function QuestDialog({ open, onClose, dailyTasks }: { open: boolean; onClose: ()
                 </h2>
               </div>
               <p className="text-[11px] text-muted-foreground mb-2">
-                {allDone ? "Come back tomorrow for more rewards" : `Complete all 5 to earn 50 Silver Coins`}
+                {allDone ? "Come back tomorrow for more quests" : "Complete daily quests to keep your streak"}
               </p>
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <Clock className="w-3 h-3" />
@@ -228,11 +225,11 @@ function QuestDialog({ open, onClose, dailyTasks }: { open: boolean; onClose: ()
         </div>
 
         <div className="overflow-y-auto flex-1 px-4 pb-4 pt-3 space-y-2.5">
-          <QuestTask icon={CalendarCheck} title="Daily Login" desc="Open the app every day" silverReward={10} progress={dailyTasks?.loginClaimed ? 1 : 0} total={1} claimed={dailyTasks?.loginClaimed ?? false} taskKey="login" />
-          <QuestTask icon={Gamepad2} title="Play 3 Free Matches" desc="Join any 3 free entry tournaments" silverReward={10} progress={dailyTasks?.freeMatchesToday ?? 0} total={3} claimed={dailyTasks?.freeMatchesClaimed ?? false} taskKey="free" />
-          <QuestTask icon={Coins} title="Play 3 Paid Matches" desc="Join any 3 paid entry tournaments" silverReward={10} progress={dailyTasks?.paidMatchesToday ?? 0} total={3} claimed={dailyTasks?.paidMatchesClaimed ?? false} taskKey="paid" />
-          <QuestTask icon={Trophy} title="Win 5 Tournaments" desc="Finish first in 5 paid tournaments" silverReward={10} progress={dailyTasks?.tournamentWinsToday ?? 0} total={5} claimed={dailyTasks?.tournamentWinsClaimed ?? false} taskKey="win" />
-          <QuestTask icon={UserPlus} title="Invite a Friend" desc="Someone signs up with your referral code" silverReward={10} progress={dailyTasks?.inviteClaimed ? 1 : 0} total={1} claimed={dailyTasks?.inviteClaimed ?? false} taskKey="invite" />
+          <QuestTask icon={CalendarCheck} title="Daily Login" desc="Open the app every day" progress={dailyTasks?.loginClaimed ? 1 : 0} total={1} claimed={dailyTasks?.loginClaimed ?? false} taskKey="login" />
+          <QuestTask icon={Gamepad2} title="Play 3 Free Matches" desc="Join any 3 free entry tournaments" progress={dailyTasks?.freeMatchesToday ?? 0} total={3} claimed={dailyTasks?.freeMatchesClaimed ?? false} taskKey="free" />
+          <QuestTask icon={Coins} title="Play 3 Paid Matches" desc="Join any 3 paid entry tournaments" progress={dailyTasks?.paidMatchesToday ?? 0} total={3} claimed={dailyTasks?.paidMatchesClaimed ?? false} taskKey="paid" />
+          <QuestTask icon={Trophy} title="Win 5 Tournaments" desc="Finish first in 5 paid tournaments" progress={dailyTasks?.tournamentWinsToday ?? 0} total={5} claimed={dailyTasks?.tournamentWinsClaimed ?? false} taskKey="win" />
+          <QuestTask icon={UserPlus} title="Invite a Friend" desc="Someone signs up with your referral code" progress={dailyTasks?.inviteClaimed ? 1 : 0} total={1} claimed={dailyTasks?.inviteClaimed ?? false} taskKey="invite" />
         </div>
       </DialogContent>
     </Dialog>

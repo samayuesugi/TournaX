@@ -332,7 +332,6 @@ function AppContent() {
           open={true}
           onClose={dismissDailyBonus}
           bonus={pendingDailyBonus.bonus}
-          silverCoins={pendingDailyBonus.silverCoins}
         />
       )}
     </>

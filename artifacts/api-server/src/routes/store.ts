@@ -55,13 +55,13 @@ router.post("/store/buy/:itemId", requireAuth, async (req: Request, res: Respons
     return;
   }
 
-  const [freshUser] = await db.select({ silverCoins: usersTable.silverCoins }).from(usersTable).where(eq(usersTable.id, user.id));
-  if ((freshUser?.silverCoins ?? 0) < item.cost) {
-    res.status(400).json({ error: `Not enough Silver Coins. You need ${item.cost}, you have ${freshUser?.silverCoins ?? 0}.` });
+  const [freshUser] = await db.select({ balance: usersTable.balance }).from(usersTable).where(eq(usersTable.id, user.id));
+  if ((freshUser?.balance ?? 0) < item.cost) {
+    res.status(400).json({ error: `Not enough TournaX Coins. You need ${item.cost}, you have ${Math.floor(freshUser?.balance ?? 0)}.` });
     return;
   }
 
-  await db.execute(sql`UPDATE users SET silver_coins = silver_coins - ${item.cost} WHERE id = ${user.id} AND silver_coins >= ${item.cost}`);
+  await db.execute(sql`UPDATE users SET balance = balance - ${item.cost} WHERE id = ${user.id} AND balance >= ${item.cost}`);
   await db.insert(userCosmeticsTable).values({ userId: user.id, itemId: item.id, category: item.category });
 
   res.json({ success: true, message: `Purchased ${item.name}!`, item });

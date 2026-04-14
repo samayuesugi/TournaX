@@ -7,12 +7,12 @@ import { AuthContext, type DailyBonus } from "./auth-context";
 
 async function callDailyCheckin(): Promise<DailyBonus | null> {
   try {
-    const result = await customFetch<{ claimed: boolean; bonus: number; silverCoins: number }>(
+    const result = await customFetch<{ claimed: boolean; bonus: number }>(
       "/api/auth/daily-checkin",
       { method: "POST" }
     );
     if (result.claimed && result.bonus > 0) {
-      return { bonus: result.bonus, silverCoins: result.silverCoins };
+      return { bonus: result.bonus };
     }
     return null;
   } catch {
@@ -53,10 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthTokenGetter(getToken);
     setUser(res.user);
     if ((res as any).dailyLoginBonus > 0) {
-      setPendingDailyBonus({
-        bonus: (res as any).dailyLoginBonus,
-        silverCoins: res.user.silverCoins ?? 0,
-      });
+      setPendingDailyBonus({ bonus: (res as any).dailyLoginBonus });
     }
     return res;
   };

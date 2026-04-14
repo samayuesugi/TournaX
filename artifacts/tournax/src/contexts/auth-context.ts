@@ -3,7 +3,6 @@ import type { User } from "@workspace/api-client-react";
 
 export interface DailyBonus {
   bonus: number;
-  silverCoins: number;
 }
 
 export interface AuthContextValue {

@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { SilverCoinIcon } from "@/components/ui/Coins";
+import { GoldCoinIcon } from "@/components/ui/Coins";
 
 interface DailyBonusDialogProps {
   open: boolean;
   onClose: () => void;
   bonus: number;
-  silverCoins: number;
 }
 
 const CONFETTI_COLORS = [
@@ -37,7 +36,7 @@ const SPARKLES = Array.from({ length: 8 }, (_, i) => ({
   delay: randomBetween(0, 0.5),
 }));
 
-export function DailyBonusDialog({ open, onClose, bonus, silverCoins }: DailyBonusDialogProps) {
+export function DailyBonusDialog({ open, onClose, bonus }: DailyBonusDialogProps) {
   const [visible, setVisible] = useState(false);
   const [displayBonus, setDisplayBonus] = useState(0);
 
@@ -139,7 +138,7 @@ export function DailyBonusDialog({ open, onClose, bonus, silverCoins }: DailyBon
                 className="w-24 h-24 rounded-full bg-gradient-to-br from-violet-600/50 to-purple-900/60 flex items-center justify-center"
                 style={visible ? { animation: "glowPulse 2s ease-in-out 0.7s infinite" } : {}}
               >
-                <SilverCoinIcon size="lg" className="w-12 h-12" />
+                <GoldCoinIcon size="lg" className="w-12 h-12" />
               </div>
 
               {visible && SPARKLES.map((s) => {
@@ -187,7 +186,7 @@ export function DailyBonusDialog({ open, onClose, bonus, silverCoins }: DailyBon
               style={visible ? { animation: "slideUp 0.45s ease 0.55s both" } : { opacity: 0 }}
             >
               +{displayBonus}
-              <span className="text-lg ml-1 font-semibold text-violet-300">Silver</span>
+              <span className="text-lg ml-1 font-semibold text-violet-300">TournaX Coins</span>
             </h2>
 
             <p
@@ -196,21 +195,6 @@ export function DailyBonusDialog({ open, onClose, bonus, silverCoins }: DailyBon
             >
               Aaj ka bonus claim ho gaya!
             </p>
-
-            <div
-              className="w-full rounded-xl px-4 py-3 flex items-center justify-between mb-5 overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(99,102,241,0.12) 100%)",
-                border: "1px solid rgba(167,139,250,0.2)",
-                ...(visible ? { animation: "fadeIn 0.4s ease 0.7s both" } : { opacity: 0 }),
-              }}
-            >
-              <span className="text-xs text-muted-foreground">Total Silver Coins</span>
-              <span className="flex items-center gap-1.5 font-bold text-sm text-white">
-                <SilverCoinIcon size="sm" />
-                {silverCoins}
-              </span>
-            </div>
 
             <Button
               className="w-full font-semibold relative overflow-hidden"

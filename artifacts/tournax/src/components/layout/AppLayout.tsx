@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGetWallet, useGetNotifications, useGetConversations } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { GoldCoinIcon, SilverCoinIcon } from "@/components/ui/Coins";
+import { GoldCoinIcon } from "@/components/ui/Coins";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "@/contexts/SocketContext";
 import { useToast } from "@/hooks/use-toast";
@@ -149,12 +149,6 @@ export function AppLayout({
                       <GoldCoinIcon size="sm" />
                       <span>{wallet.balance.toFixed(0)}</span>
                     </span>
-                    {user.role === "player" && wallet.silverCoins > 0 && (
-                      <span className="flex items-center gap-0.5 border-l border-border pl-2">
-                        <SilverCoinIcon size="sm" />
-                        <span className="text-slate-300">{wallet.silverCoins}</span>
-                      </span>
-                    )}
                   </button>
                 </Link>
               )}
