@@ -303,7 +303,7 @@ function TournamentBracket({ matchId, canManage }: { matchId: number; canManage:
   const { data, isLoading, error } = useQuery({
     queryKey: ["bracket", matchId],
     queryFn: async () => {
-      const res = await fetch(`/api/matches/${matchId}/bracket`, { credentials: "include" });
+      const res = await customFetch(`/api/matches/${matchId}/bracket`);
       if (!res.ok) throw new Error("not found");
       return res.json() as Promise<{ bracketData: BracketData }>;
     },
@@ -312,9 +312,9 @@ function TournamentBracket({ matchId, canManage }: { matchId: number; canManage:
 
   const { mutateAsync: createBracket, isPending: isCreating } = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/matches/${matchId}/bracket`, {
+      const res = await customFetch(`/api/matches/${matchId}/bracket`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        credentials: "include", body: JSON.stringify({}),
+        body: JSON.stringify({}),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
       return res.json();
@@ -324,9 +324,9 @@ function TournamentBracket({ matchId, canManage }: { matchId: number; canManage:
 
   const { mutateAsync: updateBracket } = useMutation({
     mutationFn: async (bracketData: BracketData) => {
-      const res = await fetch(`/api/matches/${matchId}/bracket`, {
+      const res = await customFetch(`/api/matches/${matchId}/bracket`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        credentials: "include", body: JSON.stringify({ bracketData }),
+        body: JSON.stringify({ bracketData }),
       });
       if (!res.ok) throw new Error("Failed to update bracket");
       return res.json();
