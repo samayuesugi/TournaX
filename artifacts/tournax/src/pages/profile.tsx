@@ -1244,11 +1244,6 @@ function OwnProfile() {
                 {user.role === "admin" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><ShieldCheck className="w-3 h-3" /> Admin</span>}
                 {user.role === "host" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400"><ShieldCheck className="w-3 h-3" /> Host</span>}
                 {(user as any).game && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-2.5 py-0.5">🎮 {(user as any).game}</span>}
-                {(user as any).isGameVerified && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-green-500/15 text-green-400 border border-green-500/30 rounded-full px-2.5 py-0.5">
-                    <ShieldCheck className="w-3 h-3 shrink-0" /> Verified
-                  </span>
-                )}
                 {isEsports && (
                   <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
                     <ShieldCheck className="w-3 h-3 shrink-0" /> Esports
@@ -1556,11 +1551,6 @@ function PublicProfile({ handle }: { handle: string }) {
                 {profile.role === "admin" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><ShieldCheck className="w-3 h-3" /> Admin</span>}
                 {profile.role === "host" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400"><ShieldCheck className="w-3 h-3" /> Host</span>}
                 {(profile as any).game && isPlayer && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-2.5 py-0.5">🎮 {(profile as any).game}</span>}
-                {(profile as any).isGameVerified && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold bg-green-500/15 text-green-400 border border-green-500/30 rounded-full px-2.5 py-0.5">
-                    <ShieldCheck className="w-3 h-3 shrink-0" /> Verified
-                  </span>
-                )}
                 {isEsports && (
                   <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
                     <ShieldCheck className="w-3 h-3 shrink-0" /> Esports
