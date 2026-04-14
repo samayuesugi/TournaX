@@ -646,9 +646,6 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
   if (!Array.isArray(results) || results.length === 0) {
     res.status(400).json({ error: "Results are required" }); return;
   }
-  if (!Array.isArray(screenshotUrls) || screenshotUrls.length === 0) {
-    res.status(400).json({ error: "At least 1 in-game result screenshot is required" }); return;
-  }
   if (results.some(r => typeof r.reward !== "number" || r.reward < 0)) {
     res.status(400).json({ error: "All reward values must be non-negative numbers" }); return;
   }
@@ -752,8 +749,8 @@ router.post("/matches/:id/submit-result", requireAuth, async (req: Request, res:
     screenshotExpiry.setDate(screenshotExpiry.getDate() + 3);
     await tx.update(matchesTable).set({
       status: "completed",
-      resultScreenshotUrls: JSON.stringify(screenshotUrls),
-      screenshotUploadedAt: new Date(),
+      resultScreenshotUrls: JSON.stringify(screenshotUrls ?? []),
+      screenshotUploadedAt: (screenshotUrls && screenshotUrls.length > 0) ? new Date() : null,
       escrowBalance: "0",
       escrowStatus: "distributed",
       prizeDistributedAt: new Date(),
