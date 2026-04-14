@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
-const SUPPORT_EMAIL = "support@tournax.com";
+const SUPPORT_EMAIL = "officialtournax@gmail.com";
 const POLICIES: Record<string, { title: string; intro: string; sections: { heading: string; body: string }[] }> = {
   terms: {
     title: "Terms",

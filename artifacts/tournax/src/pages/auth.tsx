@@ -27,8 +27,8 @@ const TRUST_POINTS = [
   { icon: Gamepad2, label: "BGMI / Free Fire tournaments" },
 ];
 
-const SUPPORT_EMAIL = "support@tournax.com";
-const APP_VERSION = "v0.0.0";
+const SUPPORT_EMAIL = "officialtournax@gmail.com";
+const APP_VERSION = "v2.1";
 
 interface OtpInputsProps {
   otpDigits: string[];
