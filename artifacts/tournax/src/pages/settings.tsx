@@ -633,7 +633,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <p className="text-center text-[10px] text-muted-foreground/50">TournaX v1.0 · All rights reserved</p>
+        <p className="text-center text-[10px] text-muted-foreground/50">TournaX v2.1 · All rights reserved</p>
       </div>
 
       <QuestDialog open={questOpen} onClose={() => setQuestOpen(false)} dailyTasks={dailyTasks} />
