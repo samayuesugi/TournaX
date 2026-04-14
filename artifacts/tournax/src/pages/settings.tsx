@@ -37,6 +37,8 @@ const COMPLAINT_TOPICS = [
 type DailyTasksData = {
   inviteClaimed: boolean;
   loginClaimed: boolean;
+  loginStreak: number;
+  maxStreak: number;
   freeMatchesToday: number;
   freeMatchesClaimed: boolean;
   paidMatchesToday: number;
@@ -151,33 +153,83 @@ function SettingRow({ icon: Icon, iconBg, iconColor, label, onClick }: {
 }
 
 function QuestDialog({ open, onClose, dailyTasks }: { open: boolean; onClose: () => void; dailyTasks: DailyTasksData | null }) {
-  const timeLeft = useMidnightCountdown();
-  const completed = [
-    dailyTasks?.inviteClaimed,
-    dailyTasks?.loginClaimed,
-    dailyTasks?.freeMatchesClaimed,
-    dailyTasks?.paidMatchesClaimed,
-    dailyTasks?.tournamentWinsClaimed,
-  ].filter(Boolean).length;
-  const total = 5;
-  const allDone = completed === total;
-  const circumference = 2 * Math.PI * 28;
-  const dashOffset = circumference - (completed / total) * circumference;
+  const streak = dailyTasks?.loginStreak ?? 0;
+  const maxStreak = dailyTasks?.maxStreak ?? 0;
+  const streakPct = Math.min(100, (streak / 15) * 100);
+  const rainUnlocked = streak >= 15;
+
+  const MILESTONE_DAYS = [1, 3, 7, 15];
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex flex-col items-center justify-center px-6 py-16 gap-5 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Zap className="w-8 h-8 text-primary" />
+        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-orange-500" /> Daily Streak
+          </DialogTitle>
+        </DialogHeader>
+        <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
+          <div className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-950/50 via-amber-900/20 to-orange-950/50 p-5 text-center">
+            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/8 via-amber-400/5 to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center mx-auto mb-3">
+                <Flame className="w-8 h-8 text-orange-400" />
+              </div>
+              <p className="text-4xl font-black text-orange-300 leading-none">{streak}</p>
+              <p className="text-sm text-orange-400/70 mt-1">day{streak !== 1 ? "s" : ""} in a row</p>
+              {maxStreak > 0 && <p className="text-[11px] text-orange-500/50 mt-0.5">Best: {maxStreak} days</p>}
+            </div>
           </div>
+
           <div>
-            <h2 className="text-xl font-black tracking-tight mb-1">Daily Quests</h2>
-            <p className="text-sm text-muted-foreground">Coming Soon</p>
+            <div className="flex justify-between text-[11px] text-muted-foreground mb-1.5">
+              <span>Progress to Rain effect</span>
+              <span>{streak}/15 days</span>
+            </div>
+            <div className="h-3 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-700"
+                style={{ width: `${streakPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-1">
+              {MILESTONE_DAYS.map((d) => (
+                <div key={d} className="flex flex-col items-center gap-0.5">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    streak >= d ? "bg-orange-400" : "bg-white/10"
+                  )} />
+                  <span className={cn("text-[9px] font-semibold", streak >= d ? "text-orange-400" : "text-muted-foreground")}>{d}d</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground max-w-[220px] leading-relaxed">
-            Daily quests are under construction. Stay tuned for rewards and challenges!
-          </p>
+
+          <div className={cn(
+            "rounded-2xl border p-4 flex items-center gap-3",
+            rainUnlocked
+              ? "border-blue-500/40 bg-blue-950/30"
+              : "border-border bg-secondary/30"
+          )}>
+            <div className={cn(
+              "w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0",
+              rainUnlocked ? "bg-blue-500/20" : "bg-secondary/60"
+            )}>
+              🌧️
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm">Rain Effect</p>
+              <p className="text-[11px] text-muted-foreground">Login for 15 days in a row</p>
+              {rainUnlocked
+                ? <span className="text-[10px] font-bold text-blue-400 flex items-center gap-1 mt-0.5"><CheckCircle2 className="w-3 h-3" /> Unlocked — check your store!</span>
+                : <span className="text-[10px] text-orange-400 mt-0.5 block">{15 - streak} more day{15 - streak !== 1 ? "s" : ""} to go</span>
+              }
+            </div>
+          </div>
+
+          <div className="bg-secondary/30 rounded-xl px-3 py-2.5 text-[11px] text-muted-foreground leading-relaxed">
+            Log in every day to keep your streak alive. Missing a day resets it to 0. More rewards coming soon!
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -538,7 +590,22 @@ export default function SettingsPage() {
             {/* Player-only rows */}
             {user.role === "player" && (
               <>
-                <SettingRow icon={Trophy} iconBg="bg-primary/15" iconColor="text-primary" label="Quest & Daily Tasks" onClick={() => setQuestOpen(true)} />
+                <button className="flex items-center justify-between w-full px-4 py-3 hover:bg-secondary/40 transition-colors" onClick={() => setQuestOpen(true)}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
+                      <Flame className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <span className="text-sm font-medium">Daily Streak</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(dailyTasks?.loginStreak ?? 0) > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold bg-orange-500/15 text-orange-400 border border-orange-500/25 px-2 py-0.5 rounded-full">
+                        <Flame className="w-3 h-3" /> {dailyTasks?.loginStreak}
+                      </span>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </button>
                 <SettingRow icon={Gift} iconBg="bg-emerald-500/15" iconColor="text-emerald-400" label="Referral Program" onClick={() => setReferralOpen(true)} />
                 <SettingRow icon={Medal} iconBg="bg-yellow-500/15" iconColor="text-yellow-400" label="Esports Player" onClick={() => setEsportsOpen(true)} />
               </>

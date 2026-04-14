@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { usersTable, referralsTable, trustScoreEventsTable } from "@workspace/db/schema";
+import { usersTable, referralsTable, trustScoreEventsTable, userCosmeticsTable } from "@workspace/db/schema";
 import { eq, sql, ilike, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -103,11 +103,36 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     tournamentWins: user.tournamentWins ?? 0,
     state: user.state ?? null,
     city: user.city ?? null,
+    loginStreak: user.loginStreak ?? 0,
+    maxStreak: user.maxStreak ?? 0,
   };
 }
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function getYesterdayDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function computeNewStreak(lastLoginDate: string | null | undefined, currentStreak: number): number {
+  const yesterday = getYesterdayDate();
+  if (lastLoginDate === yesterday) return currentStreak + 1;
+  return 1;
+}
+
+async function giftStreakRewardIfNeeded(userId: number, newStreak: number) {
+  if (newStreak === 15) {
+    const existing = await db.select().from(userCosmeticsTable)
+      .where(eq(userCosmeticsTable.userId, userId));
+    const alreadyOwned = existing.some(i => i.itemId === "banner-rainfall");
+    if (!alreadyOwned) {
+      await db.insert(userCosmeticsTable).values({ userId, itemId: "banner-rainfall", category: "banner_animation" });
+    }
+  }
 }
 
 function generateOtp(): string {
@@ -413,16 +438,20 @@ router.post("/auth/login", async (req: Request, res: Response) => {
 
   const today = getTodayDate();
   let updatedUser = user;
-  if (user.lastLoginDate !== today) {
+  const isFirstLoginToday = user.lastLoginDate !== today;
+  if (isFirstLoginToday) {
+    const newStreak = computeNewStreak(user.lastLoginDate, user.loginStreak ?? 0);
+    const newMax = Math.max(newStreak, user.maxStreak ?? 0);
     const [u] = await db.update(usersTable)
-      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 10` })
+      .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + 10`, loginStreak: newStreak, maxStreak: newMax })
       .where(eq(usersTable.id, user.id))
       .returning();
     updatedUser = u;
+    await giftStreakRewardIfNeeded(user.id, newStreak);
   }
 
   const token = generateToken(updatedUser.id);
-  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: user.lastLoginDate !== today ? 10 : 0 });
+  res.json({ user: serializeUser(updatedUser), token, dailyLoginBonus: isFirstLoginToday ? 10 : 0, loginStreak: updatedUser.loginStreak ?? 0 });
 });
 
 router.get("/auth/me", requireAuth, async (req: Request, res: Response) => {
@@ -438,16 +467,19 @@ router.post("/auth/daily-checkin", requireAuth, async (req: Request, res: Respon
   const user = (req as any).user;
   const today = getTodayDate();
   if (user.lastLoginDate === today) {
-    res.json({ claimed: false, bonus: 0, silverCoins: user.silverCoins ?? 0 });
+    res.json({ claimed: false, bonus: 0, silverCoins: user.silverCoins ?? 0, loginStreak: user.loginStreak ?? 0 });
     return;
   }
   const referralBonus = user.referralBonusUntil && user.referralBonusUntil >= today ? 1 : 0;
   const totalBonus = 5 + referralBonus;
+  const newStreak = computeNewStreak(user.lastLoginDate, user.loginStreak ?? 0);
+  const newMax = Math.max(newStreak, user.maxStreak ?? 0);
   const [updated] = await db.update(usersTable)
-    .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + ${totalBonus}` })
+    .set({ lastLoginDate: today, silverCoins: sql`${usersTable.silverCoins} + ${totalBonus}`, loginStreak: newStreak, maxStreak: newMax })
     .where(eq(usersTable.id, user.id))
     .returning();
-  res.json({ claimed: true, bonus: totalBonus, referralBonus, silverCoins: updated.silverCoins ?? 0 });
+  await giftStreakRewardIfNeeded(user.id, newStreak);
+  res.json({ claimed: true, bonus: totalBonus, referralBonus, silverCoins: updated.silverCoins ?? 0, loginStreak: newStreak, streakReward: newStreak === 15 ? "banner-rainfall" : null });
 });
 
 router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response) => {
@@ -474,6 +506,8 @@ router.get("/auth/daily-tasks", requireAuth, async (req: Request, res: Response)
 
   res.json({
     loginClaimed: user.lastLoginDate === today,
+    loginStreak: user.loginStreak ?? 0,
+    maxStreak: user.maxStreak ?? 0,
     freeMatchesToday: dailyWins,
     freeMatchesClaimed: dailyWins >= 3,
     paidMatchesToday: dailyPaidMatches,
@@ -621,12 +655,17 @@ router.get("/auth/google/callback", async (req: Request, res: Response) => {
       const patch: Record<string, any> = {};
       if (!user.googleId) patch.googleId = googleId;
       if (user.lastLoginDate !== today) {
+        const newStreak = computeNewStreak(user.lastLoginDate, user.loginStreak ?? 0);
+        const newMax = Math.max(newStreak, user.maxStreak ?? 0);
         patch.lastLoginDate = today;
         patch.silverCoins = sql`${usersTable.silverCoins} + 10`;
+        patch.loginStreak = newStreak;
+        patch.maxStreak = newMax;
         dailyBonus = 10;
       }
       if (Object.keys(patch).length > 0) {
         [user] = await db.update(usersTable).set(patch).where(eq(usersTable.id, user.id)).returning();
+        if (dailyBonus > 0) await giftStreakRewardIfNeeded(user.id, user.loginStreak ?? 0);
       }
     } else {
       const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();

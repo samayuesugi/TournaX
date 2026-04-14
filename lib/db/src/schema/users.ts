@@ -19,6 +19,8 @@ export const usersTable = pgTable("users", {
   balance: numeric("balance", { precision: 10, scale: 2 }).notNull().default("0"),
   silverCoins: integer("silver_coins").notNull().default(0),
   lastLoginDate: text("last_login_date"),
+  loginStreak: integer("login_streak").notNull().default(0),
+  maxStreak: integer("max_streak").notNull().default(0),
   paidMatchesPlayed: integer("paid_matches_played").notNull().default(0),
   status: statusEnum("status").notNull().default("pending"),
   profileSetup: boolean("profile_setup").notNull().default(false),

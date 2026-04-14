@@ -659,6 +659,8 @@ router.get("/users/:handle", requireAuth, async (req: Request, res: Response) =>
     isLFT: user.isLFT ?? false,
     lftRole: user.lftRole ?? null,
     state: user.state ?? null,
+    loginStreak: user.loginStreak ?? 0,
+    maxStreak: user.maxStreak ?? 0,
     upcomingMatches: upcomingMatches.map(m => ({
       id: m.id, code: m.code, game: m.game, mode: m.mode, teamSize: m.teamSize,
       entryFee: parseFloat(m.entryFee as string), showcasePrizePool: parseFloat(m.showcasePrizePool as string),

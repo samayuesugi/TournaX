@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap, MapPin, Hash, Copy } from "lucide-react";
+import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap, MapPin, Hash, Copy, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -453,6 +453,8 @@ function PlayerStatsSection({ profile }: { profile: any }) {
   const trustScore = profile.trustScore ?? 500;
   const trustTier = profile.trustTier ?? "Trusted";
   const trustPct = Math.min(100, Math.round((trustScore / 1000) * 100));
+  const loginStreak = profile.loginStreak ?? 0;
+  const maxStreak = profile.maxStreak ?? 0;
 
   return (
     <div className="p-4 space-y-4">
@@ -492,6 +494,27 @@ function PlayerStatsSection({ profile }: { profile: any }) {
           sub="Entry fee matches"
           accent="bg-orange-500/15"
         />
+        <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+              <Flame className="w-4 h-4 text-orange-500" />
+            </div>
+            <span className="text-xs text-muted-foreground font-medium leading-tight">Login Streak</span>
+          </div>
+          <div>
+            <div className="flex items-end gap-2 mb-1">
+              <p className="text-2xl font-black tracking-tight leading-none">{loginStreak}</p>
+              <span className="text-xs text-muted-foreground mb-0.5">days</span>
+            </div>
+            <div className="h-2 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-700"
+                style={{ width: `${Math.min(100, (loginStreak / 15) * 100)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">{loginStreak >= 15 ? "🌧️ Rain unlocked!" : `${Math.max(0, 15 - loginStreak)} days to free Rain`}</p>
+          </div>
+        </div>
         <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
