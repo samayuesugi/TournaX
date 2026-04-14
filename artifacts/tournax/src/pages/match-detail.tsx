@@ -1444,33 +1444,37 @@ export default function MatchDetailPage() {
                 <span className="text-xs text-muted-foreground">{match.filledSlots}/{match.slots} slots</span>
               </div>
               <div className="divide-y divide-card-border">
-                {players.map((p: any, i: number) => (
+                {players.map((p: any, i: number) => {
+                  const firstPlayer = p.players?.[0];
+                  const playerAvatar = p.userAvatar;
+                  const playerName = p.userName;
+                  const playerHandle = p.userHandle;
+                  const playerIgn = firstPlayer?.ign;
+                  const playerUid = firstPlayer?.uid;
+                  return (
                   <div key={p.id ?? i} className="flex items-center gap-3 px-4 py-3">
                     {/* Rank number */}
                     <div className="w-6 text-xs text-muted-foreground text-center font-mono shrink-0">{i + 1}</div>
                     {/* Avatar */}
                     <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0 overflow-hidden text-base">
-                      {p.avatar && (p.avatar.startsWith("/") || p.avatar.startsWith("http"))
-                        ? <img src={p.avatar.startsWith("/objects/") ? `/api/storage${p.avatar}` : p.avatar} alt="" className="w-full h-full object-cover" />
-                        : (p.avatar || "🔥")}
+                      {playerAvatar && (playerAvatar.startsWith("/") || playerAvatar.startsWith("http"))
+                        ? <img src={playerAvatar.startsWith("/objects/") ? `/api/storage${playerAvatar}` : playerAvatar} alt="" className="w-full h-full object-cover" />
+                        : (playerAvatar || "🔥")}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold truncate">{p.name || p.handle || "—"}</p>
-                        {p.isIgl && (
-                          <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded px-1 py-0.5 shrink-0">IGL</span>
-                        )}
+                        <p className="text-sm font-semibold truncate">{playerName || playerHandle || "—"}</p>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {p.ign && <span className="text-[11px] text-muted-foreground">IGN: <span className="text-foreground font-medium">{p.ign}</span></span>}
-                        {p.uid && (
+                        {playerIgn && <span className="text-[11px] text-muted-foreground">IGN: <span className="text-foreground font-medium">{playerIgn}</span></span>}
+                        {playerUid && (
                           <span className="text-[11px] text-muted-foreground font-mono">
-                            UID: <span className="text-foreground">{canManage ? p.uid : maskUid(p.uid)}</span>
+                            UID: <span className="text-foreground">{playerUid}</span>
                           </span>
                         )}
-                        {canManage && p.handle && (
-                          <span className="text-[11px] text-violet-400 font-medium">@{p.handle}</span>
+                        {canManage && playerHandle && (
+                          <span className="text-[11px] text-violet-400 font-medium">@{playerHandle}</span>
                         )}
                         {p.teamName && <span className="text-[11px] text-primary/80 font-semibold">[{p.teamName}]</span>}
                       </div>
@@ -1485,7 +1489,8 @@ export default function MatchDetailPage() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

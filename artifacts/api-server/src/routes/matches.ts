@@ -792,6 +792,7 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
       trustTier: usersTable.trustTier,
       name: usersTable.name,
       avatar: usersTable.avatar,
+      handle: usersTable.handle,
     }).from(usersTable).where(eq(usersTable.id, p.userId));
     return {
       id: p.id,
@@ -804,9 +805,14 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
       trustTier: userInfo?.trustTier ?? "bronze",
       userName: userInfo?.name ?? null,
       userAvatar: userInfo?.avatar ?? null,
+      userHandle: canSeeFullUid ? (userInfo?.handle ?? null) : null,
       players: players.map(pl => ({
         ign: pl.ign,
-        uid: canSeeFullUid ? pl.uid : (pl.uid ? pl.uid.slice(0, 3) + "****" : "****"),
+        uid: canSeeFullUid
+          ? pl.uid
+          : (pl.uid
+              ? "•".repeat(Math.max(0, pl.uid.length - 4)) + pl.uid.slice(-4)
+              : "—"),
         position: pl.position,
       })),
       kills: p.kills ?? null,
