@@ -129,6 +129,21 @@ router.get("/users/search", requireAuth, async (req: Request, res: Response) => 
   );
 });
 
+router.get("/users/id/:id", requireAuth, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid user id" }); return; }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+  res.json({
+    id: user.id,
+    name: user.name || user.handle || user.email,
+    handle: user.handle || "",
+    avatar: user.avatar || "🔥",
+    role: user.role,
+    game: user.game,
+  });
+});
+
 router.get("/users/me/squad", requireAuth, async (req: Request, res: Response) => {
   const user = (req as any).user;
   const squad = await db.select().from(squadMembersTable).where(eq(squadMembersTable.userId, user.id));

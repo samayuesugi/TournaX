@@ -42,6 +42,15 @@ interface OptimisticMessage {
   reactions?: Record<string, number[]>;
 }
 
+interface ChatPartner {
+  userId?: number;
+  id?: number;
+  name?: string | null;
+  handle?: string | null;
+  avatar?: string | null;
+  role?: string | null;
+}
+
 function MessageTick({ optimistic, read }: { optimistic?: boolean; read: boolean }) {
   if (optimistic) return <Check className="w-3 h-3 inline-block ml-1 opacity-60 shrink-0" />;
   if (read) return <CheckCheck className="w-3 h-3 inline-block ml-1 text-violet-300 shrink-0" />;
@@ -68,15 +77,30 @@ export default function ConversationPage() {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef<Map<number, number>>(new Map());
   const [requestStatus, setRequestStatus] = useState<{ sent?: boolean; received?: boolean; firstMessage?: string } | null>(null);
+  const [partnerProfile, setPartnerProfile] = useState<ChatPartner | null>(null);
 
   const { data: conversations } = useGetConversations();
-  const partner = conversations?.find((c) => c.userId === partnerId);
+  const partner = conversations?.find((c) => c.userId === partnerId) as ChatPartner | undefined;
+  const displayPartner = partner ?? partnerProfile;
 
   const socket = useSocket();
 
   const { data: serverMessages, isLoading } = useGetConversation(partnerId, {
     query: { refetchInterval: socket ? false : 2000 } as any,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!partnerId || partner) return;
+    customFetch<ChatPartner>(`/api/users/id/${partnerId}`)
+      .then((data) => {
+        if (!cancelled) setPartnerProfile(data);
+      })
+      .catch(() => {
+        if (!cancelled) setPartnerProfile(null);
+      });
+    return () => { cancelled = true; };
+  }, [partnerId, partner?.userId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -253,20 +277,20 @@ export default function ConversationPage() {
 
   let lastDate = "";
 
-  const partnerHeaderContent = partner ? (
+  const partnerHeaderContent = displayPartner ? (
     <div className="flex items-center gap-2.5 min-w-0">
       <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-lg shrink-0 overflow-hidden">
-        {partner.avatar && (partner.avatar.startsWith("/") || partner.avatar.startsWith("http") || partner.avatar.startsWith("data:"))
-          ? <img src={partner.avatar} alt={partner.name || "avatar"} className="w-full h-full object-cover" />
-          : partner.avatar || "🔥"}
+        {displayPartner.avatar && (displayPartner.avatar.startsWith("/") || displayPartner.avatar.startsWith("http") || displayPartner.avatar.startsWith("data:"))
+          ? <img src={displayPartner.avatar} alt={displayPartner.name || "avatar"} className="w-full h-full object-cover" />
+          : displayPartner.avatar || "🔥"}
       </div>
       <div className="min-w-0">
-        <p className="font-semibold text-sm truncate leading-tight">{partner.name || partner.handle || `User ${partnerId}`}</p>
-        {partner.handle && <p className="text-xs text-muted-foreground truncate leading-tight">@{partner.handle}</p>}
+        <p className="font-semibold text-sm truncate leading-tight">{displayPartner.name || displayPartner.handle || "Player"}</p>
+        {displayPartner.handle && <p className="text-xs text-muted-foreground truncate leading-tight">@{displayPartner.handle}</p>}
       </div>
     </div>
   ) : (
-    <p className="font-semibold text-sm truncate">{`User ${partnerId}`}</p>
+    <p className="font-semibold text-sm truncate">Loading player...</p>
   );
 
   return (
@@ -389,9 +413,9 @@ export default function ConversationPage() {
                     <div className={cn("flex items-end gap-1.5", isMine ? "justify-end" : "justify-start", isLast ? "mb-1.5" : "mb-0.5")}>
                       {!isMine && (
                         <div className={cn("w-6 h-6 rounded-full shrink-0 overflow-hidden bg-secondary flex items-center justify-center text-xs", !isLast && "invisible")}>
-                          {partner?.avatar && (partner.avatar.startsWith("/") || partner.avatar.startsWith("http"))
-                            ? <img src={partner.avatar} alt="" className="w-full h-full object-cover" />
-                            : partner?.avatar || "🔥"}
+                          {displayPartner?.avatar && (displayPartner.avatar.startsWith("/") || displayPartner.avatar.startsWith("http"))
+                            ? <img src={displayPartner.avatar} alt="" className="w-full h-full object-cover" />
+                            : displayPartner?.avatar || "🔥"}
                         </div>
                       )}
 
