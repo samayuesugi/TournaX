@@ -421,6 +421,10 @@ export default function StorePage() {
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewItem, setPreviewItem] = useState<CosmeticItem | null>(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("tournax_store_focus_item")) return "banners";
+    return "frames";
+  });
 
   const balance = wallet?.balance ?? 0;
 
@@ -479,6 +483,26 @@ export default function StorePage() {
     : new Set(storeData?.owned ?? []);
   const equipped = storeData?.equipped ?? { frame: null, badge: null, handle_color: null, banner_animation: null };
 
+  useEffect(() => {
+    if (!storeData) return;
+    const focusItemId = sessionStorage.getItem("tournax_store_focus_item");
+    if (!focusItemId) return;
+    const item = storeData.items.find(i => i.id === focusItemId);
+    sessionStorage.removeItem("tournax_store_focus_item");
+    if (!item) return;
+    const tabByCategory: Record<CosmeticItem["category"], string> = {
+      frame: "frames",
+      badge: "badges",
+      handle_color: "colors",
+      banner_animation: "banners",
+    };
+    setActiveTab(tabByCategory[item.category]);
+    window.setTimeout(() => {
+      document.getElementById(`store-item-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setPreviewItem(item);
+    }, 250);
+  }, [storeData]);
+
   return (
     <AppLayout title="Cosmetics Store">
       <div className="max-w-lg mx-auto px-4 py-4 space-y-4 pb-24">
@@ -503,7 +527,7 @@ export default function StorePage() {
             {[1,2,3].map(i => <div key={i} className="bg-card border border-border rounded-2xl h-24 animate-pulse" />)}
           </div>
         ) : (
-          <Tabs defaultValue="frames">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full grid grid-cols-4 mb-4">
               <TabsTrigger value="frames" className="gap-1.5"><Frame className="w-3.5 h-3.5" /> Frames</TabsTrigger>
               <TabsTrigger value="badges" className="gap-1.5"><Award className="w-3.5 h-3.5" /> Badges</TabsTrigger>
@@ -566,18 +590,19 @@ export default function StorePage() {
             <TabsContent value="banners" className="space-y-3 mt-0">
               <p className="text-xs text-muted-foreground px-1">Banner animations appear behind your profile. Color Rain uses your selected banner color from Edit Profile.</p>
               {banners.map(item => (
-                <BannerAnimationCard
-                  key={item.id}
-                  item={item}
-                  owned={owned.has(item.id)}
-                  equipped={equipped.banner_animation === item.cssValue}
-                  onBuy={handleBuy}
-                  onEquip={handleEquip}
-                  onUnequip={handleUnequip}
-                  balance={balance}
-                  userProfileColor={(user as any)?.profileColor}
-                  onPreview={() => setPreviewItem(item)}
-                />
+                <div key={item.id} id={`store-item-${item.id}`}>
+                  <BannerAnimationCard
+                    item={item}
+                    owned={owned.has(item.id)}
+                    equipped={equipped.banner_animation === item.cssValue}
+                    onBuy={handleBuy}
+                    onEquip={handleEquip}
+                    onUnequip={handleUnequip}
+                    balance={balance}
+                    userProfileColor={(user as any)?.profileColor}
+                    onPreview={() => setPreviewItem(item)}
+                  />
+                </div>
               ))}
             </TabsContent>
           </Tabs>

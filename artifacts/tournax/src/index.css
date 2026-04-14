@@ -408,7 +408,7 @@
   background-position: 8% 0, 22% 15%, 38% 5%, 55% 25%, 71% 10%, 87% 0;
   background-repeat: repeat-y;
   transform: rotate(10deg);
-  animation: banner-rainfall 0.75s linear infinite;
+  animation: banner-rainfall 1.45s linear infinite;
 }
 .profile-banner-rainfall::after {
   content: "";
@@ -423,7 +423,7 @@
   background-position: 14% 30%, 32% 0, 62% 20%, 80% 10%;
   background-repeat: repeat-y;
   transform: rotate(10deg);
-  animation: banner-rainfall 1.1s linear infinite;
+  animation: banner-rainfall 2.1s linear infinite;
   animation-delay: -0.4s;
 }
 .profile-banner-firestorm {

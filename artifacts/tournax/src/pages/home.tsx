@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { Search, Users, Trophy, SlidersHorizontal, X, Check, Flame, Star, Coins, CheckCircle2, CloudRain, Gamepad2, PartyPopper } from "lucide-react";
+import { Search, Users, Trophy, SlidersHorizontal, X, Check, Flame, Star, Coins, CheckCircle2, CloudRain, Gamepad2, PartyPopper, Sparkles, ArrowRight } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const STREAK_SESSION_KEY = "tournax_streak_popup_shown";
+const STORE_FOCUS_KEY = "tournax_store_focus_item";
 
 interface CheckinResult {
   claimed: boolean;
@@ -123,20 +124,33 @@ function DailyStreakPopup({ result, onClose }: { result: CheckinResult; onClose:
           </div>
 
           {rainUnlocked && (
-            <div className="bg-blue-500/20 border border-blue-400/40 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
-              <span className="text-2xl">🌧️</span>
-              <div>
-                <p className="text-blue-300 font-bold text-sm">Rain Effect Unlocked!</p>
-                <p className="text-blue-300/60 text-[11px]">Check the store to apply it</p>
+            <Link
+              href="/store"
+              onClick={() => {
+                sessionStorage.setItem(STORE_FOCUS_KEY, "banner-rainfall");
+                onClose();
+              }}
+              className="group relative bg-blue-500/20 hover:bg-blue-400/25 border border-blue-400/40 hover:border-cyan-300/70 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4 overflow-hidden transition-all"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/0 via-cyan-300/10 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-cyan-300/15 border border-cyan-300/30 flex items-center justify-center shrink-0">
+                <CloudRain className="w-5 h-5 text-cyan-200" />
+                <Sparkles className="absolute -top-1 -right-1 w-3.5 h-3.5 text-yellow-200 animate-pulse" />
               </div>
-            </div>
+              <div className="relative flex-1 min-w-0">
+                <p className="text-blue-100 font-bold text-sm">Rain Effect Unlocked!</p>
+                <p className="text-blue-200/70 text-[11px]">Tap to preview & apply it in Store</p>
+              </div>
+              <ArrowRight className="relative w-4 h-4 text-cyan-200 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           )}
 
           <Button
             className="w-full bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-2xl font-semibold backdrop-blur-sm"
             onClick={onClose}
           >
-            Let's Play! 🎮
+            <Gamepad2 className="w-4 h-4" />
+            Let's Play!
           </Button>
         </div>
       </div>
