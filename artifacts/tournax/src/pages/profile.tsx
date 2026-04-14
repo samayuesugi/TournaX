@@ -1522,7 +1522,6 @@ function OwnProfile() {
   const isHostInit = user?.role === "host" || user?.role === "admin";
   const [tab, setTab] = useState<string>(isHostInit ? "matches" : "posts");
   const [editOpen, setEditOpen] = useState(false);
-  const [applyOpen, setApplyOpen] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
   const { data: myMatches, isLoading: matchesLoading } = useGetMyMatches();
@@ -1623,13 +1622,6 @@ function OwnProfile() {
               </div>
             </div>
             <SocialLinksDisplay instagram={(user as any).instagram} discord={(user as any).discord} x={(user as any).x} youtube={(user as any).youtube} />
-            {isPlayer && (
-              <button onClick={() => setApplyOpen(true)}
-                className="mt-3 w-full flex items-center justify-between gap-2 px-3.5 py-2.5 bg-primary/10 border border-primary/30 rounded-xl text-sm font-semibold text-primary hover:bg-primary/15 transition-colors">
-                <span className="flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Apply to become a Host</span>
-                <ChevronRight className="w-4 h-4 opacity-60" />
-              </button>
-            )}
           </div>
         </div>
 
@@ -1639,8 +1631,6 @@ function OwnProfile() {
             <FollowersModal handle={user.handle} count={user.followingCount ?? 0} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />
           </>
         )}
-        <HostApplyDialog open={applyOpen} onClose={() => setApplyOpen(false)} user={user} />
-
         <div className="mt-4 border-t border-border">
           <div className="flex">
             {tabs.map(t => (

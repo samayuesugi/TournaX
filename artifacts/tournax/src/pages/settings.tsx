@@ -18,7 +18,7 @@ import {
   Copy, Check, ChevronRight, FileText,
   Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal,
   Languages, Sun, Moon, Monitor,
-  Flame, Zap, Clock, XCircle
+  Flame, Zap, Clock, XCircle, ClipboardList, Upload, X, CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
@@ -503,6 +503,150 @@ function ComplaintDialog({ open, onClose }: { open: boolean; onClose: () => void
   );
 }
 
+function HostApplyDialog({ open, onClose, user }: { open: boolean; onClose: () => void; user: any }) {
+  const { toast } = useToast();
+  const [gameIgn, setGameIgn] = useState(user?.gameIgn || "");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [experience, setExperience] = useState("");
+  const [previousHosting, setPreviousHosting] = useState("");
+  const [proofImages, setProofImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [existingApp, setExistingApp] = useState<{ status: string; adminNotes?: string | null } | null | undefined>(undefined);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    customFetch<any>("/api/host-applications/my").then(setExistingApp).catch(() => setExistingApp(null));
+  }, [open]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (proofImages.length + files.length > 5) { toast({ title: "Max 5 images allowed", variant: "destructive" }); return; }
+    setUploading(true);
+    try {
+      const paths: string[] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("context", "general");
+        const res = await customFetch<{ objectPath: string }>("/api/storage/uploads/file", { method: "POST", body: formData });
+        paths.push(res.objectPath);
+      }
+      setProofImages(prev => [...prev, ...paths]);
+      toast({ title: `${paths.length} image(s) uploaded` });
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleSubmit = async () => {
+    if (!experience.trim()) { toast({ title: "Please describe your hosting experience", variant: "destructive" }); return; }
+    setSubmitting(true);
+    try {
+      await customFetch("/api/host-applications", { method: "POST", body: JSON.stringify({ gameIgn: gameIgn.trim(), phoneNumber: phoneNumber.trim(), experience: experience.trim(), previousHosting: previousHosting.trim(), proofImages }) });
+      toast({ title: "Application submitted!", description: "Admin will review your application and contact you." });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.data?.error || "Could not submit application", variant: "destructive" });
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center gap-2"><ClipboardList className="w-4 h-4 text-primary" /> Apply for Host</DialogTitle>
+        </DialogHeader>
+        <div className="overflow-y-auto flex-1 space-y-4 pr-0.5">
+          {existingApp === undefined ? (
+            <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-10 bg-secondary/60 rounded-xl animate-pulse" />)}</div>
+          ) : existingApp?.status === "pending" ? (
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <Clock className="w-10 h-10 text-yellow-400" />
+              <p className="font-bold">Application Under Review</p>
+              <p className="text-sm text-muted-foreground">Your application has been submitted and is being reviewed by the admin. You will be notified of the decision.</p>
+            </div>
+          ) : existingApp?.status === "approved" ? (
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <CheckCircle className="w-10 h-10 text-green-400" />
+              <p className="font-bold text-green-400">Application Approved!</p>
+              <p className="text-sm text-muted-foreground">Your host application was approved. Refresh the app to see your new host role.</p>
+            </div>
+          ) : (
+            <>
+              {existingApp?.status === "rejected" && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex items-start gap-2">
+                  <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-destructive">Previous application was rejected</p>
+                    {existingApp.adminNotes && <p className="text-xs text-muted-foreground mt-0.5">{existingApp.adminNotes}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">You can submit a new application below.</p>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Handle</Label>
+                <Input value={user?.handle || ""} disabled className="bg-secondary/60 text-muted-foreground text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Name</Label>
+                <Input value={user?.name || ""} disabled className="bg-secondary/60 text-muted-foreground text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">In-Game Name (IGN)</Label>
+                <Input placeholder="Your in-game name" value={gameIgn} onChange={e => setGameIgn(e.target.value)} className="text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Phone Number</Label>
+                <Input placeholder="Your contact number" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} type="tel" className="text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Hosting Experience <span className="text-destructive">*</span></Label>
+                <Textarea placeholder="Describe your hosting experience, how long you've been hosting, what games you host, your hosting style, etc." value={experience} onChange={e => setExperience(e.target.value)} rows={4} className="resize-none text-sm" maxLength={1000} />
+                <p className="text-[10px] text-muted-foreground text-right">{experience.length}/1000</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Previous Hosting (other apps/groups) <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Textarea placeholder="Have you hosted in other apps, Discord servers, or groups? Mention them here." value={previousHosting} onChange={e => setPreviousHosting(e.target.value)} rows={3} className="resize-none text-sm" maxLength={500} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Proof Images <span className="text-muted-foreground font-normal">(optional, max 5)</span></Label>
+                <p className="text-[10px] text-muted-foreground">Upload screenshots of previous hosted rooms, results, or any proof of hosting experience.</p>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={handleFileUpload} />
+                {proofImages.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {proofImages.map((img, i) => (
+                      <div key={i} className="relative w-16 h-16">
+                        <img src={`/api${img}`} alt={`proof-${i + 1}`} className="w-full h-full object-cover rounded-xl border border-border" />
+                        <button onClick={() => setProofImages(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center">
+                          <X className="w-2.5 h-2.5 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {proofImages.length < 5 && (
+                  <Button type="button" variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                    <Upload className="w-3.5 h-3.5" /> {uploading ? "Uploading..." : "Upload Images"}
+                  </Button>
+                )}
+              </div>
+              <Button className="w-full" onClick={handleSubmit} disabled={submitting || !experience.trim()}>
+                {submitting ? "Submitting..." : "Submit Application"}
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth();
   const [, navigate] = useLocation();
@@ -516,6 +660,7 @@ export default function SettingsPage() {
   const [complaintOpen, setComplaintOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   const [referralStats, setReferralStats] = useState<any>(null);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -608,6 +753,7 @@ export default function SettingsPage() {
                 </button>
                 <SettingRow icon={Gift} iconBg="bg-emerald-500/15" iconColor="text-emerald-400" label="Referral Program" onClick={() => setReferralOpen(true)} />
                 <SettingRow icon={Medal} iconBg="bg-yellow-500/15" iconColor="text-yellow-400" label="Esports Player" onClick={() => setEsportsOpen(true)} />
+                <SettingRow icon={ClipboardList} iconBg="bg-primary/15" iconColor="text-primary" label="Apply for Host" onClick={() => setApplyOpen(true)} />
               </>
             )}
 
@@ -691,6 +837,7 @@ export default function SettingsPage() {
       <EsportsDialog open={esportsOpen} onClose={() => setEsportsOpen(false)} user={user} squad={squad} refreshUser={refreshUser} />
       <TermsDialog open={termsOpen} onClose={() => setTermsOpen(false)} />
       <ComplaintDialog open={complaintOpen} onClose={() => setComplaintOpen(false)} />
+      <HostApplyDialog open={applyOpen} onClose={() => setApplyOpen(false)} user={user} />
       <Dialog open={themeOpen} onOpenChange={setThemeOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
