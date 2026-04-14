@@ -1321,7 +1321,8 @@ function ProfileBanner({ profileAnimation, profileColor }: { profileAnimation?: 
     profileAnimation === "shimmer" ? "profile-banner-shimmer" :
     profileAnimation === "rainfall" ? "profile-banner-rainfall" :
     profileAnimation === "firestorm" ? "profile-banner-firestorm" :
-    profileAnimation === "star-night" ? "profile-banner-star-night" : "";
+    profileAnimation === "star-night" ? "profile-banner-star-night" :
+    profileAnimation === "night-stars" ? "profile-banner-night-stars" : "";
   const gradient = (profileColor || profileAnimation)
     ? getBannerGradient(profileColor, profileAnimation)
     : "linear-gradient(135deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)";

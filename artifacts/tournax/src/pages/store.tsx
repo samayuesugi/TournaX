@@ -49,6 +49,8 @@ function AvatarWithFrame({ avatar, frameClass, size = "lg" }: { avatar?: string 
 function bannerPreviewGradient(profileColor?: string | null, animation?: string | null) {
   if (animation === "firestorm") return "linear-gradient(135deg, #2a0703, #7f1d1d, #f97316, #facc15, #450a0a)";
   if (animation === "star-night") return "linear-gradient(135deg, #050816, #111827, #312e81, #581c87, #050816)";
+  if (animation === "rainfall") return "linear-gradient(180deg, #0f1e2e 0%, #1a3347 50%, #0d2137 100%)";
+  if (animation === "night-stars") return "linear-gradient(180deg, #020510 0%, #050d1f 40%, #07122b 100%)";
   const gradients: Record<string, string> = {
     blue: "linear-gradient(135deg, #1e3a8a, #1d4ed8, #3b82f6, #1e3a8a)",
     red: "linear-gradient(135deg, #7f1d1d, #dc2626, #ef4444, #7f1d1d)",

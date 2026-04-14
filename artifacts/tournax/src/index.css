@@ -390,22 +390,41 @@
 }
 
 .profile-banner-rainfall {
-  background-size: 200% 200%;
-  animation: banner-flow 8s ease infinite;
+  background-size: 100% 100%;
+  background-image: linear-gradient(180deg, #0f1e2e 0%, #1a3347 50%, #0d2137 100%);
 }
 .profile-banner-rainfall::before {
   content: "";
   position: absolute;
-  inset: -40%;
+  inset: -60% -10%;
   background-image:
-    linear-gradient(180deg, transparent 0%, var(--profile-accent-light, #22d3ee) 48%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, var(--profile-accent, #8b5cf6) 52%, transparent 100%),
-    linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.75) 50%, transparent 100%);
-  background-size: 2px 82px, 2px 58px, 1px 44px;
-  background-position: 12% 0, 46% 20%, 78% 10%;
-  opacity: 0.7;
-  transform: rotate(12deg);
-  animation: banner-rainfall 1.15s linear infinite;
+    linear-gradient(180deg, transparent 0%, rgba(174,214,241,0.55) 45%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(200,230,255,0.35) 40%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(174,214,241,0.45) 50%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(220,240,255,0.25) 38%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(174,214,241,0.50) 42%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(200,230,255,0.30) 48%, transparent 100%);
+  background-size: 1px 60px, 1px 40px, 2px 80px, 1px 30px, 1px 50px, 2px 70px;
+  background-position: 8% 0, 22% 15%, 38% 5%, 55% 25%, 71% 10%, 87% 0;
+  background-repeat: repeat-y;
+  transform: rotate(10deg);
+  animation: banner-rainfall 0.75s linear infinite;
+}
+.profile-banner-rainfall::after {
+  content: "";
+  position: absolute;
+  inset: -60% -10%;
+  background-image:
+    linear-gradient(180deg, transparent 0%, rgba(174,214,241,0.40) 42%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(200,230,255,0.28) 36%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(174,214,241,0.35) 44%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(220,240,255,0.20) 32%, transparent 100%);
+  background-size: 1px 45px, 1px 55px, 2px 35px, 1px 65px;
+  background-position: 14% 30%, 32% 0, 62% 20%, 80% 10%;
+  background-repeat: repeat-y;
+  transform: rotate(10deg);
+  animation: banner-rainfall 1.1s linear infinite;
+  animation-delay: -0.4s;
 }
 .profile-banner-firestorm {
   background-size: 220% 220%;
@@ -461,9 +480,51 @@
   opacity: 0.85;
 }
 
+/* Night Stars animation */
+.profile-banner-night-stars {
+  background-size: 100% 100%;
+  background-image: linear-gradient(180deg, #020510 0%, #050d1f 40%, #07122b 100%);
+}
+.profile-banner-night-stars::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.98) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,0.75) 0 0.8px, transparent 1.2px),
+    radial-gradient(circle, rgba(200,220,255,0.90) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle, rgba(255,255,255,0.55) 0 0.6px, transparent 1px),
+    radial-gradient(circle, rgba(255,240,180,0.85) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,0.40) 0 0.5px, transparent 0.8px);
+  background-size: 37px 37px, 53px 53px, 71px 71px, 29px 29px, 89px 89px, 43px 43px;
+  background-position: 3px 7px, 17px 23px, 8px 41px, 29px 11px, 44px 31px, 61px 5px;
+  animation: night-stars-twinkle 3s ease-in-out infinite alternate;
+}
+.profile-banner-night-stars::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.95) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle, rgba(180,210,255,0.80) 0 1px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,0.70) 0 0.8px, transparent 1.2px),
+    radial-gradient(circle, rgba(255,240,200,0.75) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle, rgba(255,255,255,0.50) 0 0.6px, transparent 0.9px);
+  background-size: 61px 61px, 47px 47px, 83px 83px, 67px 67px, 39px 39px;
+  background-position: 31px 19px, 9px 52px, 54px 8px, 22px 63px, 74px 39px;
+  animation: night-stars-twinkle 4.5s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes night-stars-twinkle {
+  0%   { opacity: 0.5; }
+  30%  { opacity: 0.9; }
+  60%  { opacity: 0.65; }
+  100% { opacity: 1; }
+}
+
 @keyframes banner-rainfall {
-  0% { transform: translateY(-12%) rotate(12deg); }
-  100% { transform: translateY(28%) rotate(12deg); }
+  0% { transform: translateY(-12%) rotate(10deg); }
+  100% { transform: translateY(60%) rotate(10deg); }
 }
 @keyframes banner-fire {
   0% { transform: translateY(7%) scaleX(1); opacity: 0.75; }

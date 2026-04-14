@@ -22,9 +22,10 @@ const COSMETICS: CosmeticMeta[] = [
   { id: "color-green",   category: "handle_color", name: "Green",        emoji: "💚", cssValue: "text-green-400" },
   { id: "color-cyan",    category: "handle_color", name: "Cyan",         emoji: "🩵", cssValue: "text-cyan-400" },
   { id: "color-gold",    category: "handle_color", name: "Gold",         emoji: "💛", cssValue: "text-amber-400" },
-  { id: "banner-rainfall",   category: "banner_animation", name: "Color Rain",      emoji: "🌧️", cssValue: "rainfall" },
-  { id: "banner-firestorm",  category: "banner_animation", name: "Firestorm",       emoji: "🔥", cssValue: "firestorm" },
+  { id: "banner-rainfall",    category: "banner_animation", name: "Rain",        emoji: "🌧️", cssValue: "rainfall" },
+  { id: "banner-firestorm",  category: "banner_animation", name: "Firestorm",   emoji: "🔥", cssValue: "firestorm" },
   { id: "banner-star-night", category: "banner_animation", name: "Starry Snowfall", emoji: "🌌", cssValue: "star-night" },
+  { id: "banner-night-stars", category: "banner_animation", name: "Night Stars", emoji: "⭐", cssValue: "night-stars" },
 ];
 
 const MAP = new Map(COSMETICS.map(c => [c.id, c]));

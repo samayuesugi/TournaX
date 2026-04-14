@@ -29,7 +29,8 @@ export const STORE_ITEMS: CosmeticItem[] = [
   { id: "color-cyan",   category: "handle_color", name: "Cyan",    description: "Ice-cold electric cyan handle",      emoji: "🩵", cost: 60,  cssValue: "text-cyan-400" },
   { id: "color-gold",   category: "handle_color", name: "Gold",    description: "Prestigious gold handle color",      emoji: "💛", cost: 70,  cssValue: "text-amber-400" },
 
-  { id: "banner-rainfall",  category: "banner_animation", name: "Color Rain",    description: "Animated rainfall using your selected banner color", emoji: "🌧️", cost: 90,  cssValue: "rainfall" },
-  { id: "banner-firestorm", category: "banner_animation", name: "Firestorm",     description: "Blazing fire waves and ember particles for your banner", emoji: "🔥", cost: 120, cssValue: "firestorm" },
+  { id: "banner-rainfall",   category: "banner_animation", name: "Rain",          description: "Realistic water rain drops falling across your banner", emoji: "🌧️", cost: 90,  cssValue: "rainfall" },
+  { id: "banner-firestorm",  category: "banner_animation", name: "Firestorm",     description: "Blazing fire waves and ember particles for your banner", emoji: "🔥", cost: 120, cssValue: "firestorm" },
   { id: "banner-star-night", category: "banner_animation", name: "Starry Snowfall", description: "Galaxy night sky with drifting snow and stars", emoji: "🌌", cost: 140, cssValue: "star-night" },
+  { id: "banner-night-stars", category: "banner_animation", name: "Night Stars",  description: "Deep night sky with twinkling stars shimmering across your banner", emoji: "⭐", cost: 150, cssValue: "night-stars" },
 ];
