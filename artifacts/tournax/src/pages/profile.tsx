@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap, MapPin } from "lucide-react";
+import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap, MapPin, Hash, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -1371,8 +1371,9 @@ function OwnProfile() {
               </h2>
               <p className={cn("text-sm", getHandleColorClass((user as any).equippedHandleColor) ?? "text-muted-foreground")}>@{user.handle || user.email}</p>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {user.role === "admin" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><ShieldCheck className="w-3 h-3" /> Admin</span>}
-                {user.role === "host" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400"><ShieldCheck className="w-3 h-3" /> Host</span>}
+                {user.role === "admin" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 border border-primary/30 rounded-full px-2.5 py-0.5"><ShieldCheck className="w-3 h-3" /> Admin</span>}
+                {user.role === "host" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400 bg-orange-500/10 border border-orange-500/30 rounded-full px-2.5 py-0.5"><ShieldCheck className="w-3 h-3" /> Host</span>}
+                {user.role === "player" && <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-400 bg-green-500/10 border border-green-500/30 rounded-full px-2.5 py-0.5"><Swords className="w-3 h-3" /> Player</span>}
                 {(user as any).game && <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/15 text-primary border border-primary/30 rounded-full px-2.5 py-0.5">🎮 {(user as any).game}</span>}
                 {isEsports && (
                   <span className="esports-badge inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-0.5">
@@ -1393,7 +1394,22 @@ function OwnProfile() {
             </div>
             {(user as any).bio && <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{(user as any).bio}</p>}
             {(user as any).ingameRole && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5 mb-3">🎯 {(user as any).ingameRole}</span>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5 mb-2">🎯 {(user as any).ingameRole}</span>
+            )}
+            {(user as any).gameUid && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/60 border border-border rounded-full px-2.5 py-1 font-mono font-semibold">
+                  <Hash className="w-3 h-3 shrink-0 text-primary" />
+                  {(user as any).gameUid}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText((user as any).gameUid); }}
+                  className="p-1 rounded-full hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Copy UID"
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+              </div>
             )}
             <div className="grid grid-cols-3 gap-3 mb-3">
               <button className="text-center hover:opacity-80 transition-opacity" onClick={() => setFollowersOpen(true)}>

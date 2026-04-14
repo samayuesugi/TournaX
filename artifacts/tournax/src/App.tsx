@@ -327,7 +327,7 @@ function AppContent() {
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <Router />
       </WouterRouter>
-      {pendingDailyBonus && user?.role !== "admin" && user?.role !== "host" && (
+      {pendingDailyBonus && (
         <DailyBonusDialog
           open={true}
           onClose={dismissDailyBonus}

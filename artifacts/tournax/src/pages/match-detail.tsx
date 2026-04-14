@@ -307,6 +307,17 @@ function useCountdown(targetIso: string) {
   return { h, m, s, done: ms <= 0 };
 }
 
+function InlineCountdown({ startTime }: { startTime: string }) {
+  const { h, m, s, done } = useCountdown(startTime);
+  if (done) return <span className="font-mono tracking-wider">Soon</span>;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    <span className="font-mono tracking-wider">
+      {h > 0 ? `${pad(h)}:` : ""}{pad(m)}:{pad(s)}
+    </span>
+  );
+}
+
 function MatchCountdown({ startTime, status }: { startTime: string; status: string }) {
   const { h, m, s, done } = useCountdown(startTime);
   if (status === "live") {
@@ -662,7 +673,7 @@ export default function MatchDetailPage() {
 
   const TABS: { id: Tab; label: string; icon: React.ElementType; badge?: number }[] = [
     { id: "info", label: "Info", icon: Info },
-    { id: "leaderboard", label: "Leaderboard", icon: Trophy },
+    ...(match.status !== "upcoming" ? [{ id: "leaderboard" as Tab, label: "Leaderboard", icon: Trophy }] : []),
     { id: "chat", label: "Chat & Creds", icon: MessageSquare },
     { id: "players", label: "Players", icon: Users, badge: match.filledSlots },
   ];
@@ -693,6 +704,11 @@ export default function MatchDetailPage() {
                       </span>
                       LIVE
                     </>
+                  ) : match.status === "upcoming" ? (
+                    <>
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <InlineCountdown startTime={match.startTime} />
+                    </>
                   ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
                 </span>
               </div>
@@ -716,6 +732,11 @@ export default function MatchDetailPage() {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
                     </span>
                     LIVE
+                  </>
+                ) : match.status === "upcoming" ? (
+                  <>
+                    <Clock className="w-3 h-3 shrink-0" />
+                    <InlineCountdown startTime={match.startTime} />
                   </>
                 ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
               </span>
@@ -1163,12 +1184,15 @@ export default function MatchDetailPage() {
               <MatchCountdown startTime={match.startTime} status={match.status} />
             </div>
           ) : (
-            <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center gap-2 text-center">
-              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                <KeyRound className="w-5 h-5 text-muted-foreground" />
+            <div className="bg-card border border-card-border rounded-2xl overflow-hidden flex flex-col items-center gap-2 text-center">
+              <div className="p-4 flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
+                  <KeyRound className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="font-semibold text-sm">Join to See Credentials</p>
+                <p className="text-xs text-muted-foreground">Room ID and Password are only visible to registered participants.</p>
               </div>
-              <p className="font-semibold text-sm">Join to See Credentials</p>
-              <p className="text-xs text-muted-foreground">Room ID and Password are only visible to registered participants.</p>
+              <MatchCountdown startTime={match.startTime} status={match.status} />
             </div>
           )}
 
