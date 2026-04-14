@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useAdminListComplaints, customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -17,7 +18,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle, ImageIcon, ChevronDown, ChevronUp,
   Wallet, Swords, User, Mail, Flag, ShieldCheck, Settings,
-  IndianRupee, Trash2,
+  IndianRupee, Trash2, LogOut,
 } from "lucide-react";
 
 type EarningEntry = {
@@ -315,13 +316,15 @@ function ComplaintCard({ c }: { c: any }) {
 }
 
 export default function AdminProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const { data: complaints, isLoading } = useAdminListComplaints();
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editHandle, setEditHandle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const openEdit = () => {
     setEditName(user?.name || "");
@@ -344,6 +347,17 @@ export default function AdminProfilePage() {
       toast({ title: "Failed to update", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate("/auth");
+    } catch {
+      toast({ title: "Logout failed", variant: "destructive" });
+      setIsLoggingOut(false);
     }
   };
 
@@ -411,6 +425,36 @@ export default function AdminProfilePage() {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Logout karna chahte hain?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Aap admin account se logout ho jaayenge. Dobara login karna hoga.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isLoggingOut ? "Logging out..." : "Logout"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
 
