@@ -1259,16 +1259,31 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
           )}
           {isPlayer && (
             <div className="space-y-3">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                Banner Color
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {PROFILE_COLORS.map(c => (
-                  <button key={c.value} type="button" onClick={() => setForm(f => ({ ...f, profileColor: c.value }))}
-                    className={cn("w-8 h-8 rounded-full border-2 transition-all", form.profileColor === c.value ? "border-white scale-110" : "border-transparent opacity-70 hover:opacity-100")}
-                    style={{ backgroundColor: c.hex }} title={c.label} />
-                ))}
-              </div>
+              {(() => {
+                const STORE_ANIMATIONS = ["rainfall", "firestorm", "star-night", "night-stars"];
+                const hasStoreAnim = STORE_ANIMATIONS.includes((user as any)?.profileAnimation ?? "");
+                return (
+                  <>
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                      Banner Color
+                    </Label>
+                    {hasStoreAnim ? (
+                      <div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-xl px-3 py-2.5">
+                        <span className="text-sm">🎨</span>
+                        <p className="text-xs text-muted-foreground">Banner color cannot be changed while a banner animation is equipped. Unequip the animation from the Store first.</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {PROFILE_COLORS.map(c => (
+                          <button key={c.value} type="button" onClick={() => setForm(f => ({ ...f, profileColor: c.value }))}
+                            className={cn("w-8 h-8 rounded-full border-2 transition-all", form.profileColor === c.value ? "border-white scale-110" : "border-transparent opacity-70 hover:opacity-100")}
+                            style={{ backgroundColor: c.hex }} title={c.label} />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               {isEsports && (
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
