@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { Search, Users, Trophy, SlidersHorizontal, X, Check, Flame, Star } from "lucide-react";
+import { Search, Users, Trophy, SlidersHorizontal, X, Check, Flame, Star, Coins, CheckCircle2, CloudRain, Gamepad2, PartyPopper } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -60,7 +60,7 @@ function DailyStreakPopup({ result, onClose }: { result: CheckinResult; onClose:
             {/* Streak count */}
             <div className="relative inline-block mb-2">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500/30 to-amber-600/20 border border-orange-400/30 flex items-center justify-center mx-auto backdrop-blur-sm">
-                <span className="text-4xl">🔥</span>
+                <Flame className="w-10 h-10 text-orange-400" />
               </div>
               <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-orange-500 border-2 border-[#0f1e2e] flex items-center justify-center">
                 <span className="text-[10px] font-black text-white">{streak}</span>
@@ -70,15 +70,17 @@ function DailyStreakPopup({ result, onClose }: { result: CheckinResult; onClose:
             <p className="text-3xl font-black text-white mt-4 leading-none">
               {streak} Day{streak !== 1 ? "s" : ""}
             </p>
-            <p className="text-blue-200/70 text-sm mt-1">
-              {streak === 0 ? "Start your streak today!" : "streak in a row 🎉"}
+            <p className="text-blue-200/70 text-sm mt-1 flex items-center justify-center gap-1.5">
+              {streak === 0 ? "Start your streak today!" : <>streak in a row <PartyPopper className="w-3.5 h-3.5 text-yellow-300 inline" /></>}
             </p>
           </div>
 
           {/* Bonus earned */}
           {result.claimed && result.bonus > 0 && (
             <div className="bg-amber-400/15 border border-amber-400/30 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center text-xl shrink-0">🪙</div>
+              <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center shrink-0">
+                <Coins className="w-5 h-5 text-amber-400" />
+              </div>
               <div>
                 <p className="text-amber-300 font-bold text-sm">+{result.bonus} Silver Coins</p>
                 <p className="text-amber-400/60 text-[11px]">Daily login bonus claimed!</p>
@@ -88,7 +90,9 @@ function DailyStreakPopup({ result, onClose }: { result: CheckinResult; onClose:
 
           {!result.claimed && (
             <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">✅</div>
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+              </div>
               <div>
                 <p className="text-white/80 font-semibold text-sm">Already checked in today</p>
                 <p className="text-white/40 text-[11px]">Come back tomorrow!</p>
