@@ -57,8 +57,9 @@ export function AppLayout({
 
       const emoji =
         data.type === "match_live" ? "🔴" :
+        data.type === "match_reminder" ? "⏰" :
         data.type === "match_result" ? "🏆" :
-        data.type === "room_ready" ? "🚪" :
+        data.type === "room_ready" ? "🔑" :
         data.type === "match_join" ? "🎮" :
         data.type === "host_match_new" ? "🎮" :
         data.type === "new_follower" ? "👤" :

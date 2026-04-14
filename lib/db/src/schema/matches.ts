@@ -41,6 +41,7 @@ export const matchesTable = pgTable("matches", {
   streamLink: text("stream_link"),
   customRules: text("custom_rules"),
   groupId: integer("group_id"),
+  reminderSentAt: timestamp("reminder_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

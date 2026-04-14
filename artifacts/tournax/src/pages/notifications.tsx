@@ -13,7 +13,8 @@ import { AvatarDisplay } from "./profile";
 function getIcon(type: string) {
   if (type === "squad_invite" || type === "squad_accepted") return <Users className="w-4 h-4" />;
   if (type === "match_live") return <span className="text-sm">🔴</span>;
-  if (type === "room_ready") return <span className="text-sm">🚪</span>;
+  if (type === "match_reminder") return <span className="text-sm">⏰</span>;
+  if (type === "room_ready") return <span className="text-sm">🔑</span>;
   if (type === "new_follower") return <span className="text-sm">👤</span>;
   if (type === "host_match_new") return <span className="text-sm">🎮</span>;
   if (type.includes("result") || type.includes("win")) return <Trophy className="w-4 h-4" />;
@@ -94,6 +95,40 @@ export default function NotificationsPage() {
     queryFn: () => customFetch<any[]>("/api/users/me/squad-requests"),
   });
 
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | null>(null);
+  const [pushEnabling, setPushEnabling] = useState(false);
+
+  useEffect(() => {
+    if ("Notification" in window) setPushPermission(Notification.permission);
+  }, []);
+
+  const handleEnablePush = async () => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+    setPushEnabling(true);
+    try {
+      const perm = await Notification.requestPermission();
+      setPushPermission(perm);
+      if (perm === "granted") {
+        const { publicKey } = await customFetch<{ publicKey: string }>("/api/push/vapid-key");
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: (() => {
+            const padding = "=".repeat((4 - (publicKey.length % 4)) % 4);
+            const b64 = (publicKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+            return Uint8Array.from([...atob(b64)].map(c => c.charCodeAt(0)));
+          })() as unknown as BufferSource,
+        });
+        await customFetch("/api/push/subscribe", { method: "POST", body: JSON.stringify({ subscription: sub.toJSON() }) });
+        toast({ title: "🔔 Push notifications enabled!", description: "You'll get alerts for match reminders and room codes." });
+      }
+    } catch {
+      toast({ title: "Could not enable notifications", variant: "destructive" });
+    } finally {
+      setPushEnabling(false);
+    }
+  };
+
   useEffect(() => {
     const unread = notifications?.some((n) => !n.read);
     if (!unread) return;
@@ -127,6 +162,37 @@ export default function NotificationsPage() {
   return (
     <AppLayout showBack backHref="/" title="Notifications">
       <div className="space-y-2 pb-4">
+
+        {/* Push permission prompt */}
+        {pushPermission === "default" && (
+          <div className="bg-primary/8 border border-primary/25 rounded-2xl px-4 py-3.5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0 text-xl">🔔</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-tight">Enable Push Notifications</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                Get alerted when room codes drop or your match is about to start.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="shrink-0 h-8 text-xs px-3"
+              onClick={handleEnablePush}
+              disabled={pushEnabling}
+            >
+              {pushEnabling ? "..." : "Enable"}
+            </Button>
+          </div>
+        )}
+
+        {pushPermission === "denied" && (
+          <div className="bg-secondary/50 border border-border rounded-2xl px-4 py-3 flex items-center gap-3">
+            <span className="text-xl shrink-0">🔕</span>
+            <p className="text-xs text-muted-foreground">
+              Push notifications are blocked. To receive match alerts, enable them in your browser/device settings.
+            </p>
+          </div>
+        )}
+
         {hasAny && (
           <div className="flex justify-end gap-1">
             {unreadCount > 0 && (
