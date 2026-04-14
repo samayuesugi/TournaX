@@ -516,6 +516,29 @@ export default function MatchDetailPage() {
   const [soloManual, setSoloManual] = useState({ ign: "", uid: "" });
   const [roomCreds, setRoomCreds] = useState({ roomId: "", roomPassword: "" });
 
+  const socket = useSocket();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!socket || !matchId) return;
+    const onUpdated = (data: { id: number }) => {
+      if (data.id !== matchId) return;
+      queryClient.invalidateQueries({ queryKey: ["getMatch", matchId] });
+      queryClient.invalidateQueries({ queryKey: ["getMatchPlayers", matchId] });
+      refetch();
+    };
+    const onDeleted = (data: { id: number }) => {
+      if (data.id !== matchId) return;
+      toast({ title: "This match has been deleted by the host.", variant: "destructive" });
+      navigate("/");
+    };
+    socket.on("match:updated", onUpdated);
+    socket.on("match:deleted", onDeleted);
+    return () => {
+      socket.off("match:updated", onUpdated);
+      socket.off("match:deleted", onDeleted);
+    };
+  }, [socket, matchId]);
+
   const isHost = user?.id === match?.hostId;
   const isAdmin = user?.role === "admin";
   const canManage = isHost || isAdmin;

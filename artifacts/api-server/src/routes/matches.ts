@@ -573,6 +573,7 @@ router.post("/matches/:id/join", requireAuth, async (req: Request, res: Response
   }
 
   res.json({ success: true, message: "Joined successfully! Check the Room tab for credentials.", groupId: (match as any).groupId ?? null });
+  try { getIO().emit("match:updated", { id: match.id }); } catch {}
   notify(match.hostId, "match_join", `A player joined your match ${match.code}! 🎮`, `/matches/${match.id}`).catch(() => {});
 });
 
@@ -605,6 +606,7 @@ router.put("/matches/:id/room", requireAuth, async (req: Request, res: Response)
   );
 
   res.json({ success: true, message: "Room credentials updated" });
+  try { getIO().emit("match:updated", { id: match.id }); } catch {}
 });
 
 router.post("/matches/:id/go-live", requireAuth, async (req: Request, res: Response) => {
@@ -616,6 +618,7 @@ router.post("/matches/:id/go-live", requireAuth, async (req: Request, res: Respo
   }
   await db.update(matchesTable).set({ status: "live", escrowStatus: "locked" } as any).where(eq(matchesTable.id, match.id));
   res.json({ success: true, message: "Match is now live" });
+  try { getIO().emit("match:updated", { id: match.id }); } catch {}
 
   const participants = await db.select({ userId: matchParticipantsTable.userId })
     .from(matchParticipantsTable).where(eq(matchParticipantsTable.matchId, match.id));
