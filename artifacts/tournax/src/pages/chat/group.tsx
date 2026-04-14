@@ -461,29 +461,45 @@ export default function GroupChatPage() {
         </button>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto space-y-1 pb-2">
+        <div className="flex-1 overflow-y-auto pb-2" style={{ overscrollBehavior: "contain" }}>
           {allMessages.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground text-sm">No messages yet.</p>
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Megaphone className="w-6 h-6 text-primary opacity-60" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">No messages yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {canSend ? "Start the conversation!" : "The host hasn't posted anything yet"}
+                </p>
+              </div>
             </div>
           ) : (
-            allMessages.map((msg) => {
+            allMessages.map((msg, idx) => {
               const isMine = msg.fromUserId === user?.id;
               const isOptimistic = optimisticMessages.some((o) => o.id === msg.id);
               const dateLabel = dateSeparator(msg.createdAt);
               const showDate = dateLabel !== lastDate;
               lastDate = dateLabel;
+              const prev = allMessages[idx - 1];
+              const next = allMessages[idx + 1];
+              const isFirst = !prev || prev.fromUserId !== msg.fromUserId;
+              const isLast = !next || next.fromUserId !== msg.fromUserId;
               return (
-                <div key={msg.id} className={cn("animate-in fade-in duration-300", isMine ? "slide-in-from-right-4" : "slide-in-from-left-4")}>
+                <div key={msg.id} className={cn("animate-in fade-in duration-200", isLast ? "mb-2" : "mb-0.5")}>
                   {showDate && (
-                    <div className="text-center my-3">
-                      <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{dateLabel}</span>
+                    <div className="flex items-center gap-2 my-3">
+                      <div className="flex-1 h-px bg-border/60" />
+                      <span className="text-[10px] text-muted-foreground bg-secondary/80 px-2.5 py-0.5 rounded-full">{dateLabel}</span>
+                      <div className="flex-1 h-px bg-border/60" />
                     </div>
                   )}
-                  <div className={cn("flex gap-2", isMine ? "justify-end" : "justify-start")}>
-                    {!isMine && <SmallAvatar avatar={msg.senderAvatar} size="sm" />}
-                    <div className={cn("max-w-[75%]", isMine ? "items-end" : "items-start", "flex flex-col")}>
-                      {!isMine && (
+                  <div className={cn("flex items-end gap-1.5", isMine ? "justify-end" : "justify-start")}>
+                    <div className={cn("w-7 shrink-0", !isMine ? (isLast ? "visible" : "invisible") : "hidden")}>
+                      {!isMine && isLast && <SmallAvatar avatar={msg.senderAvatar} size="sm" />}
+                    </div>
+                    <div className={cn("max-w-[75%] flex flex-col", isMine ? "items-end" : "items-start")}>
+                      {!isMine && isFirst && (
                         <div className="flex items-center gap-1 mb-0.5 ml-1">
                           <p className="text-[10px] font-semibold text-foreground/80">{msg.senderName}</p>
                           {msg.senderHandle && (
@@ -492,15 +508,20 @@ export default function GroupChatPage() {
                         </div>
                       )}
                       <div className={cn(
-                        "px-3 py-2 rounded-2xl text-sm transition-opacity duration-150",
-                        isMine ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-card-border rounded-bl-sm",
+                        "px-3 py-2 text-sm break-words transition-opacity duration-150",
+                        isMine ? "bg-primary text-primary-foreground" : "bg-card border border-card-border text-foreground",
+                        isMine
+                          ? (isFirst && isLast ? "rounded-2xl" : isFirst ? "rounded-2xl rounded-br-md" : isLast ? "rounded-2xl rounded-tr-md" : "rounded-2xl rounded-r-md")
+                          : (isFirst && isLast ? "rounded-2xl" : isFirst ? "rounded-2xl rounded-bl-md" : isLast ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md"),
                         isOptimistic && "opacity-70"
                       )}>
-                        <p className="break-words">{msg.content}</p>
-                        <p className={cn("text-[10px] mt-0.5", isMine ? "text-primary-foreground/70 text-right" : "text-muted-foreground")}>
+                        <p className="break-words leading-relaxed">{msg.content}</p>
+                      </div>
+                      {isLast && (
+                        <p className={cn("text-[10px] mt-0.5 mx-1", "text-muted-foreground")}>
                           {isOptimistic ? "Sending…" : timeLabel(msg.createdAt)}
                         </p>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -512,23 +533,32 @@ export default function GroupChatPage() {
 
         {/* Input */}
         {canSend ? (
-          <div className="flex items-center gap-2 pt-2 pb-safe border-t border-border">
-            <Input
-              ref={inputRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isHostGroup ? "Broadcast a message..." : "Type a message..."}
-              className="flex-1 bg-card border-card-border"
-              autoFocus
-            />
-            <Button size="icon" onClick={handleSend} disabled={!text.trim() || isSending} className="shrink-0">
-              <Send className="w-4 h-4" />
-            </Button>
+          <div className="pt-2 pb-safe border-t border-border">
+            <div className="flex items-center gap-2 bg-card border border-card-border rounded-2xl px-3 py-1.5 focus-within:border-primary/40 transition-colors">
+              <input
+                ref={inputRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={isHostGroup ? "Broadcast a message..." : "Type a message..."}
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground py-1 min-w-0"
+                autoFocus
+              />
+              <button
+                onClick={handleSend}
+                disabled={!text.trim() || isSending}
+                className={cn(
+                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                  text.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90 scale-100" : "bg-transparent text-muted-foreground scale-90 opacity-50"
+                )}
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 pt-2 pb-safe border-t border-border">
-            <div className="flex-1 flex items-center gap-2 bg-secondary/50 rounded-xl px-4 py-3">
+          <div className="pt-2 pb-safe border-t border-border">
+            <div className="flex items-center gap-2 bg-secondary/40 rounded-2xl px-4 py-3">
               <Megaphone className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-sm text-muted-foreground">Only the host can send messages here</span>
             </div>

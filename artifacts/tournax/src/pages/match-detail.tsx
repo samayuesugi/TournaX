@@ -185,77 +185,100 @@ function MatchGroupChat({ groupId, currentUser }: { groupId: number; currentUser
 
   const handleKey = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
-  let lastDate = "";
-
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+      <div className="flex-1 overflow-y-auto px-3 py-2" style={{ overscrollBehavior: "contain" }}>
         {!loaded && (
           <div className="flex items-center justify-center h-full">
             <div className="w-5 h-5 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin" />
           </div>
         )}
         {loaded && allMsgs.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
-            <MessageSquare className="w-10 h-10 opacity-20" />
-            <p className="text-sm font-medium">No messages yet</p>
-            <p className="text-xs opacity-60">Say something to your squad!</p>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/15 flex items-center justify-center">
+              <MessageSquare className="w-6 h-6 text-violet-400 opacity-60" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">No messages yet</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Be the first to say something!</p>
+            </div>
           </div>
         )}
-        {loaded && allMsgs.map((msg) => {
-          const isMe = msg.fromUserId === currentUser.id;
-          const msgDate = new Date(msg.createdAt).toLocaleDateString([], { month: "short", day: "numeric" });
-          const showDate = msgDate !== lastDate;
-          lastDate = msgDate;
-          const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          return (
-            <div key={msg.id}>
-              {showDate && (
-                <div className="flex items-center gap-2 my-2">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-[10px] text-muted-foreground px-1">{msgDate}</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-              )}
-              <div className={cn("flex items-end gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
-                {!isMe && <MsgAvatar avatar={msg.senderAvatar} />}
-                <div className={cn("flex flex-col max-w-[72%]", isMe ? "items-end" : "items-start")}>
-                  {!isMe && (
-                    <span className="text-[10px] text-muted-foreground mb-0.5 ml-1">{msg.senderName || msg.senderHandle}</span>
-                  )}
-                  <div className={cn(
-                    "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words",
-                    isMe ? "bg-violet-600 text-white rounded-br-sm" : "bg-secondary text-foreground rounded-bl-sm"
-                  )}>
-                    {msg.content}
+        {loaded && (() => {
+          let lastDate = "";
+          return allMsgs.map((msg, idx) => {
+            const isMe = msg.fromUserId === currentUser.id;
+            const msgDate = new Date(msg.createdAt).toLocaleDateString([], { month: "short", day: "numeric" });
+            const showDate = msgDate !== lastDate;
+            lastDate = msgDate;
+            const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const prev = allMsgs[idx - 1];
+            const next = allMsgs[idx + 1];
+            const isFirst = !prev || prev.fromUserId !== msg.fromUserId;
+            const isLast = !next || next.fromUserId !== msg.fromUserId;
+            return (
+              <div key={msg.id} className={cn("animate-in fade-in duration-200", isLast ? "mb-2" : "mb-0.5")}>
+                {showDate && (
+                  <div className="flex items-center gap-2 my-3">
+                    <div className="flex-1 h-px bg-border/60" />
+                    <span className="text-[10px] text-muted-foreground bg-secondary/80 px-2.5 py-0.5 rounded-full">{msgDate}</span>
+                    <div className="flex-1 h-px bg-border/60" />
                   </div>
-                  <span className="text-[10px] text-muted-foreground mt-0.5 mx-1">{time}</span>
+                )}
+                <div className={cn("flex items-end gap-1.5", isMe ? "flex-row-reverse" : "flex-row")}>
+                  <div className={cn("w-6 shrink-0", !isMe ? (isLast ? "visible" : "invisible") : "hidden")}>
+                    {!isMe && isLast && <MsgAvatar avatar={msg.senderAvatar} />}
+                  </div>
+                  <div className={cn("flex flex-col max-w-[75%]", isMe ? "items-end" : "items-start")}>
+                    {!isMe && isFirst && (
+                      <span className="text-[10px] font-medium text-muted-foreground mb-0.5 ml-1">{msg.senderName || msg.senderHandle}</span>
+                    )}
+                    <div className={cn(
+                      "px-3 py-2 text-sm leading-relaxed break-words",
+                      isMe
+                        ? "bg-violet-600 text-white"
+                        : "bg-secondary text-foreground",
+                      isMe
+                        ? (isFirst && isLast ? "rounded-2xl" : isFirst ? "rounded-2xl rounded-br-md" : isLast ? "rounded-2xl rounded-tr-md" : "rounded-2xl rounded-r-md")
+                        : (isFirst && isLast ? "rounded-2xl" : isFirst ? "rounded-2xl rounded-bl-md" : isLast ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md")
+                    )}>
+                      {msg.content}
+                    </div>
+                    {isLast && (
+                      <span className="text-[10px] text-muted-foreground mt-0.5 mx-1">{time}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
         <div ref={bottomRef} />
       </div>
+
       {/* Input */}
-      <div className="px-3 pb-3 pt-2 border-t border-card-border flex gap-2 items-center shrink-0">
-        <Input
-          ref={inputRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Type a message..."
-          className="flex-1 text-sm h-9 bg-secondary/60 border-0 focus-visible:ring-1 focus-visible:ring-violet-500/50"
-        />
-        <Button
-          size="icon"
-          className="h-9 w-9 shrink-0 bg-violet-600 hover:bg-violet-700"
-          onClick={handleSend}
-          disabled={isSending || !text.trim()}
-        >
-          <Send className="w-4 h-4" />
-        </Button>
+      <div className="px-3 pb-3 pt-2 border-t border-card-border shrink-0">
+        <div className="flex gap-2 items-center bg-secondary/50 rounded-2xl px-3 py-1.5 border border-border/50 focus-within:border-violet-500/40 focus-within:bg-secondary/80 transition-all">
+          <input
+            ref={inputRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Message squad..."
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground py-1 min-w-0"
+          />
+          <button
+            onClick={handleSend}
+            disabled={isSending || !text.trim()}
+            className={cn(
+              "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all",
+              text.trim() ? "bg-violet-600 text-white hover:bg-violet-700 scale-100" : "bg-transparent text-muted-foreground scale-90 opacity-50"
+            )}
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );
