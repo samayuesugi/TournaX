@@ -1478,19 +1478,19 @@ export default function MatchDetailPage() {
                       {teamPlayers.length > 0 && (
                         <div className="mt-1.5 space-y-1">
                           {teamPlayers.map((pl: any, teammateIndex: number) => (
-                            <div key={`${p.id ?? i}-${teammateIndex}`} className="flex items-center gap-2 flex-wrap text-[11px]">
+                            <div key={`${p.id ?? i}-${teammateIndex}`} className="flex items-center gap-2 text-[11px] min-w-0">
                               {isTeamMatch && (
                                 <span className="w-4 h-4 rounded-full bg-primary/10 text-primary text-[9px] font-bold flex items-center justify-center shrink-0">
                                   {teammateIndex + 1}
                                 </span>
                               )}
                               {pl.ign && (
-                                <span className="text-muted-foreground">
+                                <span className="text-muted-foreground flex-1 min-w-0 truncate">
                                   IGN: <span className="text-foreground font-medium">{pl.ign}</span>
                                 </span>
                               )}
                               {pl.uid && (
-                                <span className="text-muted-foreground font-mono">
+                                <span className="text-muted-foreground font-mono shrink-0">
                                   UID: <span className="text-foreground">{pl.uid}</span>
                                 </span>
                               )}
