@@ -44,6 +44,7 @@ import AdminLeaderboardControlsPage from "@/pages/admin/leaderboard-controls";
 import AdminStoreManagementPage from "@/pages/admin/store-management";
 import AdminFeeSettingsPage from "@/pages/admin/fee-settings";
 import AdminBannedUsersPage from "@/pages/admin/banned-users";
+import AdminHostApplicationsPage from "@/pages/admin/host-applications";
 import StorePage from "@/pages/store";
 import SettingsPage from "@/pages/settings";
 import CoachPage from "@/pages/coach";
@@ -287,6 +288,9 @@ function Router() {
       </Route>
       <Route path="/admin/banned-users">
         <ProtectedRoute roles={["admin"]}><AdminBannedUsersPage /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/host-applications">
+        <ProtectedRoute roles={["admin"]}><AdminHostApplicationsPage /></ProtectedRoute>
       </Route>
 
       <Route path="/chat">

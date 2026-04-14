@@ -134,6 +134,24 @@ export const complaintsTable = pgTable("complaints", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const hostApplicationStatusEnum = pgEnum("host_application_status", ["pending", "approved", "rejected"]);
+
+export const hostApplicationsTable = pgTable("host_applications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  handle: text("handle").notNull(),
+  name: text("name"),
+  gameIgn: text("game_ign"),
+  phoneNumber: text("phone_number"),
+  experience: text("experience").notNull(),
+  previousHosting: text("previous_hosting"),
+  proofImages: jsonb("proof_images").notNull().default([]),
+  status: hostApplicationStatusEnum("status").notNull().default("pending"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;

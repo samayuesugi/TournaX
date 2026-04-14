@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Swords, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight, Megaphone, GitBranch, Trophy, ShoppingBag, Percent, Ban, Shield } from "lucide-react";
+import { Users, Swords, AlertTriangle, UserPlus, Activity, Gamepad2, Trash2, TrendingUp, ChevronRight, Megaphone, GitBranch, Trophy, ShoppingBag, Percent, Ban, Shield, ClipboardList } from "lucide-react";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 import { Link, useLocation } from "wouter";
 
@@ -188,6 +188,7 @@ export default function AdminDashboardPage() {
                   { href: "/admin/store-management", icon: ShoppingBag, label: "Store", color: "bg-purple-500/15 text-purple-500" },
                   { href: "/admin/fee-settings", icon: Percent, label: "Fee Settings", color: "bg-cyan-500/15 text-cyan-600" },
                   { href: "/admin/banned-users", icon: Ban, label: "Banned", color: "bg-destructive/15 text-destructive" },
+                  { href: "/admin/host-applications", icon: ClipboardList, label: "Host Apply", color: "bg-orange-500/15 text-orange-500" },
                 ].map(item => (
                   <Link key={item.href} href={item.href}>
                     <div className="flex items-center gap-2.5 bg-card border border-card-border rounded-xl px-3 py-3 hover:bg-secondary/30 transition-colors cursor-pointer">

@@ -5,7 +5,7 @@ import {
   addBalanceRequestsTable, withdrawalRequestsTable, complaintsTable,
   platformEarningsTable, hostEarningsTable, trustScoreEventsTable,
   auctionsTable, auctionTeamsTable, auctionPlayersTable, auctionBidsTable, auctionResultsTable,
-  referralsTable
+  referralsTable, hostApplicationsTable
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, gte, desc } from "drizzle-orm";
 import { requireAuth } from "./auth";
@@ -572,6 +572,72 @@ router.get("/admin/banned", requireAdmin, async (req: Request, res: Response) =>
 
 router.post("/admin/players/:id/unban", requireAdmin, async (req: Request, res: Response) => {
   await db.update(usersTable).set({ status: "active" }).where(eq(usersTable.id, Number(req.params.id)));
+  res.json({ success: true });
+});
+
+// ─── Host Applications ────────────────────────────────────────────────────────
+
+router.post("/host-applications", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (user.role !== "player") { res.status(403).json({ error: "Only players can apply to become a host" }); return; }
+  const { gameIgn, phoneNumber, experience, previousHosting, proofImages } = req.body;
+  if (!experience?.trim()) { res.status(400).json({ error: "Hosting experience is required" }); return; }
+  const existing = await db.select().from(hostApplicationsTable).where(and(eq(hostApplicationsTable.userId, user.id), eq(hostApplicationsTable.status, "pending")));
+  if (existing.length > 0) { res.status(400).json({ error: "You already have a pending application" }); return; }
+  const [app] = await db.insert(hostApplicationsTable).values({
+    userId: user.id,
+    handle: user.handle || "",
+    name: user.name,
+    gameIgn: gameIgn?.trim() || null,
+    phoneNumber: phoneNumber?.trim() || null,
+    experience: experience.trim(),
+    previousHosting: previousHosting?.trim() || null,
+    proofImages: Array.isArray(proofImages) ? proofImages : [],
+    status: "pending",
+  }).returning();
+  const admins = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"));
+  await Promise.allSettled(admins.map(a => notify(a.id, "host_application", `New host application from @${user.handle || user.name}`, "/admin/host-applications")));
+  res.json(app);
+});
+
+router.get("/host-applications/my", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const apps = await db.select().from(hostApplicationsTable).where(eq(hostApplicationsTable.userId, user.id)).orderBy(desc(hostApplicationsTable.createdAt));
+  res.json(apps[0] || null);
+});
+
+router.get("/admin/host-applications", requireAdmin, async (req: Request, res: Response) => {
+  const { status } = req.query;
+  let apps = await db.select().from(hostApplicationsTable).orderBy(desc(hostApplicationsTable.createdAt));
+  if (status && status !== "all") apps = apps.filter(a => a.status === status);
+  const result = await Promise.all(apps.map(async a => {
+    const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, handle: usersTable.handle, avatar: usersTable.avatar, game: usersTable.game, trustScore: usersTable.trustScore }).from(usersTable).where(eq(usersTable.id, a.userId));
+    return { ...a, proofImages: (a.proofImages as string[]) || [], userName: user?.name, userEmail: user?.email, userAvatar: user?.avatar, userGame: user?.game, userTrustScore: user?.trustScore };
+  }));
+  res.json(result);
+});
+
+router.patch("/admin/host-applications/:id/approve", requireAdmin, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const [app] = await db.select().from(hostApplicationsTable).where(eq(hostApplicationsTable.id, id));
+  if (!app) { res.status(404).json({ error: "Application not found" }); return; }
+  if (app.status !== "pending") { res.status(400).json({ error: "Application already processed" }); return; }
+  await db.transaction(async tx => {
+    await tx.update(hostApplicationsTable).set({ status: "approved", updatedAt: new Date() }).where(eq(hostApplicationsTable.id, id));
+    await tx.update(usersTable).set({ role: "host", status: "active" }).where(eq(usersTable.id, app.userId));
+  });
+  notify(app.userId, "host_approved", "Congratulations! Your host application has been approved. You are now a host! 🎉", "/profile").catch(() => {});
+  res.json({ success: true });
+});
+
+router.patch("/admin/host-applications/:id/reject", requireAdmin, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const { notes } = req.body;
+  const [app] = await db.select().from(hostApplicationsTable).where(eq(hostApplicationsTable.id, id));
+  if (!app) { res.status(404).json({ error: "Application not found" }); return; }
+  if (app.status !== "pending") { res.status(400).json({ error: "Application already processed" }); return; }
+  await db.update(hostApplicationsTable).set({ status: "rejected", adminNotes: notes?.trim() || null, updatedAt: new Date() }).where(eq(hostApplicationsTable.id, id));
+  notify(app.userId, "host_rejected", "Your host application was not approved at this time. You may apply again later.", "/profile").catch(() => {});
   res.json({ success: true });
 });
 
