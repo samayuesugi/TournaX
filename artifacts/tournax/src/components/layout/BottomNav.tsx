@@ -26,8 +26,8 @@ export function BottomNav() {
   const playerNav = [
     { href: "/", icon: Home, label: t("home") },
     { href: "/explore", icon: Compass, label: t("explore") },
-    { href: "/my-matches", icon: Swords, label: t("matches") },
     { href: "/chat", icon: MessageCircle, label: t("chat"), badge: chatBadge },
+    { href: "/my-matches", icon: Swords, label: t("matches") },
     { href: "/profile", icon: User, label: t("profile") },
   ];
 
