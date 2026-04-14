@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
-import { Search, Users, Trophy, SlidersHorizontal, X, Check } from "lucide-react";
+import { Search, Users, Trophy, SlidersHorizontal, X, Check, Flame, Star } from "lucide-react";
 import { customFetch } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -9,6 +9,143 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const STREAK_SESSION_KEY = "tournax_streak_popup_shown";
+
+interface CheckinResult {
+  claimed: boolean;
+  bonus: number;
+  silverCoins: number;
+  loginStreak: number;
+  streakReward?: string | null;
+}
+
+function DailyStreakPopup({ result, onClose }: { result: CheckinResult; onClose: () => void }) {
+  const streak = result.loginStreak;
+  const MILESTONE_DAYS = [1, 3, 7, 15];
+  const streakPct = Math.min(100, (streak / 15) * 100);
+  const rainUnlocked = streak >= 15;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: "streak-popup-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}
+      >
+        {/* Rain background */}
+        <div className="profile-banner-rainfall absolute inset-0" style={{ borderRadius: "inherit" }} />
+
+        {/* Content */}
+        <div className="relative z-10 px-6 pt-8 pb-6">
+          {/* Close */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+
+          {/* Header */}
+          <div className="text-center mb-5">
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-3 py-1 mb-4 text-xs text-blue-200 font-semibold tracking-wide uppercase">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              Daily Check-in
+            </div>
+
+            {/* Streak count */}
+            <div className="relative inline-block mb-2">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500/30 to-amber-600/20 border border-orange-400/30 flex items-center justify-center mx-auto backdrop-blur-sm">
+                <span className="text-4xl">🔥</span>
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-orange-500 border-2 border-[#0f1e2e] flex items-center justify-center">
+                <span className="text-[10px] font-black text-white">{streak}</span>
+              </div>
+            </div>
+
+            <p className="text-3xl font-black text-white mt-4 leading-none">
+              {streak} Day{streak !== 1 ? "s" : ""}
+            </p>
+            <p className="text-blue-200/70 text-sm mt-1">
+              {streak === 0 ? "Start your streak today!" : "streak in a row 🎉"}
+            </p>
+          </div>
+
+          {/* Bonus earned */}
+          {result.claimed && result.bonus > 0 && (
+            <div className="bg-amber-400/15 border border-amber-400/30 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center text-xl shrink-0">🪙</div>
+              <div>
+                <p className="text-amber-300 font-bold text-sm">+{result.bonus} Silver Coins</p>
+                <p className="text-amber-400/60 text-[11px]">Daily login bonus claimed!</p>
+              </div>
+            </div>
+          )}
+
+          {!result.claimed && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">✅</div>
+              <div>
+                <p className="text-white/80 font-semibold text-sm">Already checked in today</p>
+                <p className="text-white/40 text-[11px]">Come back tomorrow!</p>
+              </div>
+            </div>
+          )}
+
+          {/* Progress to Rain */}
+          <div className="mb-5">
+            <div className="flex justify-between text-[11px] mb-1.5">
+              <span className="text-blue-200/60 flex items-center gap-1"><Star className="w-3 h-3 text-blue-300" /> Rain Effect</span>
+              <span className="text-blue-200/60">{streak}/15 days</span>
+            </div>
+            <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-cyan-300 transition-all duration-700"
+                style={{ width: `${streakPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-2">
+              {MILESTONE_DAYS.map((d) => (
+                <div key={d} className="flex flex-col items-center gap-0.5">
+                  <div className={cn("w-2 h-2 rounded-full", streak >= d ? "bg-cyan-400" : "bg-white/15")} />
+                  <span className={cn("text-[9px] font-bold", streak >= d ? "text-cyan-400" : "text-white/30")}>{d}d</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {rainUnlocked && (
+            <div className="bg-blue-500/20 border border-blue-400/40 rounded-2xl px-4 py-3 flex items-center gap-3 mb-4">
+              <span className="text-2xl">🌧️</span>
+              <div>
+                <p className="text-blue-300 font-bold text-sm">Rain Effect Unlocked!</p>
+                <p className="text-blue-300/60 text-[11px]">Check the store to apply it</p>
+              </div>
+            </div>
+          )}
+
+          <Button
+            className="w-full bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-2xl font-semibold backdrop-blur-sm"
+            onClick={onClose}
+          >
+            Let's Play! 🎮
+          </Button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes streak-popup-in {
+          from { opacity: 0; transform: scale(0.85) translateY(20px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 const FF_CATEGORIES = ["Battle Royale", "Clash Squad", "Lone Wolf"];
 const BGMI_CATEGORIES = ["Classic", "TDM"];
@@ -312,8 +449,23 @@ export default function HomePage() {
   const [searchInput, setSearchInput] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>({ category: "", mode: "", map: "", paid: "" });
+  const [streakResult, setStreakResult] = useState<CheckinResult | null>(null);
+  const [streakPopupOpen, setStreakPopupOpen] = useState(false);
   const { user } = useAuth();
   const searchTimer = useRef<any>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const alreadyShown = sessionStorage.getItem(STREAK_SESSION_KEY);
+    if (alreadyShown) return;
+    customFetch<CheckinResult>("/api/auth/daily-checkin", { method: "POST" })
+      .then((data) => {
+        setStreakResult(data);
+        setStreakPopupOpen(true);
+        sessionStorage.setItem(STREAK_SESSION_KEY, "1");
+      })
+      .catch(() => {});
+  }, [user]);
 
   const playerGame = user?.role === "player" ? (user as any).game : null;
   const isEsportsPlayer = user?.role === "player" ? Boolean((user as any).isEsportsPlayer) : false;
@@ -331,6 +483,9 @@ export default function HomePage() {
 
   return (
     <AppLayout>
+      {streakPopupOpen && streakResult && (
+        <DailyStreakPopup result={streakResult} onClose={() => setStreakPopupOpen(false)} />
+      )}
       <div className="space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
