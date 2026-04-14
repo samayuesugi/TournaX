@@ -1,11 +1,11 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, Plus, ArrowLeft, MessageCircle } from "lucide-react";
+import { Bell, Plus, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { BottomNav } from "./BottomNav";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useGetWallet, useGetNotifications, useGetConversations } from "@workspace/api-client-react";
+import { useGetWallet, useGetNotifications } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { GoldCoinIcon } from "@/components/ui/Coins";
 import { useQueryClient } from "@tanstack/react-query";
@@ -97,12 +97,8 @@ export function AppLayout({
   const { data: notifications } = useGetNotifications({
     query: { enabled: !!user } as any,
   });
-  const { data: conversations } = useGetConversations({
-    query: { enabled: !!user && user.role !== "admin", refetchInterval: 10000 } as any,
-  });
 
   const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
-  const unreadChats = conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -149,19 +145,6 @@ export function AppLayout({
                       <GoldCoinIcon size="sm" />
                       <span>{wallet.balance.toFixed(0)}</span>
                     </span>
-                  </button>
-                </Link>
-              )}
-
-              {user && user.role !== "admin" && (
-                <Link href="/chat">
-                  <button className="relative p-2 rounded-full hover:bg-secondary transition-colors">
-                    <MessageCircle className="w-5 h-5" />
-                    {unreadChats > 0 && (
-                      <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive border-0">
-                        {unreadChats > 9 ? "9+" : unreadChats}
-                      </Badge>
-                    )}
                   </button>
                 </Link>
               )}

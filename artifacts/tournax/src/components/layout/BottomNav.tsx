@@ -18,15 +18,16 @@ export function BottomNav() {
   const { t } = useLanguage();
 
   const { data: conversations } = useGetConversations({
-    query: { enabled: user?.role === "player", refetchInterval: 10000 } as any,
+    query: { enabled: user?.role === "player" || user?.role === "host", refetchInterval: 10000 } as any,
   });
   const unreadChats = conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
+  const chatBadge = unreadChats > 0 ? (unreadChats > 9 ? "9+" : String(unreadChats)) : undefined;
 
   const playerNav = [
     { href: "/", icon: Home, label: t("home") },
     { href: "/explore", icon: Compass, label: t("explore") },
     { href: "/my-matches", icon: Swords, label: t("matches") },
-    { href: "/chat", icon: MessageCircle, label: "Chat", badge: unreadChats > 0 ? (unreadChats > 9 ? "9+" : String(unreadChats)) : undefined },
+    { href: "/chat", icon: MessageCircle, label: t("chat"), badge: chatBadge },
     { href: "/profile", icon: User, label: t("profile") },
   ];
 
@@ -34,6 +35,7 @@ export function BottomNav() {
     { href: "/host", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/host/create-match", icon: Plus, label: t("create") },
     { href: "/explore", icon: Compass, label: t("explore") },
+    { href: "/chat", icon: MessageCircle, label: t("chat"), badge: chatBadge },
     { href: "/profile", icon: User, label: t("profile") },
   ];
 
