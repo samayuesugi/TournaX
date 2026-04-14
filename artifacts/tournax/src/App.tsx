@@ -50,7 +50,6 @@ import CoachPage from "@/pages/coach";
 import NotFound from "@/pages/not-found";
 import PolicyPage from "@/pages/policy";
 import { PwaInstallBanner } from "@/components/PwaInstallBanner";
-import { DailyBonusDialog } from "@/components/DailyBonusDialog";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 
@@ -320,21 +319,12 @@ function Router() {
 }
 
 function AppContent() {
-  const { pendingDailyBonus, dismissDailyBonus, user } = useAuth();
+  const { user } = useAuth();
   usePushNotifications(!!user);
   return (
-    <>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <Router />
-      </WouterRouter>
-      {pendingDailyBonus && (
-        <DailyBonusDialog
-          open={true}
-          onClose={dismissDailyBonus}
-          bonus={pendingDailyBonus.bonus}
-        />
-      )}
-    </>
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <Router />
+    </WouterRouter>
   );
 }
 
