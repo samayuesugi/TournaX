@@ -633,12 +633,20 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const [isIgl, setIsIgl] = useState(false);
   const [isBackup, setIsBackup] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [sending, setSending] = useState(false);
   const searchTimeout = useRef<any>(null);
 
   const filteredSquad = (squad ?? []).filter((m: any) => m.game === squadGame);
   const mainMembers = filteredSquad.filter((m: any) => !m.isBackup);
   const backupMembers = filteredSquad.filter((m: any) => m.isBackup);
   const activeGame = userGame ?? SQUAD_GAMES[0];
+
+  const closeAdd = () => {
+    setAddOpen(false);
+    setSelectedPlayer(null);
+    setSearchQ(""); setRole(""); setIgn(""); setUid(""); setIsIgl(false); setIsBackup(false);
+    setSearchResults([]);
+  };
 
   const handleSearch = (q: string) => {
     setSearchQ(q);
@@ -656,25 +664,26 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
 
   const handleAddMember = async () => {
     if (!selectedPlayer?.handle) {
-      toast({ title: "Player must have a valid handle", variant: "destructive" });
+      toast({ title: "Select a player first", variant: "destructive" });
       return;
     }
     const uidRequired = !selectedPlayer?.gameUid;
     if (uidRequired && !uid.trim()) {
-      toast({ title: "UID required", description: "Is player ka UID fill nahi hai. Please UID enter karo.", variant: "destructive" });
+      toast({ title: "UID required", description: "This player hasn't set their UID. Please enter it manually.", variant: "destructive" });
       return;
     }
+    setSending(true);
     try {
       await customFetch(`/api/users/${selectedPlayer.handle}/squad-request`, {
         method: "POST",
         body: JSON.stringify({ game: squadGame, role: role || null, ign: ign || null, uid: uid || selectedPlayer?.gameUid || null, isIgl, isBackup }),
       });
-      setAddOpen(false);
-      setSelectedPlayer(null);
-      setSearchQ(""); setRole(""); setIgn(""); setUid(""); setIsIgl(false); setIsBackup(false);
-      toast({ title: "Squad invite sent!", description: `${selectedPlayer.name || selectedPlayer.handle} will receive an invite notification.` });
+      closeAdd();
+      toast({ title: "Invite sent!", description: `${selectedPlayer.name || selectedPlayer.handle} will get a squad invite.` });
     } catch (err: any) {
-      toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
+      toast({ title: "Failed to send invite", description: err?.data?.error || "Something went wrong", variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -689,48 +698,67 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const [memberStatsOpen, setMemberStatsOpen] = useState<any>(null);
 
   const renderMember = (m: any) => (
-    <div key={m.id} className="bg-secondary/40 rounded-xl overflow-hidden hover:bg-secondary/60 transition-colors">
-      <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-1.5 cursor-pointer" onClick={() => m.linkedHandle && setMemberStatsOpen(m)}>
-        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-base shrink-0 overflow-hidden relative">
-          {m.linkedAvatar ? (
-            isImageAvatar(m.linkedAvatar) ? <img src={resolveAvatarSrc(m.linkedAvatar)} alt="" className="w-full h-full object-cover" /> : m.linkedAvatar
-          ) : "🎮"}
+    <div key={m.id} className="bg-card border border-card-border rounded-2xl overflow-hidden">
+      <div
+        className={cn("flex items-center gap-3 px-4 py-3", m.linkedHandle && "cursor-pointer active:bg-secondary/40")}
+        onClick={() => m.linkedHandle && setMemberStatsOpen(m)}
+      >
+        <div className="relative shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center text-lg overflow-hidden">
+            {m.linkedAvatar
+              ? isImageAvatar(m.linkedAvatar)
+                ? <img src={resolveAvatarSrc(m.linkedAvatar)} alt="" className="w-full h-full object-cover" />
+                : <span>{m.linkedAvatar}</span>
+              : <span>🎮</span>}
+          </div>
           {m.isIgl && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+            <div className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-yellow-500 rounded-full flex items-center justify-center shadow">
               <Crown className="w-2.5 h-2.5 text-yellow-900" />
             </div>
           )}
         </div>
+
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-sm font-bold truncate">{m.name}</span>
-            {m.isIgl && <span className="text-[9px] font-bold bg-yellow-500/15 text-yellow-500 border border-yellow-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide">IGL</span>}
-            {m.isBackup && <span className="text-[9px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Backup</span>}
+          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+            <span className="font-bold text-sm truncate">{m.name}</span>
+            {m.isIgl && (
+              <span className="text-[9px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-1.5 py-0.5 rounded-full uppercase tracking-wide">IGL</span>
+            )}
+            {m.isBackup && (
+              <span className="text-[9px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Sub</span>
+            )}
           </div>
-          {m.linkedHandle && <div className="text-[10px] text-primary">@{m.linkedHandle}</div>}
+          {m.linkedHandle
+            ? <div className="text-xs text-primary font-medium">@{m.linkedHandle}</div>
+            : <div className="text-xs text-muted-foreground italic">Not linked</div>}
         </div>
+
         <div className="flex items-center gap-1 shrink-0">
-          {m.linkedHandle && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          {m.linkedHandle && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
           {isOwn && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }}>
+            <button
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }}
+            >
               <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+            </button>
           )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-px bg-border/30 border-t border-border/30 mx-3 mb-2.5">
-        <div className="bg-secondary/60 rounded-bl-lg px-2 py-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">IGN</div>
-          <div className="text-[11px] font-semibold truncate text-foreground">{m.ign || <span className="text-muted-foreground/60 italic">Not set</span>}</div>
-        </div>
-        <div className="bg-secondary/60 px-2 py-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">Role</div>
-          <div className="text-[11px] font-semibold truncate text-foreground">{m.role || <span className="text-muted-foreground/60 italic">No role</span>}</div>
-        </div>
-        <div className="bg-secondary/60 rounded-br-lg px-2 py-1.5">
-          <div className="text-[9px] text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">UID</div>
-          <div className="text-[11px] font-mono truncate text-foreground">{m.uid || <span className="text-muted-foreground/60 italic">—</span>}</div>
-        </div>
+
+      <div className="grid grid-cols-3 border-t border-card-border">
+        {[
+          { label: "IGN", value: m.ign },
+          { label: "Role", value: m.role },
+          { label: "UID", value: m.uid, mono: true },
+        ].map(({ label, value, mono }, i) => (
+          <div key={label} className={cn("px-3 py-2 bg-secondary/30", i < 2 && "border-r border-card-border")}>
+            <div className="text-[9px] text-muted-foreground uppercase tracking-widest font-semibold mb-0.5">{label}</div>
+            {value
+              ? <div className={cn("text-[11px] font-semibold truncate", mono && "font-mono")}>{value}</div>
+              : <div className="text-[11px] text-muted-foreground/50 italic">—</div>}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -746,176 +774,278 @@ function SquadSection({ userId, isOwn, userGame, isEsports }: { userId: number; 
   const displayMain = displayFiltered.filter((m: any) => !m.isBackup);
   const displayBackup = displayFiltered.filter((m: any) => m.isBackup);
 
+  const uidRequired = selectedPlayer && !selectedPlayer.gameUid;
+  const canSubmit = !!selectedPlayer && !(uidRequired && !uid.trim());
+
   return (
-    <div className="pb-4">
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Game</span>
-          <span className="text-xs font-bold bg-primary/15 text-primary border border-primary/30 px-2.5 py-1 rounded-full">{activeGame}</span>
+    <div className="pb-6 px-4 pt-4 space-y-5">
+      {/* Game badge */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Game</span>
+        <span className="text-xs font-bold bg-primary/15 text-primary border border-primary/30 px-3 py-1 rounded-full">{activeGame}</span>
+      </div>
+
+      {/* Main members */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+            Starting {displayMain.length}/4
+          </span>
+          {isOwn && displayMain.length < 4 && (
+            <button
+              onClick={() => { setIsBackup(false); setAddOpen(true); }}
+              className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 border border-primary/25 px-2.5 py-1 rounded-full hover:bg-primary/20 transition-colors"
+            >
+              <Plus className="w-3 h-3" /> Add Player
+            </button>
+          )}
         </div>
-      </div>
 
-      <div className="px-4 space-y-3">
-        {displayMain.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Main ({displayMain.length}/4)</span>
-              {isOwn && displayMain.length < 4 && (
-                <button onClick={() => { setIsBackup(false); setAddOpen(true); }} className="text-xs text-primary flex items-center gap-1 hover:opacity-80">
-                  <Plus className="w-3 h-3" /> Add
-                </button>
-              )}
-            </div>
-            <div className="space-y-2">{displayMain.map(renderMember)}</div>
-          </div>
-        )}
-
-        {displayMain.length === 0 && isOwn && (
-          <div className="text-center py-6">
-            <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm text-muted-foreground mb-3">No squad members for {squadGame}</p>
-            <Button size="sm" variant="outline" onClick={() => { setIsBackup(false); setAddOpen(true); }}>
-              <Plus className="w-3.5 h-3.5 mr-1" /> Add Member
-            </Button>
-          </div>
-        )}
-
-        {displayMain.length === 0 && !isOwn && (
-          <div className="text-center py-6">
-            <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm text-muted-foreground">No squad for {squadGame}</p>
-          </div>
-        )}
-
-        {(displayBackup.length > 0 || (isOwn && displayBackup.length < 2 && displayMain.length > 0)) && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Backups ({displayBackup.length}/2)</span>
-              {isOwn && displayBackup.length < 2 && (
-                <button onClick={() => { setIsBackup(true); setAddOpen(true); }} className="text-xs text-orange-400 flex items-center gap-1 hover:opacity-80">
-                  <Plus className="w-3 h-3" /> Add Backup
-                </button>
-              )}
-            </div>
-            {displayBackup.length > 0 && <div className="space-y-2">{displayBackup.map(renderMember)}</div>}
-          </div>
-        )}
-      </div>
-
-      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedPlayer(null); setSearchQ(""); setRole(""); setIgn(""); setUid(""); setIsIgl(false); setIsBackup(false); } }}>
-        <DialogContent className="max-w-sm max-h-[85vh] flex flex-col">
-          <DialogHeader className="shrink-0">
-            <DialogTitle>Add {isBackup ? "Backup" : "Squad"} Member — {squadGame}</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto flex-1 space-y-4">
-            <div className="space-y-2">
-              <Label>Search Player by Handle</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search handle or name..." value={searchQ} onChange={e => handleSearch(e.target.value)} />
+        {displayMain.length > 0
+          ? <div className="space-y-2">{displayMain.map(renderMember)}</div>
+          : isOwn
+            ? (
+              <button
+                onClick={() => { setIsBackup(false); setAddOpen(true); }}
+                className="w-full border-2 border-dashed border-border rounded-2xl py-7 flex flex-col items-center gap-2 text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-semibold">Add your first squad member</span>
+                <span className="text-xs opacity-60">Up to 4 starting players</span>
+              </button>
+            )
+            : (
+              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                <Users className="w-9 h-9 opacity-25" />
+                <p className="text-sm">No squad for {squadGame}</p>
               </div>
-              {searching && <p className="text-xs text-muted-foreground">Searching...</p>}
-              {searchResults.length > 0 && !selectedPlayer && (
-                <div className="border border-border rounded-xl overflow-hidden">
-                  {searchResults.slice(0, 5).map(u => (
-                    <button key={u.id} className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-secondary/60 transition-colors border-b last:border-b-0 border-border"
-                      onClick={() => { setSelectedPlayer(u); setSearchQ(u.name || u.handle); setSearchResults([]); setUid(u.gameUid || ""); }}>
-                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-sm shrink-0">{u.avatar || "🎮"}</div>
-                      <div className="min-w-0 text-left">
-                        <div className="text-sm font-medium truncate">{u.name}</div>
+            )
+        }
+      </div>
+
+      {/* Backup members */}
+      {(displayBackup.length > 0 || (isOwn && displayMain.length > 0)) && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+              Substitutes {displayBackup.length}/2
+            </span>
+            {isOwn && displayBackup.length < 2 && (
+              <button
+                onClick={() => { setIsBackup(true); setAddOpen(true); }}
+                className="flex items-center gap-1 text-xs font-semibold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2.5 py-1 rounded-full hover:bg-orange-500/20 transition-colors"
+              >
+                <Plus className="w-3 h-3" /> Add Sub
+              </button>
+            )}
+          </div>
+          {displayBackup.length > 0
+            ? <div className="space-y-2">{displayBackup.map(renderMember)}</div>
+            : isOwn && (
+              <button
+                onClick={() => { setIsBackup(true); setAddOpen(true); }}
+                className="w-full border-2 border-dashed border-orange-500/20 rounded-2xl py-5 flex items-center justify-center gap-2 text-orange-400/60 hover:border-orange-500/40 hover:text-orange-400 hover:bg-orange-500/5 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-medium">Add substitute player</span>
+              </button>
+            )
+          }
+        </div>
+      )}
+
+      {/* Add Member Dialog */}
+      <Dialog open={addOpen} onOpenChange={(open) => { if (!open) closeAdd(); else setAddOpen(true); }}>
+        <DialogContent className="max-w-sm w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="px-5 pt-5 pb-4 border-b border-border shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <UserPlus className="w-4.5 h-4.5 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-base leading-tight">
+                  Add {isBackup ? "Substitute" : "Squad Member"}
+                </DialogTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{squadGame}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+            {/* Step 1 — Find player */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Find Player</p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  className="pl-9 h-10"
+                  placeholder="Search by handle or name..."
+                  value={searchQ}
+                  onChange={e => handleSearch(e.target.value)}
+                  disabled={!!selectedPlayer}
+                />
+              </div>
+
+              {/* Search results */}
+              {searching && (
+                <div className="flex items-center gap-2 px-1">
+                  <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs text-muted-foreground">Searching...</span>
+                </div>
+              )}
+              {!selectedPlayer && searchResults.length > 0 && (
+                <div className="border border-border rounded-xl overflow-hidden shadow-sm">
+                  {searchResults.slice(0, 5).map((u, i) => (
+                    <button
+                      key={u.id}
+                      className={cn("w-full flex items-center gap-3 px-3.5 py-3 hover:bg-secondary/60 active:bg-secondary transition-colors text-left", i < searchResults.slice(0, 5).length - 1 && "border-b border-border")}
+                      onClick={() => { setSelectedPlayer(u); setSearchQ(u.name || u.handle); setSearchResults([]); setUid(u.gameUid || ""); }}
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center text-base shrink-0 overflow-hidden">
+                        {u.avatar || "🎮"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold truncate">{u.name || u.handle}</div>
                         <div className="text-xs text-muted-foreground">@{u.handle}</div>
                       </div>
-                      <UserPlus className="w-4 h-4 text-primary ml-auto shrink-0" />
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <UserPlus className="w-3.5 h-3.5 text-primary" />
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
+              {!selectedPlayer && !searching && searchQ.length > 1 && searchResults.length === 0 && (
+                <p className="text-xs text-muted-foreground px-1">No players found. Make sure they have an account on TournaX.</p>
+              )}
+
+              {/* Selected player card */}
               {selectedPlayer && (
-                <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-3 py-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-sm shrink-0">{selectedPlayer.avatar || "🎮"}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold">{selectedPlayer.name}</div>
-                    <div className="text-xs text-muted-foreground">@{selectedPlayer.handle}</div>
+                <div className="flex items-center gap-3 bg-primary/8 border border-primary/30 rounded-xl px-3.5 py-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-base shrink-0 overflow-hidden">
+                    {selectedPlayer.avatar || "🎮"}
                   </div>
-                  <button onClick={() => { setSelectedPlayer(null); setSearchQ(""); }}><X className="w-4 h-4 text-muted-foreground" /></button>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold truncate">{selectedPlayer.name || selectedPlayer.handle}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-primary">@{selectedPlayer.handle}</span>
+                      <span className="w-1 h-1 rounded-full bg-green-500" />
+                      <span className="text-[10px] text-green-500 font-medium">Selected</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setSelectedPlayer(null); setSearchQ(""); setUid(""); }}
+                    className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
             </div>
-            <div className="space-y-1.5">
-              <Label>Role</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                <SelectContent>
-                  {SQUAD_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+
+            {/* Step 2 — In-game info */}
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">In-Game Info</p>
+
               <div className="space-y-1.5">
-                <Label className="text-xs">
-                  IGN
-                  <span className="text-muted-foreground font-normal ml-1">(In-Game Name)</span>
-                </Label>
+                <Label className="text-xs font-semibold">Role</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select position / role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SQUAD_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">In-Game Name (IGN)</Label>
                 <Input
                   placeholder="e.g. ProPlayer#999"
                   value={ign}
                   onChange={e => setIgn(e.target.value)}
-                  className="text-sm"
+                  className="h-10"
                 />
-                <p className="text-[10px] text-amber-400 leading-tight">
-                  Exact aur game mein jo naam hai wahi hona chahiye (case sensitive)
+                <p className="text-[10px] text-amber-400/80 flex items-start gap-1">
+                  <span className="mt-px">⚠</span>
+                  Must exactly match the name shown in-game (case sensitive)
                 </p>
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs">
-                  UID
-                  {selectedPlayer && !selectedPlayer.gameUid && (
-                    <span className="text-destructive ml-1">*</span>
-                  )}
-                </Label>
+                <div className="flex items-center gap-1">
+                  <Label className="text-xs font-semibold">Game UID</Label>
+                  {uidRequired && <span className="text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Required</span>}
+                </div>
                 <Input
-                  placeholder={selectedPlayer && !selectedPlayer.gameUid ? "Required" : "Auto-filled"}
+                  placeholder={uidRequired ? "Enter player's UID manually" : "Auto-filled from profile"}
                   value={uid}
                   onChange={e => setUid(e.target.value)}
-                  className={cn("text-sm", selectedPlayer && !selectedPlayer.gameUid && !uid.trim() ? "border-destructive/60 focus-visible:ring-destructive/40" : "")}
+                  className={cn("h-10 font-mono", uidRequired && !uid.trim() ? "border-destructive/60 focus-visible:ring-destructive/30" : "")}
                 />
-                <p className="text-[10px] text-muted-foreground leading-tight">
-                  {selectedPlayer && !selectedPlayer.gameUid
-                    ? <span className="text-destructive/80">Player ne UID set nahi kiya — aapko dena hoga</span>
-                    : "Profile se auto-fill"}
-                </p>
+                {uidRequired
+                  ? <p className="text-[10px] text-destructive/80">This player hasn't saved their UID — please enter it manually.</p>
+                  : selectedPlayer && <p className="text-[10px] text-muted-foreground">Auto-filled from their profile.</p>
+                }
               </div>
             </div>
-            <div className="flex items-center justify-between bg-secondary/60 rounded-xl px-3 py-2.5">
-              <div className="flex items-center gap-2">
-                <Crown className="w-4 h-4 text-yellow-500" />
-                <div>
-                  <div className="text-sm font-semibold">Mark as IGL</div>
-                  <div className="text-[10px] text-muted-foreground">In-Game Leader of the squad</div>
+
+            {/* Step 3 — Settings */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Settings</p>
+              <div className="flex items-center justify-between bg-secondary/50 border border-border rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-yellow-500/15 flex items-center justify-center">
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Mark as IGL</div>
+                    <div className="text-[10px] text-muted-foreground">In-Game Leader / Captain</div>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsIgl(v => !v)}
+                  className={cn(
+                    "w-11 h-6 rounded-full transition-all duration-200 relative shrink-0 border",
+                    isIgl ? "bg-yellow-500 border-yellow-400" : "bg-secondary border-border"
+                  )}
+                >
+                  <span className={cn(
+                    "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+                    isIgl ? "translate-x-5" : "translate-x-0.5"
+                  )} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsIgl(v => !v)}
-                className={cn("w-10 h-6 rounded-full transition-colors relative shrink-0", isIgl ? "bg-yellow-500" : "bg-secondary")}
-              >
-                <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform", isIgl ? "translate-x-4" : "translate-x-0.5")} />
-              </button>
             </div>
           </div>
-          <div className="shrink-0 space-y-2 mt-4">
-            <p className="text-xs text-muted-foreground text-center">Player must have an in-app account. They'll receive an invite notification.</p>
+
+          {/* Footer */}
+          <div className="px-5 pb-5 pt-3 border-t border-border shrink-0 space-y-3">
+            <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+              The player must have a TournaX account. They'll receive an invite notification to confirm.
+            </p>
             <Button
-              className="w-full"
+              className="w-full h-11 text-sm font-semibold"
               onClick={handleAddMember}
-              disabled={!selectedPlayer || (selectedPlayer && !selectedPlayer.gameUid && !uid.trim())}
+              disabled={!canSubmit || sending}
             >
-              Send Squad Invite
+              {sending
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />Sending...</>
+                : <><UserPlus className="w-4 h-4 mr-2" />Send Squad Invite</>
+              }
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Member stats dialog */}
       {memberStatsOpen && (
         <Dialog open={!!memberStatsOpen} onOpenChange={() => setMemberStatsOpen(null)}>
           <DialogContent className="max-w-sm max-h-[80vh] flex flex-col">
