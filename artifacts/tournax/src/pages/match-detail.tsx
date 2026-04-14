@@ -707,7 +707,7 @@ export default function MatchDetailPage() {
                   ) : match.status === "upcoming" ? (
                     <>
                       <Clock className="w-3 h-3 shrink-0" />
-                      <InlineCountdown startTime={match.startTime} />
+                      Upcoming
                     </>
                   ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
                 </span>
@@ -736,7 +736,7 @@ export default function MatchDetailPage() {
                 ) : match.status === "upcoming" ? (
                   <>
                     <Clock className="w-3 h-3 shrink-0" />
-                    <InlineCountdown startTime={match.startTime} />
+                    Upcoming
                   </>
                 ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
               </span>
