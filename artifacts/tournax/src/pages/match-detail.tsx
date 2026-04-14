@@ -828,16 +828,6 @@ export default function MatchDetailPage() {
             </div>
           )}
 
-          {/* Slot warning */}
-          {user?.role === "player" && match.isJoined && (
-            <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/40 rounded-2xl px-4 py-3">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400 leading-relaxed">
-                <span className="font-semibold">Slot Warning:</span> Slots are fixed as shown. If you join another player's or team's slot, you will be removed from the match.
-              </p>
-            </div>
-          )}
-
           {/* Action buttons */}
           <div className="space-y-2 pt-1">
             {/* Player join / notify */}
@@ -1112,7 +1102,15 @@ export default function MatchDetailPage() {
 
       {/* PLAYERS TAB */}
       {activeTab === "players" && (
-        <div className="pb-4">
+        <div className="space-y-3 pb-4">
+          {user?.role === "player" && match.isJoined && (
+            <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/40 rounded-2xl px-4 py-3">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400 leading-relaxed">
+                <span className="font-semibold">Slot Warning:</span> Slots are fixed as shown. If you join another player's or team's slot, you will be removed from the match.
+              </p>
+            </div>
+          )}
           {(!players || players.length === 0) ? (
             <div className="bg-card border border-card-border rounded-2xl p-8 flex flex-col items-center gap-2 text-center">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
