@@ -292,6 +292,68 @@ function NotifyMeButton({ matchId }: { matchId: number }) {
   );
 }
 
+function useCountdown(targetIso: string) {
+  const getRemaining = () => Math.max(0, new Date(targetIso).getTime() - Date.now());
+  const [ms, setMs] = useState(getRemaining);
+  useEffect(() => {
+    if (ms <= 0) return;
+    const id = setInterval(() => setMs(getRemaining()), 1000);
+    return () => clearInterval(id);
+  }, [targetIso]);
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return { h, m, s, done: ms <= 0 };
+}
+
+function MatchCountdown({ startTime, status }: { startTime: string; status: string }) {
+  const { h, m, s, done } = useCountdown(startTime);
+  if (status === "live") {
+    return (
+      <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border-t border-red-500/20">
+        <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+        <span className="text-red-400 text-sm font-bold tracking-wide">MATCH IS LIVE</span>
+      </div>
+    );
+  }
+  if (status === "completed") {
+    return (
+      <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-muted/40 border-t border-card-border">
+        <span className="text-muted-foreground text-sm font-medium">Match Ended</span>
+      </div>
+    );
+  }
+  if (done) {
+    return (
+      <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/10 border-t border-amber-500/20">
+        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+        <span className="text-amber-400 text-sm font-bold">Starting Soon...</span>
+      </div>
+    );
+  }
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    <div className="flex items-center justify-between px-4 py-2.5 bg-primary/5 border-t border-primary/20">
+      <div className="flex items-center gap-1.5">
+        <Clock className="w-3.5 h-3.5 text-primary" />
+        <span className="text-[11px] text-primary font-medium uppercase tracking-wide">Match Starts In</span>
+      </div>
+      <div className="flex items-center gap-1 font-mono font-bold text-sm">
+        {h > 0 && (
+          <>
+            <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-lg">{pad(h)}h</span>
+            <span className="text-primary/50">:</span>
+          </>
+        )}
+        <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-lg">{pad(m)}m</span>
+        <span className="text-primary/50">:</span>
+        <span className="bg-primary/15 text-primary px-2 py-0.5 rounded-lg">{pad(s)}s</span>
+      </div>
+    </div>
+  );
+}
+
 type BracketMatch = { id: string; team1: string | null; team2: string | null; winner: string | null };
 type BracketRound = { name: string; roundNumber: number; matches: BracketMatch[] };
 type BracketData = { rounds: BracketRound[] };
@@ -1055,14 +1117,18 @@ export default function MatchDetailPage() {
                   <CopyButton value={match.roomPassword ?? ""} />
                 </div>
               </div>
+              <MatchCountdown startTime={match.startTime} status={match.status} />
             </div>
           ) : match.isJoined ? (
-            <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center gap-2 text-center">
-              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                <KeyRound className="w-5 h-5 text-muted-foreground" />
+            <div className="bg-card border border-card-border rounded-2xl overflow-hidden flex flex-col items-center gap-2 text-center">
+              <div className="p-4 flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
+                  <KeyRound className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="font-semibold text-sm">Credentials Not Yet Released</p>
+                <p className="text-xs text-muted-foreground">The host will share the Room ID & Password before the match starts.</p>
               </div>
-              <p className="font-semibold text-sm">Credentials Not Yet Released</p>
-              <p className="text-xs text-muted-foreground">The host will share the Room ID & Password before the match starts.</p>
+              <MatchCountdown startTime={match.startTime} status={match.status} />
             </div>
           ) : (
             <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center gap-2 text-center">
