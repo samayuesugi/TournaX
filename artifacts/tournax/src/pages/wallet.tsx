@@ -179,7 +179,7 @@ function CoinsPackDialog() {
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-amber-400" />
+            <Package className="w-4 h-4 text-violet-400" />
             {step === "select" ? "Choose a Pack" : step === "qr" ? "Scan & Pay" : "Submit Proof"}
           </DialogTitle>
           {step !== "select" && (
@@ -396,7 +396,7 @@ function UserWalletHistory({ wallet }: { wallet: any }) {
     { key: "all", label: "All", color: "border-border text-muted-foreground", activeColor: "border-primary bg-primary/15 text-primary" },
     { key: "won", label: "Won", color: "border-border text-muted-foreground", activeColor: "border-green-500 bg-green-500/15 text-green-600 dark:text-green-400" },
     { key: "spent", label: "Spent", color: "border-border text-muted-foreground", activeColor: "border-destructive bg-destructive/15 text-destructive" },
-    { key: "deposited", label: "Deposited", color: "border-border text-muted-foreground", activeColor: "border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+    { key: "deposited", label: "Deposited", color: "border-border text-muted-foreground", activeColor: "border-violet-500 bg-violet-500/15 text-violet-600 dark:text-violet-400" },
   ];
 
   return (
@@ -433,10 +433,10 @@ function UserWalletHistory({ wallet }: { wallet: any }) {
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-                    isWon ? "bg-green-500/15" : isDeposited ? "bg-amber-400/15" : "bg-destructive/15"
+                    isWon ? "bg-green-500/15" : isDeposited ? "bg-violet-400/15" : "bg-destructive/15"
                   )}>
                     {isWon && <Trophy className="w-4 h-4 text-green-600 dark:text-green-400" />}
-                    {isDeposited && <ArrowDownCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                    {isDeposited && <ArrowDownCircle className="w-4 h-4 text-violet-600 dark:text-violet-400" />}
                     {isSpent && <Swords className="w-4 h-4 text-destructive" />}
                     {isWithdrawn && <ArrowUpCircle className="w-4 h-4 text-destructive" />}
                   </div>
@@ -453,7 +453,7 @@ function UserWalletHistory({ wallet }: { wallet: any }) {
                 <div className="flex flex-col items-end gap-1">
                   <span className={cn(
                     "font-bold text-sm flex items-center gap-0.5",
-                    isWon ? "text-green-600 dark:text-green-400" : isDeposited ? "text-amber-600 dark:text-amber-400" : "text-destructive"
+                    isWon ? "text-green-600 dark:text-green-400" : isDeposited ? "text-violet-600 dark:text-violet-400" : "text-destructive"
                   )}>
                     {isWon || isDeposited ? "+" : "-"}
                     <GoldCoin amount={typeof tx.amount === "number" ? tx.amount.toFixed(2) : tx.amount} />
@@ -557,16 +557,16 @@ export default function WalletPage() {
           <Skeleton className="h-32 rounded-2xl" />
         ) : (
           <div className="space-y-3">
-            <div className="relative overflow-hidden rounded-2xl p-5 border border-amber-300/60 dark:border-amber-400/30 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-950/60 dark:via-yellow-900/30 dark:to-amber-950/60">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-200/30 via-yellow-200/10 to-transparent dark:from-amber-500/10 dark:via-yellow-400/5 pointer-events-none" />
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl p-5 border border-violet-400/30 dark:border-violet-500/30 bg-gradient-to-br from-violet-50 via-purple-50 to-violet-100 dark:from-violet-950/60 dark:via-purple-900/30 dark:to-violet-950/60">
+              <div className="absolute inset-0 bg-gradient-to-tr from-violet-200/30 via-purple-200/10 to-transparent dark:from-violet-500/10 dark:via-purple-400/5 pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/60 to-transparent" />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1">
                   <GoldCoinIcon size="md" />
-                  <p className="text-sm text-amber-700/80 dark:text-amber-200/70 font-medium tracking-wide">TournaX Coins</p>
+                  <p className="text-sm text-violet-700/80 dark:text-violet-200/70 font-medium tracking-wide">TournaX Coins</p>
                 </div>
-                <h2 className="text-4xl font-bold mb-1 text-amber-900 dark:text-amber-50">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
-                <p className="text-xs text-amber-700/60 dark:text-amber-200/50 mb-4">1₹ = 1 TournaX Coin</p>
+                <h2 className="text-4xl font-bold mb-1 text-violet-900 dark:text-violet-50">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
+                <p className="text-xs text-violet-700/60 dark:text-violet-200/50 mb-4">1₹ = 1 TournaX Coin</p>
                 <div className="flex gap-2">
                   <CoinsPackDialog />
                   {withdrawDialog}
@@ -575,51 +575,51 @@ export default function WalletPage() {
             </div>
 
             {isEsportsPlayer && (
-              <div className="relative overflow-hidden rounded-2xl border border-yellow-500/40 bg-gradient-to-br from-yellow-950/60 via-amber-900/30 to-yellow-950/60">
-                <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-amber-400/5 to-transparent pointer-events-none" />
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent" />
+              <div className="relative overflow-hidden rounded-2xl border border-violet-500/40 bg-gradient-to-br from-violet-950/60 via-purple-900/30 to-violet-950/60">
+                <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/10 via-purple-400/5 to-transparent pointer-events-none" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/60 to-transparent" />
                 <div className="relative p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                        <Ticket className="w-4 h-4 text-yellow-400" />
+                      <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                        <Ticket className="w-4 h-4 text-violet-400" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-yellow-300">TournaX Tickets</p>
-                        <p className="text-[10px] text-yellow-400/60">For Esports matches only</p>
+                        <p className="text-sm font-bold text-violet-300">TournaX Tickets</p>
+                        <p className="text-[10px] text-violet-400/60">For Esports matches only</p>
                       </div>
                     </div>
-                    <span className="flex items-center gap-1 text-[10px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-[10px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full">
                       <ShieldCheck className="w-3 h-3" /> Esports
                     </span>
                   </div>
 
-                  <div className="relative rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-4 flex items-center justify-between gap-4">
+                  <div className="relative rounded-xl border border-violet-500/25 bg-violet-500/5 p-4 flex items-center justify-between gap-4">
                     <div className="absolute top-2 right-2">
-                      <span className="text-[9px] font-bold bg-amber-500/25 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full tracking-wide uppercase">Coming Soon</span>
+                      <span className="text-[9px] font-bold bg-violet-500/25 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full tracking-wide uppercase">Coming Soon</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-yellow-500/15 border border-yellow-500/20 flex flex-col items-center justify-center">
-                        <Ticket className="w-5 h-5 text-yellow-400 mb-0.5" />
-                        <span className="text-[10px] font-bold text-yellow-300 leading-none">×50</span>
+                      <div className="w-12 h-12 rounded-xl bg-violet-500/15 border border-violet-500/20 flex flex-col items-center justify-center">
+                        <Ticket className="w-5 h-5 text-violet-400 mb-0.5" />
+                        <span className="text-[10px] font-bold text-violet-300 leading-none">×50</span>
                       </div>
                       <div>
-                        <p className="font-bold text-base text-yellow-100">50 Tickets</p>
-                        <p className="text-xs text-yellow-400/70">Entry pass for Esports tournaments</p>
+                        <p className="font-bold text-base text-violet-100">50 Tickets</p>
+                        <p className="text-xs text-violet-400/70">Entry pass for Esports tournaments</p>
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-lg font-bold text-yellow-300">₹99</p>
+                      <p className="text-lg font-bold text-violet-300">₹99</p>
                       <button
                         disabled
-                        className="mt-1 flex items-center gap-1 text-[10px] font-semibold bg-yellow-500/10 text-yellow-500/50 border border-yellow-500/20 px-3 py-1.5 rounded-lg cursor-not-allowed"
+                        className="mt-1 flex items-center gap-1 text-[10px] font-semibold bg-violet-500/10 text-violet-500/50 border border-violet-500/20 px-3 py-1.5 rounded-lg cursor-not-allowed"
                       >
                         <Lock className="w-3 h-3" /> Buy
                       </button>
                     </div>
                   </div>
 
-                  <p className="text-[10px] text-yellow-500/50 mt-2 text-center">Ticket packs will be available once Esports matches go live</p>
+                  <p className="text-[10px] text-violet-500/50 mt-2 text-center">Ticket packs will be available once Esports matches go live</p>
                 </div>
               </div>
             )}
@@ -640,8 +640,8 @@ export default function WalletPage() {
                   {(wallet as any).earningsHistory.map((tx: any) => (
                     <div key={tx.id} className="flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-                          <Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+                          <Trophy className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                         </div>
                         <div>
                           <div className="font-semibold text-sm">Match #{tx.matchCode}</div>
