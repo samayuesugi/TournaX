@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, Swords, Wallet, Package, FileText, CheckCircle2, Clock, RefreshCw, Coins, Ban } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Plus, Copy, Check, ImagePlus, AlertTriangle, X, Trophy, Swords, Wallet, Package, FileText, CheckCircle2, Clock, RefreshCw, Coins, Ban, Ticket, ShieldCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoldCoin, GoldCoinIcon } from "@/components/ui/Coins";
 
@@ -483,6 +483,7 @@ export default function WalletPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const isHost = user?.role === "host";
+  const isEsportsPlayer = user?.role === "player" && Boolean((user as any)?.isEsportsPlayer);
 
   const handleWithdraw = async () => {
     const parsedWithdrawAmount = parseFloat(withdrawForm.amount);
@@ -573,6 +574,55 @@ export default function WalletPage() {
               </div>
             </div>
 
+            {isEsportsPlayer && (
+              <div className="relative overflow-hidden rounded-2xl border border-yellow-500/40 bg-gradient-to-br from-yellow-950/60 via-amber-900/30 to-yellow-950/60">
+                <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-amber-400/5 to-transparent pointer-events-none" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/60 to-transparent" />
+                <div className="relative p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                        <Ticket className="w-4 h-4 text-yellow-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-yellow-300">TournaX Tickets</p>
+                        <p className="text-[10px] text-yellow-400/60">For Esports matches only</p>
+                      </div>
+                    </div>
+                    <span className="flex items-center gap-1 text-[10px] font-bold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+                      <ShieldCheck className="w-3 h-3" /> Esports
+                    </span>
+                  </div>
+
+                  <div className="relative rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-4 flex items-center justify-between gap-4">
+                    <div className="absolute top-2 right-2">
+                      <span className="text-[9px] font-bold bg-amber-500/25 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full tracking-wide uppercase">Coming Soon</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-yellow-500/15 border border-yellow-500/20 flex flex-col items-center justify-center">
+                        <Ticket className="w-5 h-5 text-yellow-400 mb-0.5" />
+                        <span className="text-[10px] font-bold text-yellow-300 leading-none">×50</span>
+                      </div>
+                      <div>
+                        <p className="font-bold text-base text-yellow-100">50 Tickets</p>
+                        <p className="text-xs text-yellow-400/70">Entry pass for Esports tournaments</p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-lg font-bold text-yellow-300">₹99</p>
+                      <button
+                        disabled
+                        className="mt-1 flex items-center gap-1 text-[10px] font-semibold bg-yellow-500/10 text-yellow-500/50 border border-yellow-500/20 px-3 py-1.5 rounded-lg cursor-not-allowed"
+                      >
+                        <Lock className="w-3 h-3" /> Buy
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-yellow-500/50 mt-2 text-center">Ticket packs will be available once Esports matches go live</p>
+                </div>
+              </div>
+            )}
 
           </div>
         )}
