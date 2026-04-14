@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Bot, Sparkles, ShieldAlert, CheckCircle2, RefreshCw, Users, UserX, ShieldCheck, Shield, BookTemplate, History, TrendingUp, CalendarDays } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Users, UserX, ShieldCheck, Shield, BookTemplate, History, TrendingUp, CalendarDays } from "lucide-react";
 
 const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
 const SCREENSHOT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -151,10 +151,7 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
   const [kills, setKills] = useState<Record<number, string>>({});
   const [screenshots, setScreenshots] = useState<string[]>([]);
   const [screenshotPreviews, setScreenshotPreviews] = useState<string[]>([]);
-  const [screenshotFiles, setScreenshotFiles] = useState<{ base64: string; mimeType: string }[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<any>(null);
 
   const prizePool = parseFloat(String(match.livePrizePool || 0));
   const totalRewarded = (participants || []).reduce((sum, p) => {
@@ -163,18 +160,6 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
   }, 0);
   const remaining = prizePool - totalRewarded;
   const isOverBudget = totalRewarded > prizePool + 0.01;
-
-  const readFileAsBase64 = (file: File): Promise<{ base64: string; mimeType: string }> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve({ base64, mimeType: file.type || "image/jpeg" });
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
 
   const validateScreenshotFile = (file: File): string | null => {
     if (!SCREENSHOT_MIME_TYPES.includes(file.type)) return "Upload JPG, PNG, or WebP screenshots only.";
@@ -191,19 +176,15 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       return;
     }
     setUploading(true);
-    setAiResult(null);
     try {
       const newPaths: string[] = [];
       const newPreviews: string[] = [];
-      const newFiles: { base64: string; mimeType: string }[] = [];
       for (let i = 0; i < canAdd; i++) {
         const file = files[i];
         const validationError = validateScreenshotFile(file);
         if (validationError) throw new Error(validationError);
         const preview = URL.createObjectURL(file);
         newPreviews.push(preview);
-        const fileData = await readFileAsBase64(file);
-        newFiles.push(fileData);
         const formData = new FormData();
         formData.append("file", file);
         formData.append("context", "matchResult");
@@ -214,7 +195,6 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       }
       setScreenshots(prev => [...prev, ...newPaths]);
       setScreenshotPreviews(prev => [...prev, ...newPreviews]);
-      setScreenshotFiles(prev => [...prev, ...newFiles]);
       toast({ title: `${canAdd} screenshot${canAdd > 1 ? "s" : ""} uploaded!` });
     } catch (err: any) {
       toast({ title: "Screenshot upload failed", description: err?.message || "Unsupported or unsafe file.", variant: "destructive" });
@@ -222,56 +202,6 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
-
-  const analyzeWithAI = async () => {
-    if (screenshotFiles.length === 0) return;
-    setAiLoading(true);
-    setAiResult(null);
-    try {
-      const { base64, mimeType } = screenshotFiles[0];
-      const participantNames = (participants || []).map((p: any) =>
-        p.players?.map((pl: any) => pl.ign).join(", ") || p.teamName || `Team ${p.teamNumber}`
-      );
-      const res = await fetch("/api/ai/analyze-screenshot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: base64,
-          mimeType,
-          participants: participantNames,
-          game: match.game,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
-      setAiResult(data);
-    } catch (err: any) {
-      toast({ title: "AI Analysis Failed", description: err.message, variant: "destructive" });
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const applyAIResults = () => {
-    if (!aiResult?.players || !participants) return;
-    const newRanks: Record<number, string> = { ...ranks };
-    const newKills: Record<number, string> = { ...kills };
-    participants.forEach((p: any) => {
-      const pNames = p.players?.map((pl: any) => pl.ign.toLowerCase()) || [];
-      const teamName = (p.teamName || `Team ${p.teamNumber}`).toLowerCase();
-      const matched = aiResult.players.find((ap: any) => {
-        const apName = ap.name?.toLowerCase() || "";
-        return pNames.some((n: string) => apName.includes(n) || n.includes(apName)) || apName.includes(teamName) || teamName.includes(apName);
-      });
-      if (matched) {
-        if (matched.rank) newRanks[p.id] = String(matched.rank);
-        if (matched.kills != null) newKills[p.id] = String(matched.kills);
-      }
-    });
-    setRanks(newRanks);
-    setKills(newKills);
-    toast({ title: "AI results applied!", description: "Rank and kills have been auto-filled. Please verify and set rewards." });
   };
 
   const removeScreenshot = (idx: number) => {
@@ -315,8 +245,6 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       setKills({});
       setScreenshots([]);
       setScreenshotPreviews([]);
-      setScreenshotFiles([]);
-      setAiResult(null);
     }
   };
 
@@ -424,91 +352,6 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
             )}
           </div>
 
-          {screenshots.length > 0 && (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={analyzeWithAI}
-                disabled={aiLoading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600/20 border border-violet-500/40 text-violet-300 text-sm font-semibold hover:bg-violet-600/30 transition-all disabled:opacity-60"
-              >
-                {aiLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    AI is analyzing screenshot...
-                  </>
-                ) : (
-                  <>
-                    <Bot className="w-4 h-4" />
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Verify with AI Referee
-                  </>
-                )}
-              </button>
-
-              {aiResult && (
-                <div className={cn(
-                  "rounded-xl border p-3 space-y-2.5 text-xs",
-                  aiResult.suspicious
-                    ? "bg-red-500/10 border-red-500/30"
-                    : "bg-green-500/10 border-green-500/30"
-                )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-semibold text-sm">
-                      {aiResult.suspicious ? (
-                        <ShieldAlert className="w-4 h-4 text-red-400" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4 text-green-400" />
-                      )}
-                      <span className={aiResult.suspicious ? "text-red-400" : "text-green-400"}>
-                        {aiResult.suspicious ? "Suspicious Screenshot Detected" : "Screenshot Verified"}
-                      </span>
-                    </div>
-                    <span className="text-muted-foreground">
-                      {aiResult.game} · {aiResult.confidence}% confident
-                    </span>
-                  </div>
-
-                  {aiResult.suspicious && aiResult.suspiciousReason && (
-                    <div className="bg-red-500/15 border border-red-500/25 rounded-lg px-2.5 py-2 text-red-300">
-                      ⚠️ {aiResult.suspiciousReason}
-                    </div>
-                  )}
-
-                  {aiResult.players?.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-muted-foreground font-medium">AI Detected Results:</p>
-                      <div className="bg-black/20 rounded-lg p-2 space-y-1">
-                        {aiResult.players.map((p: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <span className="font-mono text-foreground truncate max-w-[120px]">{p.name}</span>
-                            <div className="flex items-center gap-3 text-muted-foreground shrink-0">
-                              <span>#{p.rank ?? "?"}</span>
-                              <span>{p.kills ?? "?"} kills</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {aiResult.notes && (
-                    <p className="text-muted-foreground italic">{aiResult.notes}</p>
-                  )}
-
-                  {aiResult.players?.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={applyAIResults}
-                      className="w-full py-1.5 rounded-lg bg-violet-600/30 border border-violet-500/40 text-violet-300 text-xs font-semibold hover:bg-violet-600/40 transition-all"
-                    >
-                      Auto-fill Rank &amp; Kills from AI
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {isOverBudget && (
             <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl p-2">
