@@ -724,22 +724,19 @@ export default function MatchDetailPage() {
                     {(match as any).map ? ` · ${(match as any).map}` : ""}
                   </p>
                 </div>
-                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm flex items-center gap-1.5", statusColors[match.status])}>
-                  {match.status === "live" ? (
-                    <>
-                      <span className="relative flex h-2 w-2 shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                      </span>
-                      LIVE
-                    </>
-                  ) : match.status === "upcoming" ? (
-                    <>
-                      <Clock className="w-3 h-3 shrink-0" />
-                      Upcoming
-                    </>
-                  ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
-                </span>
+                {match.status !== "upcoming" && (
+                  <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm flex items-center gap-1.5", statusColors[match.status])}>
+                    {match.status === "live" ? (
+                      <>
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                        </span>
+                        LIVE
+                      </>
+                    ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -753,22 +750,19 @@ export default function MatchDetailPage() {
                   {(match as any).map ? ` · ${(match as any).map}` : ""}
                 </p>
               </div>
-              <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5", statusColors[match.status])}>
-                {match.status === "live" ? (
-                  <>
-                    <span className="relative flex h-2 w-2 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                    </span>
-                    LIVE
-                  </>
-                ) : match.status === "upcoming" ? (
-                  <>
-                    <Clock className="w-3 h-3 shrink-0" />
-                    Upcoming
-                  </>
-                ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
-              </span>
+              {match.status !== "upcoming" && (
+                <span className={cn("text-xs font-bold px-2.5 py-1 rounded-full border flex items-center gap-1.5", statusColors[match.status])}>
+                  {match.status === "live" ? (
+                    <>
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                      </span>
+                      LIVE
+                    </>
+                  ) : match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                </span>
+              )}
             </div>
           </div>
         )}
