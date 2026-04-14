@@ -167,69 +167,17 @@ function QuestDialog({ open, onClose, dailyTasks }: { open: boolean; onClose: ()
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <div className={cn(
-          "relative px-5 pt-6 pb-5 shrink-0 overflow-hidden",
-          "bg-gradient-to-br from-primary/20 via-violet-900/10 to-transparent"
-        )}>
-          <div className="absolute inset-0 pointer-events-none opacity-30"
-            style={{ backgroundImage: "radial-gradient(circle at 80% 20%, hsl(var(--primary)/0.3) 0%, transparent 60%)" }}
-          />
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="relative w-16 h-16 shrink-0">
-              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-                <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="5" className="text-border opacity-40" />
-                <circle
-                  cx="32" cy="32" r="28" fill="none"
-                  stroke="url(#questGrad)" strokeWidth="5"
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={dashOffset}
-                  className="transition-all duration-700"
-                />
-                <defs>
-                  <linearGradient id="questGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" />
-                    <stop offset="100%" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-black leading-none">{completed}</span>
-                <span className="text-[9px] text-muted-foreground font-medium">/{total}</span>
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                {allDone
-                  ? <Flame className="w-4 h-4 text-orange-500" />
-                  : <Zap className="w-4 h-4 text-primary" />}
-                <h2 className="text-base font-black tracking-tight">
-                  {allDone ? "All Quests Done!" : "Daily Quests"}
-                </h2>
-              </div>
-              <p className="text-[11px] text-muted-foreground mb-2">
-                {allDone ? "Come back tomorrow for more quests" : "Complete daily quests to keep your streak"}
-              </p>
-              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                <span>Resets in <span className="font-bold text-foreground tabular-nums">{timeLeft}</span></span>
-              </div>
-            </div>
+        <div className="flex flex-col items-center justify-center px-6 py-16 gap-5 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Zap className="w-8 h-8 text-primary" />
           </div>
-          <div className="mt-4 h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden relative z-10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-violet-400 transition-all duration-700"
-              style={{ width: `${(completed / total) * 100}%` }}
-            />
+          <div>
+            <h2 className="text-xl font-black tracking-tight mb-1">Daily Quests</h2>
+            <p className="text-sm text-muted-foreground">Coming Soon</p>
           </div>
-        </div>
-
-        <div className="overflow-y-auto flex-1 px-4 pb-4 pt-3 space-y-2.5">
-          <QuestTask icon={CalendarCheck} title="Daily Login" desc="Open the app every day" progress={dailyTasks?.loginClaimed ? 1 : 0} total={1} claimed={dailyTasks?.loginClaimed ?? false} taskKey="login" />
-          <QuestTask icon={Gamepad2} title="Play 3 Free Matches" desc="Join any 3 free entry tournaments" progress={dailyTasks?.freeMatchesToday ?? 0} total={3} claimed={dailyTasks?.freeMatchesClaimed ?? false} taskKey="free" />
-          <QuestTask icon={Coins} title="Play 3 Paid Matches" desc="Join any 3 paid entry tournaments" progress={dailyTasks?.paidMatchesToday ?? 0} total={3} claimed={dailyTasks?.paidMatchesClaimed ?? false} taskKey="paid" />
-          <QuestTask icon={Trophy} title="Win 5 Tournaments" desc="Finish first in 5 paid tournaments" progress={dailyTasks?.tournamentWinsToday ?? 0} total={5} claimed={dailyTasks?.tournamentWinsClaimed ?? false} taskKey="win" />
-          <QuestTask icon={UserPlus} title="Invite a Friend" desc="Someone signs up with your referral code" progress={dailyTasks?.inviteClaimed ? 1 : 0} total={1} claimed={dailyTasks?.inviteClaimed ?? false} taskKey="invite" />
+          <p className="text-xs text-muted-foreground max-w-[220px] leading-relaxed">
+            Daily quests are under construction. Stay tuned for rewards and challenges!
+          </p>
         </div>
       </DialogContent>
     </Dialog>

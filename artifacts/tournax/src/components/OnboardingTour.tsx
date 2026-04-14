@@ -38,7 +38,7 @@ const steps = [
     icon: Coins,
     color: "text-yellow-400",
     bg: "bg-yellow-400/10",
-    title: "Wallet — Gold & Silver Coins",
+    title: "Wallet — TournaX Coins",
     description:
       "TournaX Coins are used to enter tournaments and the cosmetics store (1₹ = 1 TournaX Coin). Top up via UPI instantly from the wallet tab.",
   },

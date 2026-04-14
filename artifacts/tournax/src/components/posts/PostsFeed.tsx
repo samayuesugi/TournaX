@@ -264,7 +264,7 @@ export function SharePostDialog({ onSuccess }: { onSuccess: () => void }) {
         reader.readAsDataURL(imageFile);
       });
       await customFetch("/api/posts", { method: "POST", body: JSON.stringify({ imageUrl, caption: caption.trim() || null }) });
-      toast({ title: "Posted!", description: "10 Silver Coins deducted." });
+      toast({ title: "Posted!" });
       reset();
       setOpen(false);
       onSuccess();
