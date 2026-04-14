@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap } from "lucide-react";
+import { Users, Star, Swords, Settings, Plus, Trash2, MessageCircle, Crown, ShieldCheck, Pencil, Grid3X3, Shield, BarChart2, ChevronRight, Lock, Search, X, Check, UserPlus, Crosshair, Trophy, TrendingUp, Target, Zap, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HOST_AVATARS, isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
 import { getFrameClass, getBadgeEmoji, getHandleColorClass } from "@/lib/cosmetics";
@@ -50,6 +50,15 @@ const PROFILE_COLORS = [
 ];
 
 const SQUAD_ROLES = ["Rusher", "Sniper", "IGL", "Support", "Leader", "All-Rounder"];
+
+const INDIA_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Delhi", "Jammu & Kashmir", "Ladakh", "Chandigarh",
+];
 
 const GAME_STATS_FIELDS: Record<string, { key: string; label: string; type: "text" | "number" | "percent" }[]> = {
   "Free Fire": [
@@ -952,6 +961,7 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
     gameUid: (user as any)?.gameUid ?? "",
     profileAnimation: (user as any)?.profileAnimation ?? "",
     profileColor: (user as any)?.profileColor ?? "",
+    state: (user as any)?.state ?? "",
   });
   useEffect(() => {
     if (open) {
@@ -971,6 +981,7 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
         gameUid: (user as any)?.gameUid ?? "",
         profileAnimation: (user as any)?.profileAnimation ?? "",
         profileColor: (user as any)?.profileColor ?? "",
+        state: (user as any)?.state ?? "",
       });
       if (user?.role === "player" && availableGames.length === 0) {
         customFetch<{ id: number; name: string }[]>("/api/games").then(setAvailableGames).catch(() => {});
@@ -1055,6 +1066,16 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
             <Label>Bio</Label>
             <Textarea placeholder="Tell something about yourself..." value={form.bio} onChange={(e) => setForm(f => ({ ...f, bio: e.target.value }))} rows={2} className="resize-none" maxLength={200} />
             <p className="text-[10px] text-muted-foreground text-right">{form.bio.length}/200</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-muted-foreground" />State</Label>
+            <Select value={form.state || "__none__"} onValueChange={(val) => setForm(f => ({ ...f, state: val === "__none__" ? "" : val }))}>
+              <SelectTrigger><SelectValue placeholder="Select your state" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Not specified —</SelectItem>
+                {INDIA_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           {isPlayer && (
             <div className="space-y-2">
@@ -1235,7 +1256,12 @@ function OwnProfile() {
                 )}
                 {(user as any).isLFT && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-0.5">
-                    🤝 LFT{(user as any).lftRole ? ` · ${(user as any).lftRole}` : ""}
+                    <Users className="w-3 h-3 shrink-0" /> LFT{(user as any).lftRole ? ` · ${(user as any).lftRole}` : ""}
+                  </span>
+                )}
+                {(user as any).state && (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-secondary/60 border border-border rounded-full px-2.5 py-0.5">
+                    <MapPin className="w-3 h-3 shrink-0" /> {(user as any).state}
                   </span>
                 )}
               </div>
@@ -1542,7 +1568,12 @@ function PublicProfile({ handle }: { handle: string }) {
                 )}
                 {(profile as any).isLFT && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2.5 py-0.5">
-                    🤝 LFT{(profile as any).lftRole ? ` · ${(profile as any).lftRole}` : ""}
+                    <Users className="w-3 h-3 shrink-0" /> LFT{(profile as any).lftRole ? ` · ${(profile as any).lftRole}` : ""}
+                  </span>
+                )}
+                {(profile as any).state && (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-secondary/60 border border-border rounded-full px-2.5 py-0.5">
+                    <MapPin className="w-3 h-3 shrink-0" /> {(profile as any).state}
                   </span>
                 )}
                 {isHost && (profile as any).rating && (
