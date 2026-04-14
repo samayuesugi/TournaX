@@ -20,12 +20,12 @@ function statusBadgeClass(status: string) {
 }
 
 const ADD_BALANCE_RULES = [
-  { icon: AlertTriangle, color: "text-destructive", text: "Submitting a false or already used UTR will result in a 2 Gold Coin penalty." },
+  { icon: AlertTriangle, color: "text-destructive", text: "Submitting a false or already used UTR will result in a 2 TournaX Coin penalty." },
   { icon: FileText, color: "text-blue-400", text: "Attach a clear and readable receipt — blurry or cropped receipts will be rejected." },
   { icon: CheckCircle2, color: "text-green-400", text: "Enter the UTR number exactly as shown in the receipt." },
   { icon: Clock, color: "text-yellow-400", text: "Request approval can take up to 2 hours." },
-  { icon: RefreshCw, color: "text-primary", text: "Minimum add amount is 10 ₹ (Gold Coins)." },
-  { icon: Coins, color: "text-amber-400", text: "1₹ = 1 Gold Coin" },
+  { icon: RefreshCw, color: "text-primary", text: "Minimum add amount is 10 ₹ (TournaX Coins)." },
+  { icon: Coins, color: "text-primary", text: "1₹ = 1 TournaX Coin" },
   { icon: Ban, color: "text-orange-400", text: "Do not submit a request with the same UTR twice." },
 ];
 
@@ -193,7 +193,7 @@ function CoinsPackDialog() {
         <div className="overflow-y-auto flex-1 px-4 pb-4">
           {step === "select" && (
             <div className="space-y-3 pt-1">
-              <p className="text-xs text-muted-foreground">Select a coins pack to buy. 1₹ = 1 Gold Coin.</p>
+              <p className="text-xs text-muted-foreground">Select a coins pack to buy. 1₹ = 1 TournaX Coin.</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {COIN_PACKS.map((pack) => (
                   <button
@@ -216,7 +216,7 @@ function CoinsPackDialog() {
                     <div className={cn("font-bold text-xl leading-none", pack.colorLabel)}>
                       {pack.id === "custom" ? "∞" : pack.coins}
                     </div>
-                    <div className={cn("text-[10px] font-medium -mt-0.5", pack.colorSub)}>Gold Coins</div>
+                    <div className={cn("text-[10px] font-medium -mt-0.5", pack.colorSub)}>TournaX Coins</div>
                     <div className={cn("text-xs font-semibold mt-0.5", pack.colorSub)}>
                       {pack.id === "custom" ? "Any Amount" : `₹${pack.price}`}
                     </div>
@@ -226,7 +226,7 @@ function CoinsPackDialog() {
               {selectedPack?.id === "custom" && (
                 <div className="space-y-3 pt-1">
                   <div className="space-y-1.5">
-                    <Label>Amount (₹ / Gold Coins)</Label>
+                    <Label>Amount (₹ / TournaX Coins)</Label>
                     <Input
                       type="number"
                       placeholder="Enter amount (min ₹10)"
@@ -250,7 +250,7 @@ function CoinsPackDialog() {
                 <div>
                   <p className="text-xs text-muted-foreground">You are buying</p>
                   <div className="flex items-center gap-1 font-bold text-base">
-                    <GoldCoinIcon size="sm" /> {finalCoins} Gold Coins
+                    <GoldCoinIcon size="sm" /> {finalCoins} TournaX Coins
                   </div>
                 </div>
                 <div className="text-right">
@@ -301,7 +301,7 @@ function CoinsPackDialog() {
             <div className="space-y-4 pt-1">
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
                 <div className="flex items-center gap-1 font-bold">
-                  <GoldCoinIcon size="sm" /> {finalCoins} Gold Coins
+                  <GoldCoinIcon size="sm" /> {finalCoins} TournaX Coins
                 </div>
                 <span className="text-green-400 font-bold">₹{finalPrice}</span>
               </div>
@@ -491,7 +491,7 @@ export default function WalletPage() {
       return;
     }
     if (parsedWithdrawAmount < 10) {
-      toast({ title: "Minimum 10 coins required", description: "You need at least 10 Gold Coins to withdraw.", variant: "destructive" });
+      toast({ title: "Minimum 10 coins required", description: "You need at least 10 TournaX Coins to withdraw.", variant: "destructive" });
       return;
     }
     try {
@@ -562,10 +562,10 @@ export default function WalletPage() {
               <div className="relative">
                 <div className="flex items-center gap-2 mb-1">
                   <GoldCoinIcon size="md" />
-                  <p className="text-sm text-amber-700/80 dark:text-amber-200/70 font-medium tracking-wide">Gold Coins</p>
+                  <p className="text-sm text-amber-700/80 dark:text-amber-200/70 font-medium tracking-wide">TournaX Coins</p>
                 </div>
                 <h2 className="text-4xl font-bold mb-1 text-amber-900 dark:text-amber-50">{wallet?.balance?.toFixed(2) ?? "0.00"}</h2>
-                <p className="text-xs text-amber-700/60 dark:text-amber-200/50 mb-4">1₹ = 1 Gold Coin</p>
+                <p className="text-xs text-amber-700/60 dark:text-amber-200/50 mb-4">1₹ = 1 TournaX Coin</p>
                 <div className="flex gap-2">
                   <CoinsPackDialog />
                   {withdrawDialog}

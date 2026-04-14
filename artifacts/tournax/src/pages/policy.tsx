@@ -27,7 +27,7 @@ const POLICIES: Record<string, { title: string; intro: string; sections: { headi
     title: "Refund/Withdrawal Policy",
     intro: "Wallet and match-related requests are reviewed based on tournament status, payment proof, and fair-play checks.",
     sections: [
-      { heading: "Add balance requests", body: "Gold Coin additions require a valid payment receipt and UTR. False, duplicate, or unclear submissions may be rejected." },
+      { heading: "Add balance requests", body: "TournaX Coin additions require a valid payment receipt and UTR. False, duplicate, or unclear submissions may be rejected." },
       { heading: "Match refunds", body: "Refunds may apply when a match is cancelled before completion according to platform and host rules." },
       { heading: "Prize distribution", body: "Prizes are released after results are submitted and verified. Suspicious results may require manual review." },
       { heading: "Withdrawals", body: "Withdrawal requests require accurate UPI details and enough wallet balance. Processing time may vary during review." },

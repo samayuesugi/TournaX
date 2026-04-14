@@ -38,7 +38,7 @@ const translations = {
     joinMatch: "Join Match",
     shareReferral: "Share Referral",
     dailyBonus: "Daily Bonus",
-    goldCoins: "Gold Coins",
+    goldCoins: "TournaX Coins",
     silverCoins: "Silver Coins",
     balance: "Balance",
     withdraw: "Withdraw",

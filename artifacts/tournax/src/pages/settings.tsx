@@ -287,12 +287,12 @@ function ReferralDialog({ open, onClose, referralStats, codeCopied, linkCopied, 
           </div>
           {referralStats?.bonusActive && referralStats?.bonusUntil && (
             <div className="bg-green-500/10 border border-green-500/25 rounded-xl px-3 py-2 text-xs text-green-400">
-              🎁 +1 Gold Coin bonus on Win 3 Matches task active until {referralStats.bonusUntil}
+              🎁 +1 TournaX Coin bonus on Win 3 Matches task active until {referralStats.bonusUntil}
             </div>
           )}
           <div className="bg-secondary/40 rounded-xl px-3 py-2 space-y-1">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
-            <p className="text-xs text-muted-foreground">Share your code → Friend registers → Friend plays 5 paid matches → You get <span className="text-amber-400 font-semibold">3 Gold Coins</span></p>
+            <p className="text-xs text-muted-foreground">Share your code → Friend registers → Friend plays 5 paid matches → You get <span className="text-primary font-semibold">3 TournaX Coins</span></p>
           </div>
           {referralStats?.usedCode && !referralStats?.myReferralCompleted && (
             <div className="bg-secondary/40 rounded-xl px-3 py-2 text-xs text-muted-foreground">
@@ -399,7 +399,7 @@ function TermsDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
           <p className="font-semibold text-foreground">2. Fair Play</p>
           <p>Cheating, hacking, or using unauthorized tools is strictly prohibited and will result in a permanent ban.</p>
           <p className="font-semibold text-foreground">3. Payments & Withdrawals</p>
-          <p>All transactions are final. Withdrawals are processed within 24-48 hours. Minimum withdrawal is 10 Gold Coins.</p>
+          <p>All transactions are final. Withdrawals are processed within 24-48 hours. Minimum withdrawal is 10 TournaX Coins.</p>
           <p className="font-semibold text-foreground">4. Disputes</p>
           <p>Raise a complaint through the app for any issues. Our team reviews all disputes within 48 hours.</p>
           <p className="font-semibold text-foreground">5. Privacy</p>

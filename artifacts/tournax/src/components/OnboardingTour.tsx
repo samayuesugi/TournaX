@@ -40,7 +40,7 @@ const steps = [
     bg: "bg-yellow-400/10",
     title: "Wallet — Gold & Silver Coins",
     description:
-      "Gold Coins are used to enter tournaments (1₹ = 1 Gold Coin). Silver Coins are earned daily and used in the store. Top up via UPI instantly from the wallet tab.",
+      "TournaX Coins are used to enter tournaments (1₹ = 1 TournaX Coin). Silver Coins are earned daily and used in the store. Top up via UPI instantly from the wallet tab.",
   },
   {
     icon: Compass,

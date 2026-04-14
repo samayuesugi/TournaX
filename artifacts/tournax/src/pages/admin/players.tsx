@@ -52,7 +52,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
   const handleAddBalance = async () => {
     try {
       await addBalance({ id: player.id, data: { amount: parseFloat(amount) } });
-      toast({ title: `${amount} Gold Coins added to ${player.name || player.email}` });
+      toast({ title: `${amount} TournaX Coins added to ${player.name || player.email}` });
       setBalanceOpen(false);
       setAmount("");
       onAction();
@@ -67,7 +67,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
         method: "POST",
         body: JSON.stringify({ amount: parseFloat(amount) }),
       });
-      toast({ title: `Balance set to ${amount} Gold Coins for ${player.name || player.email}` });
+      toast({ title: `Balance set to ${amount} TournaX Coins for ${player.name || player.email}` });
       setBalanceOpen(false);
       setAmount("");
       onAction();
@@ -146,7 +146,7 @@ function PlayerRow({ player, onAction }: { player: AdminPlayer; onAction: () => 
                 </button>
               </div>
               <div className="space-y-1.5">
-                <Label>{balanceMode === "add" ? "Amount to Add" : "New Balance"} (Gold Coins)</Label>
+                <Label>{balanceMode === "add" ? "Amount to Add" : "New Balance"} (TournaX Coins)</Label>
                 <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Enter amount" min="0" />
               </div>
               {balanceMode === "set" && amount && (

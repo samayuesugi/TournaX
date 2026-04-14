@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const GOLD_COIN_SRC = "/gold-coin-rupee.png";
+const GOLD_COIN_SRC = "/tournax-coin.png";
 const SILVER_COIN_SRC = "/silver-coin.png";
 
 interface CoinProps {
@@ -19,7 +19,7 @@ export function GoldCoin({ amount, className, size = "md" }: CoinProps) {
   return (
     <span className={cn("inline-flex items-center gap-1", className)}>
       <span>{amount}</span>
-      <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain", iconSize(size))} />
+      <img src={GOLD_COIN_SRC} alt="TournaX Coin" className={cn("shrink-0 object-contain", iconSize(size))} />
     </span>
   );
 }
@@ -35,7 +35,7 @@ export function SilverCoin({ amount, className, size = "md" }: CoinProps) {
 
 export function GoldCoinIcon({ className, size = "md" }: { className?: string; size?: "sm" | "md" | "lg" }) {
   return (
-    <img src={GOLD_COIN_SRC} alt="Gold" className={cn("shrink-0 object-contain", iconSize(size), className)} />
+    <img src={GOLD_COIN_SRC} alt="TournaX Coin" className={cn("shrink-0 object-contain", iconSize(size), className)} />
   );
 }
 
