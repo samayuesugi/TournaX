@@ -3,7 +3,7 @@ export interface CosmeticMeta {
   name: string;
   emoji: string;
   cssValue: string;
-  category: "frame" | "badge" | "handle_color";
+  category: "frame" | "badge" | "handle_color" | "banner_animation";
 }
 
 const COSMETICS: CosmeticMeta[] = [
@@ -22,6 +22,9 @@ const COSMETICS: CosmeticMeta[] = [
   { id: "color-green",   category: "handle_color", name: "Green",        emoji: "💚", cssValue: "text-green-400" },
   { id: "color-cyan",    category: "handle_color", name: "Cyan",         emoji: "🩵", cssValue: "text-cyan-400" },
   { id: "color-gold",    category: "handle_color", name: "Gold",         emoji: "💛", cssValue: "text-amber-400" },
+  { id: "banner-rainfall",   category: "banner_animation", name: "Color Rain",      emoji: "🌧️", cssValue: "rainfall" },
+  { id: "banner-firestorm",  category: "banner_animation", name: "Firestorm",       emoji: "🔥", cssValue: "firestorm" },
+  { id: "banner-star-night", category: "banner_animation", name: "Starry Snowfall", emoji: "🌌", cssValue: "star-night" },
 ];
 
 const MAP = new Map(COSMETICS.map(c => [c.id, c]));

@@ -13,7 +13,7 @@ import { GoldCoinIcon } from "@/components/ui/Coins";
 
 interface CosmeticItem {
   id: string;
-  category: "frame" | "badge" | "handle_color";
+  category: "frame" | "badge" | "handle_color" | "banner_animation";
   name: string;
   description: string;
   emoji: string;
@@ -24,7 +24,7 @@ interface CosmeticItem {
 interface StoreData {
   items: CosmeticItem[];
   owned: string[];
-  equipped: { frame: string | null; badge: string | null; handle_color: string | null };
+  equipped: { frame: string | null; badge: string | null; handle_color: string | null; banner_animation: string | null };
 }
 
 function AvatarWithFrame({ avatar, frameClass, size = "lg" }: { avatar?: string | null; frameClass?: string; size?: "sm" | "lg" }) {
@@ -46,11 +46,28 @@ function AvatarWithFrame({ avatar, frameClass, size = "lg" }: { avatar?: string 
   );
 }
 
-function PreviewDialog({ item, userAvatar, userHandle, userName, owned, equipped, balance, onBuy, onEquip, onUnequip, onClose }: {
+function bannerPreviewGradient(profileColor?: string | null, animation?: string | null) {
+  if (animation === "firestorm") return "linear-gradient(135deg, #2a0703, #7f1d1d, #f97316, #facc15, #450a0a)";
+  if (animation === "star-night") return "linear-gradient(135deg, #050816, #111827, #312e81, #581c87, #050816)";
+  const gradients: Record<string, string> = {
+    blue: "linear-gradient(135deg, #1e3a8a, #1d4ed8, #3b82f6, #1e3a8a)",
+    red: "linear-gradient(135deg, #7f1d1d, #dc2626, #ef4444, #7f1d1d)",
+    orange: "linear-gradient(135deg, #7c2d12, #ea580c, #f97316, #7c2d12)",
+    green: "linear-gradient(135deg, #14532d, #16a34a, #22c55e, #14532d)",
+    gold: "linear-gradient(135deg, #713f12, #ca8a04, #eab308, #713f12)",
+    pink: "linear-gradient(135deg, #831843, #db2777, #ec4899, #831843)",
+    cyan: "linear-gradient(135deg, #164e63, #0891b2, #06b6d4, #164e63)",
+    purple: "linear-gradient(135deg, #3b0764, #7c3aed, #8b5cf6, #3b0764)",
+  };
+  return gradients[profileColor || ""] ?? "linear-gradient(135deg, #3b0764, #7c3aed, #06b6d4, #3b0764)";
+}
+
+function PreviewDialog({ item, userAvatar, userHandle, userName, userProfileColor, owned, equipped, balance, onBuy, onEquip, onUnequip, onClose }: {
   item: CosmeticItem;
   userAvatar?: string | null;
   userHandle?: string;
   userName?: string;
+  userProfileColor?: string | null;
   owned: boolean;
   equipped: boolean;
   balance: number;
@@ -114,6 +131,20 @@ function PreviewDialog({ item, userAvatar, userHandle, userName, owned, equipped
                 </div>
               </>
             )}
+            {item.category === "banner_animation" && (
+              <>
+                <div
+                  className={cn("profile-banner w-full h-24 rounded-2xl overflow-hidden border border-border relative", `profile-banner-${item.cssValue}`)}
+                  style={{ backgroundImage: bannerPreviewGradient(userProfileColor, item.cssValue) }}
+                >
+                  <div className="absolute inset-0 bg-black/20" />
+                  <div className="absolute left-3 bottom-3 z-10">
+                    <div className="text-sm font-bold text-white drop-shadow">{name}</div>
+                    <div className="text-xs text-white/80 drop-shadow">@{handle}</div>
+                  </div>
+                </div>
+              </>
+            )}
             <p className="text-xs text-muted-foreground text-center">{item.description}</p>
           </div>
           <div className="flex items-center justify-between">
@@ -133,6 +164,70 @@ function PreviewDialog({ item, userAvatar, userHandle, userName, owned, equipped
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function BannerAnimationCard({ item, owned, equipped, onBuy, onEquip, onUnequip, balance, userProfileColor, onPreview }: {
+  item: CosmeticItem;
+  owned: boolean;
+  equipped: boolean;
+  onBuy: (id: string) => Promise<void>;
+  onEquip: (id: string) => Promise<void>;
+  onUnequip: (cat: string) => Promise<void>;
+  balance: number;
+  userProfileColor?: string | null;
+  onPreview: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const canAfford = balance >= item.cost;
+
+  const handleAction = async () => {
+    setLoading(true);
+    try {
+      if (!owned) await onBuy(item.id);
+      else if (!equipped) await onEquip(item.id);
+      else await onUnequip(item.category);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={cn(
+      "bg-card border rounded-2xl overflow-hidden transition-all",
+      equipped ? "border-primary/60 bg-primary/5" : "border-border"
+    )}>
+      <button type="button" onClick={onPreview} className="w-full text-left">
+        <div
+          className={cn("profile-banner h-24 relative overflow-hidden", `profile-banner-${item.cssValue}`)}
+          style={{ backgroundImage: bannerPreviewGradient(userProfileColor, item.cssValue) }}
+        >
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute left-4 bottom-3 z-10">
+            <div className="font-semibold text-sm text-white flex items-center gap-1.5 drop-shadow">
+              {item.emoji} {item.name}
+              {equipped && <Check className="w-3 h-3 text-white" />}
+            </div>
+            <div className="text-xs text-white/80 drop-shadow">{item.description}</div>
+          </div>
+          <Eye className="absolute right-4 top-4 z-10 w-4 h-4 text-white/80" />
+        </div>
+      </button>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-1 text-sm font-semibold">
+          <GoldCoinIcon size="sm" /> {item.cost}
+        </div>
+        <Button
+          size="sm"
+          variant={equipped ? "outline" : owned ? "default" : canAfford ? "default" : "secondary"}
+          className={cn("h-7 text-xs px-3", equipped && "border-primary/40 text-primary hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40")}
+          onClick={handleAction}
+          disabled={loading || (!owned && !canAfford)}
+        >
+          {loading ? "..." : equipped ? "Unequip" : owned ? "Equip" : "Buy"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -318,7 +413,7 @@ function HandleColorCard({ item, owned, equipped, onBuy, onEquip, onUnequip, bal
 }
 
 export default function StorePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const { data: wallet } = useGetWallet();
   const [storeData, setStoreData] = useState<StoreData | null>(null);
@@ -355,6 +450,7 @@ export default function StorePage() {
       const res = await customFetch<{ message: string }>(`/api/store/equip/${itemId}`, { method: "POST" });
       toast({ title: "Equipped!", description: res.message });
       await fetchStore();
+      await refreshUser();
     } catch (err: any) {
       toast({ title: "Failed to equip", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
@@ -365,6 +461,7 @@ export default function StorePage() {
       await customFetch(`/api/store/unequip/${category}`, { method: "POST" });
       toast({ title: "Unequipped" });
       await fetchStore();
+      await refreshUser();
     } catch (err: any) {
       toast({ title: "Failed", description: err?.data?.error || "Something went wrong", variant: "destructive" });
     }
@@ -373,11 +470,12 @@ export default function StorePage() {
   const frames = storeData?.items.filter(i => i.category === "frame") ?? [];
   const badges = storeData?.items.filter(i => i.category === "badge") ?? [];
   const colors = storeData?.items.filter(i => i.category === "handle_color") ?? [];
+  const banners = storeData?.items.filter(i => i.category === "banner_animation") ?? [];
   const isHostOrAdmin = user?.role === "host" || user?.role === "admin";
   const owned = isHostOrAdmin
     ? new Set(storeData?.items.map(i => i.id) ?? [])
     : new Set(storeData?.owned ?? []);
-  const equipped = storeData?.equipped ?? { frame: null, badge: null, handle_color: null };
+  const equipped = storeData?.equipped ?? { frame: null, badge: null, handle_color: null, banner_animation: null };
 
   return (
     <AppLayout title="Cosmetics Store">
@@ -404,10 +502,11 @@ export default function StorePage() {
           </div>
         ) : (
           <Tabs defaultValue="frames">
-            <TabsList className="w-full grid grid-cols-3 mb-4">
+            <TabsList className="w-full grid grid-cols-4 mb-4">
               <TabsTrigger value="frames" className="gap-1.5"><Frame className="w-3.5 h-3.5" /> Frames</TabsTrigger>
               <TabsTrigger value="badges" className="gap-1.5"><Award className="w-3.5 h-3.5" /> Badges</TabsTrigger>
               <TabsTrigger value="colors" className="gap-1.5"><Palette className="w-3.5 h-3.5" /> Handle</TabsTrigger>
+              <TabsTrigger value="banners" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Banner</TabsTrigger>
             </TabsList>
 
             <TabsContent value="frames" className="space-y-3 mt-0">
@@ -461,6 +560,24 @@ export default function StorePage() {
                 />
               ))}
             </TabsContent>
+
+            <TabsContent value="banners" className="space-y-3 mt-0">
+              <p className="text-xs text-muted-foreground px-1">Banner animations appear behind your profile. Color Rain uses your selected banner color from Edit Profile.</p>
+              {banners.map(item => (
+                <BannerAnimationCard
+                  key={item.id}
+                  item={item}
+                  owned={owned.has(item.id)}
+                  equipped={equipped.banner_animation === item.cssValue}
+                  onBuy={handleBuy}
+                  onEquip={handleEquip}
+                  onUnequip={handleUnequip}
+                  balance={balance}
+                  userProfileColor={(user as any)?.profileColor}
+                  onPreview={() => setPreviewItem(item)}
+                />
+              ))}
+            </TabsContent>
           </Tabs>
         )}
 
@@ -470,7 +587,7 @@ export default function StorePage() {
             <div className="text-xs text-muted-foreground">
               You own <span className="font-semibold text-foreground">{owned.size}</span> item{owned.size !== 1 ? "s" : ""}. Equipped: 
               <span className="font-semibold text-foreground ml-1">
-                {[equipped.frame && "Frame", equipped.badge && "Badge", equipped.handle_color && "Color"].filter(Boolean).join(", ") || "none"}
+                {[equipped.frame && "Frame", equipped.badge && "Badge", equipped.handle_color && "Color", equipped.banner_animation && "Banner"].filter(Boolean).join(", ") || "none"}
               </span>
             </div>
           </div>
@@ -483,10 +600,12 @@ export default function StorePage() {
           userAvatar={user?.avatar}
           userHandle={user?.handle}
           userName={user?.name}
+          userProfileColor={(user as any)?.profileColor}
           owned={owned.has(previewItem.id)}
           equipped={
             previewItem.category === "frame" ? equipped.frame === previewItem.id :
             previewItem.category === "badge" ? equipped.badge === previewItem.id :
+            previewItem.category === "banner_animation" ? equipped.banner_animation === previewItem.cssValue :
             equipped.handle_color === previewItem.id
           }
           balance={balance}

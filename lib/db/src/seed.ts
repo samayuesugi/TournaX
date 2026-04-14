@@ -23,6 +23,9 @@ const ALL_STORE_ITEM_IDS = [
   { id: "color-green",  category: "handle_color" },
   { id: "color-cyan",   category: "handle_color" },
   { id: "color-gold",   category: "handle_color" },
+  { id: "banner-rainfall",  category: "banner_animation" },
+  { id: "banner-firestorm", category: "banner_animation" },
+  { id: "banner-star-night", category: "banner_animation" },
 ];
 
 const DEFAULT_ACCOUNTS = [

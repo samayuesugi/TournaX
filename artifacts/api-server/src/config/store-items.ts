@@ -1,4 +1,4 @@
-export type CosmeticCategory = "frame" | "badge" | "handle_color";
+export type CosmeticCategory = "frame" | "badge" | "handle_color" | "banner_animation";
 
 export interface CosmeticItem {
   id: string;
@@ -28,4 +28,8 @@ export const STORE_ITEMS: CosmeticItem[] = [
   { id: "color-green",  category: "handle_color", name: "Green",   description: "Toxic neon-green handle",            emoji: "💚", cost: 50,  cssValue: "text-green-400" },
   { id: "color-cyan",   category: "handle_color", name: "Cyan",    description: "Ice-cold electric cyan handle",      emoji: "🩵", cost: 60,  cssValue: "text-cyan-400" },
   { id: "color-gold",   category: "handle_color", name: "Gold",    description: "Prestigious gold handle color",      emoji: "💛", cost: 70,  cssValue: "text-amber-400" },
+
+  { id: "banner-rainfall",  category: "banner_animation", name: "Color Rain",    description: "Animated rainfall using your selected banner color", emoji: "🌧️", cost: 90,  cssValue: "rainfall" },
+  { id: "banner-firestorm", category: "banner_animation", name: "Firestorm",     description: "Blazing fire waves and ember particles for your banner", emoji: "🔥", cost: 120, cssValue: "firestorm" },
+  { id: "banner-star-night", category: "banner_animation", name: "Starry Snowfall", description: "Galaxy night sky with drifting snow and stars", emoji: "🌌", cost: 140, cssValue: "star-night" },
 ];

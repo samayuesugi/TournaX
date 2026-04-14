@@ -20,7 +20,7 @@ router.get("/store/items", requireAuth, async (req: Request, res: Response) => {
   const ownedSet = new Set(owned.map((o) => o.itemId));
 
   const [userData] = await db
-    .select({ equippedFrame: usersTable.equippedFrame, equippedBadge: usersTable.equippedBadge, equippedHandleColor: usersTable.equippedHandleColor })
+    .select({ equippedFrame: usersTable.equippedFrame, equippedBadge: usersTable.equippedBadge, equippedHandleColor: usersTable.equippedHandleColor, profileAnimation: usersTable.profileAnimation })
     .from(usersTable)
     .where(eq(usersTable.id, user.id));
 
@@ -31,6 +31,7 @@ router.get("/store/items", requireAuth, async (req: Request, res: Response) => {
       frame: userData?.equippedFrame ?? null,
       badge: userData?.equippedBadge ?? null,
       handle_color: userData?.equippedHandleColor ?? null,
+      banner_animation: userData?.profileAnimation ?? null,
     },
   });
 });
@@ -97,6 +98,8 @@ router.post("/store/equip/:itemId", requireAuth, async (req: Request, res: Respo
     await db.update(usersTable).set({ equippedBadge: itemId }).where(eq(usersTable.id, user.id));
   } else if (item.category === "handle_color") {
     await db.update(usersTable).set({ equippedHandleColor: itemId }).where(eq(usersTable.id, user.id));
+  } else if (item.category === "banner_animation") {
+    await db.update(usersTable).set({ profileAnimation: item.cssValue }).where(eq(usersTable.id, user.id));
   }
 
   res.json({ success: true, message: `Equipped ${item.name}!` });
@@ -112,6 +115,8 @@ router.post("/store/unequip/:category", requireAuth, async (req: Request, res: R
     await db.update(usersTable).set({ equippedBadge: null }).where(eq(usersTable.id, user.id));
   } else if (category === "handle_color") {
     await db.update(usersTable).set({ equippedHandleColor: null }).where(eq(usersTable.id, user.id));
+  } else if (category === "banner_animation") {
+    await db.update(usersTable).set({ profileAnimation: null }).where(eq(usersTable.id, user.id));
   }
 
   res.json({ success: true });

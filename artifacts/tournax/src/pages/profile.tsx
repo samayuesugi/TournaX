@@ -36,6 +36,9 @@ const PROFILE_ANIMATIONS = [
   { value: "pulse", label: "Pulse Glow" },
   { value: "neon", label: "Neon Flow" },
   { value: "shimmer", label: "Shimmer" },
+  { value: "rainfall", label: "Color Rain" },
+  { value: "firestorm", label: "Firestorm" },
+  { value: "star-night", label: "Starry Snowfall" },
 ];
 
 const PROFILE_COLORS = [
@@ -129,6 +132,8 @@ function getBannerGradient(color: string | null | undefined, animation: string |
     cyan: "linear-gradient(135deg, #164e63, #0891b2, #06b6d4, #164e63)",
     purple: "linear-gradient(135deg, #3b0764, #7c3aed, #8b5cf6, #3b0764)",
   };
+  if (animation === "firestorm") return "linear-gradient(135deg, #2a0703, #7f1d1d, #f97316, #facc15, #450a0a)";
+  if (animation === "star-night") return "linear-gradient(135deg, #050816, #111827, #312e81, #581c87, #050816)";
   if (c && gradients[c]) return gradients[c];
   if (animation) return "linear-gradient(135deg, #1e1030, #3b0764, #7c3aed, #1e1030)";
   return "transparent";
@@ -1310,7 +1315,13 @@ function EditProfileDialog({ open, onClose, user, refreshUser }: { open: boolean
 }
 
 function ProfileBanner({ profileAnimation, profileColor }: { profileAnimation?: string | null; profileColor?: string | null }) {
-  const animClass = profileAnimation === "pulse" ? "profile-banner-pulse" : profileAnimation === "neon" ? "profile-banner-neon" : profileAnimation === "shimmer" ? "profile-banner-shimmer" : "";
+  const animClass =
+    profileAnimation === "pulse" ? "profile-banner-pulse" :
+    profileAnimation === "neon" ? "profile-banner-neon" :
+    profileAnimation === "shimmer" ? "profile-banner-shimmer" :
+    profileAnimation === "rainfall" ? "profile-banner-rainfall" :
+    profileAnimation === "firestorm" ? "profile-banner-firestorm" :
+    profileAnimation === "star-night" ? "profile-banner-star-night" : "";
   const gradient = (profileColor || profileAnimation)
     ? getBannerGradient(profileColor, profileAnimation)
     : "linear-gradient(135deg, #1a1a2e, #16213e, #0f3460, #1a1a2e)";

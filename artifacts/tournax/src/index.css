@@ -389,6 +389,99 @@
   animation: banner-flow 2.5s ease infinite;
 }
 
+.profile-banner-rainfall {
+  background-size: 200% 200%;
+  animation: banner-flow 8s ease infinite;
+}
+.profile-banner-rainfall::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background-image:
+    linear-gradient(180deg, transparent 0%, var(--profile-accent-light, #22d3ee) 48%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, var(--profile-accent, #8b5cf6) 52%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.75) 50%, transparent 100%);
+  background-size: 2px 82px, 2px 58px, 1px 44px;
+  background-position: 12% 0, 46% 20%, 78% 10%;
+  opacity: 0.7;
+  transform: rotate(12deg);
+  animation: banner-rainfall 1.15s linear infinite;
+}
+.profile-banner-firestorm {
+  background-size: 220% 220%;
+  animation: banner-flow 4s ease infinite;
+}
+.profile-banner-firestorm::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 18% 92%, rgba(250,204,21,0.9) 0 4%, transparent 11%),
+    radial-gradient(circle at 46% 95%, rgba(249,115,22,0.85) 0 7%, transparent 16%),
+    radial-gradient(circle at 74% 96%, rgba(239,68,68,0.75) 0 5%, transparent 14%),
+    linear-gradient(0deg, rgba(249,115,22,0.85), transparent 58%);
+  filter: blur(2px);
+  animation: banner-fire 1.6s ease-in-out infinite alternate;
+}
+.profile-banner-firestorm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.9) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(250,204,21,0.9) 0 1px, transparent 2px);
+  background-size: 42px 42px, 68px 68px;
+  animation: banner-embers 3s linear infinite;
+  opacity: 0.5;
+}
+.profile-banner-star-night {
+  background-size: 200% 200%;
+  animation: banner-flow 10s ease infinite;
+}
+.profile-banner-star-night::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.95) 0 1px, transparent 1.8px),
+    radial-gradient(circle, rgba(167,139,250,0.9) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(255,255,255,0.6) 0 1px, transparent 2px);
+  background-size: 34px 34px, 58px 58px, 86px 86px;
+  animation: banner-stars 4s ease-in-out infinite alternate;
+}
+.profile-banner-star-night::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.95) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle, rgba(186,230,253,0.8) 0 1px, transparent 2px);
+  background-size: 46px 46px, 72px 72px;
+  animation: banner-snow 7s linear infinite;
+  opacity: 0.85;
+}
+
+@keyframes banner-rainfall {
+  0% { transform: translateY(-12%) rotate(12deg); }
+  100% { transform: translateY(28%) rotate(12deg); }
+}
+@keyframes banner-fire {
+  0% { transform: translateY(7%) scaleX(1); opacity: 0.75; }
+  100% { transform: translateY(-4%) scaleX(1.08); opacity: 1; }
+}
+@keyframes banner-embers {
+  0% { background-position: 0 60px, 20px 90px; }
+  100% { background-position: 30px -80px, -20px -110px; }
+}
+@keyframes banner-stars {
+  0% { opacity: 0.55; filter: brightness(0.9); }
+  100% { opacity: 1; filter: brightness(1.35); }
+}
+@keyframes banner-snow {
+  0% { transform: translate3d(-2%, -8%, 0); }
+  100% { transform: translate3d(6%, 20%, 0); }
+}
+
 .profile-color-blue { --profile-accent: #3b82f6; --profile-accent-light: #60a5fa; }
 .profile-color-red { --profile-accent: #ef4444; --profile-accent-light: #f87171; }
 .profile-color-orange { --profile-accent: #f97316; --profile-accent-light: #fb923c; }
