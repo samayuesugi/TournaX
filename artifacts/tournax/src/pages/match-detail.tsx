@@ -487,7 +487,7 @@ function TournamentBracket({ matchId, canManage }: { matchId: number; canManage:
   );
 }
 
-type Tab = "info" | "chat" | "players";
+type Tab = "info" | "chat" | "players" | "leaderboard";
 
 export default function MatchDetailPage() {
   const [, params] = useRoute("/matches/:id");
@@ -515,6 +515,8 @@ export default function MatchDetailPage() {
   const [soloSquadId, setSoloSquadId] = useState<number | null>(null);
   const [soloManual, setSoloManual] = useState({ ign: "", uid: "" });
   const [roomCreds, setRoomCreds] = useState({ roomId: "", roomPassword: "" });
+  const [lbEdits, setLbEdits] = useState<Record<number, { kills: string; rank: string }>>({});
+  const [isSavingLB, setIsSavingLB] = useState(false);
 
   const socket = useSocket();
   const queryClient = useQueryClient();
@@ -531,11 +533,17 @@ export default function MatchDetailPage() {
       toast({ title: "This match has been deleted by the host.", variant: "destructive" });
       navigate("/");
     };
+    const onLeaderboard = (data: { matchId: number }) => {
+      if (data.matchId !== matchId) return;
+      queryClient.invalidateQueries({ queryKey: ["getMatchPlayers", matchId] });
+    };
     socket.on("match:updated", onUpdated);
     socket.on("match:deleted", onDeleted);
+    socket.on("match:leaderboard", onLeaderboard);
     return () => {
       socket.off("match:updated", onUpdated);
       socket.off("match:deleted", onDeleted);
+      socket.off("match:leaderboard", onLeaderboard);
     };
   }, [socket, matchId]);
 
@@ -654,6 +662,7 @@ export default function MatchDetailPage() {
 
   const TABS: { id: Tab; label: string; icon: React.ElementType; badge?: number }[] = [
     { id: "info", label: "Info", icon: Info },
+    { id: "leaderboard", label: "Leaderboard", icon: Trophy },
     { id: "chat", label: "Chat & Creds", icon: MessageSquare },
     { id: "players", label: "Players", icon: Users, badge: match.filledSlots },
   ];
@@ -1190,6 +1199,176 @@ export default function MatchDetailPage() {
       )}
 
       {/* PLAYERS TAB */}
+      {activeTab === "leaderboard" && (() => {
+        const sorted = [...(players ?? [])].sort((a: any, b: any) => {
+          const ra = a.rank ?? 9999;
+          const rb = b.rank ?? 9999;
+          if (ra !== rb) return ra - rb;
+          return (b.kills ?? -1) - (a.kills ?? -1);
+        });
+        const hasAnyData = (players ?? []).some((p: any) => p.rank != null || p.kills != null);
+
+        const handleSaveLB = async () => {
+          if (!players) return;
+          setIsSavingLB(true);
+          const entries = (players as any[]).map((p: any) => ({
+            participantId: p.id,
+            kills: lbEdits[p.id]?.kills !== undefined ? (parseInt(lbEdits[p.id].kills) || 0) : (p.kills ?? 0),
+            rank: lbEdits[p.id]?.rank !== undefined ? (parseInt(lbEdits[p.id].rank) || null) : (p.rank ?? null),
+          }));
+          try {
+            const res = await customFetch(`/api/matches/${matchId}/leaderboard`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ entries }),
+            });
+            if (!res.ok) throw new Error();
+            toast({ title: "Leaderboard updated!" });
+            setLbEdits({});
+            queryClient.invalidateQueries({ queryKey: ["getMatchPlayers", matchId] });
+          } catch {
+            toast({ title: "Failed to save leaderboard", variant: "destructive" });
+          } finally {
+            setIsSavingLB(false);
+          }
+        };
+
+        const rankMedal = (rank: number | null | undefined) => {
+          if (rank === 1) return "🥇";
+          if (rank === 2) return "🥈";
+          if (rank === 3) return "🥉";
+          return null;
+        };
+
+        return (
+          <div className="space-y-3">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span className="font-semibold text-sm">Live Leaderboard</span>
+                {match.status === "live" && (
+                  <span className="text-[10px] font-bold text-red-400 border border-red-400/40 rounded-full px-2 py-0.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+                    LIVE
+                  </span>
+                )}
+              </div>
+              {canManage && match.status !== "upcoming" && (
+                <Button size="sm" onClick={handleSaveLB} disabled={isSavingLB} className="h-7 text-xs px-3">
+                  {isSavingLB ? "Saving…" : "Save"}
+                </Button>
+              )}
+            </div>
+
+            {/* Empty state */}
+            {(!players || players.length === 0) ? (
+              <div className="bg-card border border-card-border rounded-2xl p-8 flex flex-col items-center gap-2 text-center">
+                <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-2xl">🏆</div>
+                <p className="font-semibold text-sm mt-1">No participants yet</p>
+                <p className="text-xs text-muted-foreground">Players who join will appear here.</p>
+              </div>
+            ) : match.status === "upcoming" && !hasAnyData ? (
+              <div className="bg-card border border-card-border rounded-2xl p-8 flex flex-col items-center gap-2 text-center">
+                <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-2xl">🏆</div>
+                <p className="font-semibold text-sm mt-1">Leaderboard not started</p>
+                <p className="text-xs text-muted-foreground">Rankings will appear once the match goes live.</p>
+              </div>
+            ) : (
+              <div className="bg-card border border-card-border rounded-2xl overflow-hidden">
+                {/* Host edit header */}
+                {canManage && match.status === "live" && (
+                  <div className="px-4 py-2.5 bg-primary/5 border-b border-card-border">
+                    <p className="text-[11px] text-primary font-medium">Edit kills & rank for each team, then tap Save.</p>
+                  </div>
+                )}
+                <div className="divide-y divide-card-border">
+                  {sorted.map((p: any, i: number) => {
+                    const currentKills = lbEdits[p.id]?.kills !== undefined ? lbEdits[p.id].kills : String(p.kills ?? "");
+                    const currentRank = lbEdits[p.id]?.rank !== undefined ? lbEdits[p.id].rank : String(p.rank ?? "");
+                    const displayRank = p.rank ?? null;
+                    const medal = rankMedal(displayRank);
+                    const igns = (p.players ?? []).map((pl: any) => pl.ign).filter(Boolean);
+
+                    return (
+                      <div key={p.id} className={cn(
+                        "flex items-center gap-3 px-4 py-3",
+                        i === 0 && p.rank === 1 ? "bg-amber-500/5" : ""
+                      )}>
+                        {/* Rank badge */}
+                        <div className="w-8 shrink-0 flex flex-col items-center">
+                          {medal ? (
+                            <span className="text-xl leading-none">{medal}</span>
+                          ) : (
+                            <span className={cn(
+                              "text-xs font-bold font-mono",
+                              displayRank ? "text-muted-foreground" : "text-muted-foreground/40"
+                            )}>
+                              {displayRank ? `#${displayRank}` : `—`}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Team info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">
+                            {p.teamName || (match.teamSize > 1 ? `Team ${p.teamNumber}` : igns[0] || `Player ${p.teamNumber}`)}
+                          </p>
+                          {igns.length > 0 && (
+                            <p className="text-[11px] text-muted-foreground truncate">{igns.join(", ")}</p>
+                          )}
+                        </div>
+
+                        {/* Host editable fields */}
+                        {canManage && match.status === "live" ? (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-[9px] text-muted-foreground font-medium uppercase">Kills</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={currentKills}
+                                onChange={e => setLbEdits(prev => ({ ...prev, [p.id]: { ...prev[p.id], kills: e.target.value } }))}
+                                className="w-14 h-7 text-center text-xs px-1 font-mono"
+                              />
+                            </div>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-[9px] text-muted-foreground font-medium uppercase">Rank</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                value={currentRank}
+                                onChange={e => setLbEdits(prev => ({ ...prev, [p.id]: { ...prev[p.id], rank: e.target.value } }))}
+                                className="w-14 h-7 text-center text-xs px-1 font-mono"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 shrink-0">
+                            {p.kills != null && (
+                              <div className="flex flex-col items-center">
+                                <span className="text-sm font-bold text-foreground">{p.kills}</span>
+                                <span className="text-[10px] text-muted-foreground">kills</span>
+                              </div>
+                            )}
+                            {p.reward != null && parseFloat(p.reward) > 0 && (
+                              <div className="flex flex-col items-center">
+                                <span className="text-sm font-bold text-amber-400">₹{parseFloat(p.reward).toFixed(0)}</span>
+                                <span className="text-[10px] text-muted-foreground">won</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {activeTab === "players" && (
         <div className="space-y-3 pb-4">
           {user?.role === "player" && match.isJoined && (

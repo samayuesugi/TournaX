@@ -809,9 +809,36 @@ router.get("/matches/:id/players", requireAuth, async (req: Request, res: Respon
         uid: canSeeFullUid ? pl.uid : (pl.uid ? pl.uid.slice(0, 3) + "****" : "****"),
         position: pl.position,
       })),
+      kills: p.kills ?? null,
     };
   }));
   res.json(result);
+});
+
+router.put("/matches/:id/leaderboard", requireAuth, async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const matchId = Number(req.params.id);
+  const { entries } = req.body as { entries: { participantId: number; kills: number | null; rank: number | null }[] };
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    res.status(400).json({ error: "entries array is required" }); return;
+  }
+
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (user.id !== match.hostId && user.role !== "admin") {
+    res.status(403).json({ error: "Only the host can update the leaderboard" }); return;
+  }
+
+  for (const entry of entries) {
+    await db.update(matchParticipantsTable).set({
+      kills: entry.kills ?? null,
+      rank: entry.rank ?? null,
+    }).where(and(eq(matchParticipantsTable.id, entry.participantId), eq(matchParticipantsTable.matchId, matchId)));
+  }
+
+  try { getIO().emit("match:leaderboard", { matchId }); } catch {}
+  res.json({ success: true });
 });
 
 router.delete("/matches/:id/participants/:participantId", requireAuth, async (req: Request, res: Response) => {

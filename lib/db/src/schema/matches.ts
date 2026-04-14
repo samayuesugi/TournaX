@@ -61,6 +61,7 @@ export const matchParticipantsTable = pgTable("match_participants", {
   teamName: text("team_name"),
   teamNumber: integer("team_number").notNull(),
   rank: integer("rank"),
+  kills: integer("kills"),
   reward: numeric("reward", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
