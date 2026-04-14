@@ -1445,12 +1445,15 @@ export default function MatchDetailPage() {
               </div>
               <div className="divide-y divide-card-border">
                 {players.map((p: any, i: number) => {
-                  const firstPlayer = p.players?.[0];
+                  const teamPlayers = Array.isArray(p.players) ? p.players : [];
+                  const firstPlayer = teamPlayers[0];
                   const playerAvatar = p.userAvatar;
                   const playerName = p.userName;
                   const playerHandle = p.userHandle;
-                  const playerIgn = firstPlayer?.ign;
-                  const playerUid = firstPlayer?.uid;
+                  const isTeamMatch = match.teamSize > 1;
+                  const displayName = isTeamMatch
+                    ? (p.teamName || `Team ${p.teamNumber ?? i + 1}`)
+                    : (playerName || playerHandle || "—");
                   return (
                   <div key={p.id ?? i} className="flex items-center gap-3 px-4 py-3">
                     {/* Rank number */}
@@ -1464,20 +1467,52 @@ export default function MatchDetailPage() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold truncate">{playerName || playerHandle || "—"}</p>
+                        <p className="text-sm font-semibold truncate">{displayName}</p>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {playerIgn && <span className="text-[11px] text-muted-foreground">IGN: <span className="text-foreground font-medium">{playerIgn}</span></span>}
-                        {playerUid && (
-                          <span className="text-[11px] text-muted-foreground font-mono">
-                            UID: <span className="text-foreground">{playerUid}</span>
-                          </span>
-                        )}
-                        {canManage && playerHandle && (
+                      {isTeamMatch && (playerName || playerHandle) && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Captain: <span className="text-foreground font-medium">{playerName || `@${playerHandle}`}</span>
+                          {canManage && playerHandle && <span className="text-violet-400 font-medium ml-1">@{playerHandle}</span>}
+                        </div>
+                      )}
+                      {teamPlayers.length > 0 && (
+                        <div className="mt-1.5 space-y-1">
+                          {teamPlayers.map((pl: any, teammateIndex: number) => (
+                            <div key={`${p.id ?? i}-${teammateIndex}`} className="flex items-center gap-2 flex-wrap text-[11px]">
+                              {isTeamMatch && (
+                                <span className="w-4 h-4 rounded-full bg-primary/10 text-primary text-[9px] font-bold flex items-center justify-center shrink-0">
+                                  {teammateIndex + 1}
+                                </span>
+                              )}
+                              {pl.ign && (
+                                <span className="text-muted-foreground">
+                                  IGN: <span className="text-foreground font-medium">{pl.ign}</span>
+                                </span>
+                              )}
+                              {pl.uid && (
+                                <span className="text-muted-foreground font-mono">
+                                  UID: <span className="text-foreground">{pl.uid}</span>
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!isTeamMatch && canManage && playerHandle && (
+                        <div className="mt-0.5">
                           <span className="text-[11px] text-violet-400 font-medium">@{playerHandle}</span>
+                        </div>
+                      )}
+                      {isTeamMatch && teamPlayers.length === 0 && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          No teammates listed
+                        </div>
+                      )}
+                      {!isTeamMatch && p.teamName && (
+                        <div className="mt-0.5">
+                          <span className="text-[11px] text-primary/80 font-semibold">[{p.teamName}]</span>
+                        </div>
                         )}
-                        {p.teamName && <span className="text-[11px] text-primary/80 font-semibold">[{p.teamName}]</span>}
-                      </div>
                     </div>
                     {/* Rank result if completed */}
                     {match.status === "completed" && p.rank != null && (
