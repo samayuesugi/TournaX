@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Users, UserX, ShieldCheck, Shield, BookTemplate, History, TrendingUp, CalendarDays } from "lucide-react";
+import { Swords, Trophy, Zap, Radio, Key, Trash2, ChevronRight, Medal, AlertCircle, BarChart3, Download, ImagePlus, X, Camera, Clock, Users, UserX, ShieldCheck, Shield, BookTemplate, History, TrendingUp, CalendarDays, Share2, Flame } from "lucide-react";
 
 const TEMPLATE_STORAGE_KEY = "tournax_match_templates";
 const SCREENSHOT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -139,9 +139,162 @@ function statusColor(status: string) {
   return "bg-secondary text-muted-foreground border-border";
 }
 
+interface ShareLeaderboardEntry {
+  rank: number;
+  name: string;
+  kills: number;
+  reward: number;
+}
+
+interface MatchShareData {
+  game: string;
+  code: string;
+  mode: string;
+  hostName: string;
+  hostHandle: string;
+  prizePool: number;
+  leaderboard: ShareLeaderboardEntry[];
+}
+
+const RANK_MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
+function MatchShareCard({ data, cardRef }: { data: MatchShareData; cardRef: React.RefObject<HTMLDivElement | null> }) {
+  const top3 = data.leaderboard.filter(e => e.rank <= 3).sort((a, b) => a.rank - b.rank);
+  const rest = data.leaderboard.filter(e => e.rank > 3).sort((a, b) => a.rank - b.rank);
+  const gameEmoji = data.game === "Free Fire" ? "🔥" : data.game === "BGMI" ? "🎯" : data.game === "COD Mobile" ? "💥" : "🎮";
+
+  return (
+    <div
+      ref={cardRef}
+      style={{
+        width: 400,
+        background: "linear-gradient(145deg, #0d0d1a 0%, #12072b 40%, #0a1628 100%)",
+        borderRadius: 20,
+        overflow: "hidden",
+        fontFamily: "'Inter', sans-serif",
+        position: "relative",
+      }}
+    >
+      {/* Glow orbs */}
+      <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(124,58,237,0.18)", filter: "blur(40px)" }} />
+      <div style={{ position: "absolute", bottom: 0, left: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(6,182,212,0.12)", filter: "blur(30px)" }} />
+
+      {/* Header */}
+      <div style={{ padding: "18px 20px 12px", background: "linear-gradient(180deg, rgba(124,58,237,0.25) 0%, transparent 100%)", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "relative", zIndex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #7c3aed, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: "#fff" }}>Tx</div>
+            <div>
+              <div style={{ color: "#fff", fontSize: 13, fontWeight: 800, letterSpacing: 1 }}>TournaX</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, letterSpacing: 2, textTransform: "uppercase" }}>Compete · Win · Dominate</div>
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, letterSpacing: 1, textTransform: "uppercase" }}>Match Code</div>
+            <div style={{ color: "#a78bfa", fontSize: 12, fontWeight: 700, letterSpacing: 2 }}>#{data.code}</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 22 }}>{gameEmoji}</span>
+          <div>
+            <div style={{ color: "#fff", fontSize: 16, fontWeight: 900, lineHeight: 1.2 }}>{data.game}</div>
+            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>{data.mode} · Match Results</div>
+          </div>
+          <div style={{ marginLeft: "auto", background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 8, padding: "4px 10px" }}>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 8, textTransform: "uppercase", letterSpacing: 1 }}>Prize Pool</div>
+            <div style={{ color: "#fbbf24", fontSize: 14, fontWeight: 800 }}>₹{data.prizePool}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Podium (top 3) */}
+      {top3.length > 0 && (
+        <div style={{ padding: "14px 20px 10px", position: "relative", zIndex: 1 }}>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Top Players</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {top3.map((entry) => (
+              <div key={entry.rank} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                background: entry.rank === 1
+                  ? "linear-gradient(90deg, rgba(251,191,36,0.18) 0%, rgba(251,191,36,0.04) 100%)"
+                  : entry.rank === 2
+                  ? "linear-gradient(90deg, rgba(148,163,184,0.12) 0%, transparent 100%)"
+                  : "linear-gradient(90deg, rgba(194,120,63,0.12) 0%, transparent 100%)",
+                border: `1px solid ${entry.rank === 1 ? "rgba(251,191,36,0.25)" : entry.rank === 2 ? "rgba(148,163,184,0.15)" : "rgba(194,120,63,0.15)"}`,
+                borderRadius: 10, padding: "8px 12px",
+              }}>
+                <span style={{ fontSize: 20, minWidth: 28 }}>{RANK_MEDALS[entry.rank]}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: "#fff", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>#{entry.rank} Place</div>
+                </div>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ color: "#f97316", fontSize: 13, fontWeight: 800 }}>{entry.kills}</div>
+                    <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, textTransform: "uppercase", letterSpacing: 1 }}>Kills</div>
+                  </div>
+                  {entry.reward > 0 && (
+                    <div style={{ textAlign: "center", background: "rgba(251,191,36,0.12)", borderRadius: 6, padding: "3px 8px" }}>
+                      <div style={{ color: "#fbbf24", fontSize: 13, fontWeight: 800 }}>₹{entry.reward}</div>
+                      <div style={{ color: "rgba(251,191,36,0.5)", fontSize: 8, textTransform: "uppercase" }}>Won</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rest of leaderboard */}
+      {rest.length > 0 && (
+        <div style={{ padding: "0 20px 10px", position: "relative", zIndex: 1 }}>
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+            {rest.slice(0, 5).map((entry) => (
+              <div key={entry.rank} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, minWidth: 20, textAlign: "center" }}>#{entry.rank}</span>
+                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.name}</span>
+                <span style={{ color: "#f97316", fontSize: 11, fontWeight: 700, minWidth: 28, textAlign: "right" }}>{entry.kills}K</span>
+                {entry.reward > 0 && <span style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right" }}>₹{entry.reward}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ padding: "10px 20px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.06)", position: "relative", zIndex: 1 }}>
+        <div>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, textTransform: "uppercase", letterSpacing: 1.5 }}>Hosted by</div>
+          <div style={{ color: "#a78bfa", fontSize: 12, fontWeight: 700 }}>@{data.hostHandle}</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>{data.hostName}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, textTransform: "uppercase", letterSpacing: 1.5 }}>Play on</div>
+          <div style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>TournaX</div>
+          <div style={{ color: "rgba(124,58,237,0.8)", fontSize: 9 }}>tournax.app</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function captureCardAsBlob(el: HTMLElement): Promise<Blob> {
+  const html2canvas = (await import("html2canvas")).default;
+  const canvas = await html2canvas(el, { backgroundColor: null, scale: 2, useCORS: true, logging: false });
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Canvas toBlob failed")), "image/png");
+  });
+}
+
 function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => void }) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [shareData, setShareData] = useState<MatchShareData | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const { data: participants, isLoading } = useGetMatchPlayers(match.id, { query: { enabled: open } as any });
   const { mutateAsync: submitResult, isPending } = useSubmitResult();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -230,7 +383,21 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
     try {
       await submitResult({ id: match.id, data: { results, screenshotUrls: screenshots } as any });
       toast({ title: "Result submitted!", description: "Rewards have been distributed to winners." });
-      setOpen(false);
+      const leaderboard: ShareLeaderboardEntry[] = (participants || []).map((p: any) => ({
+        rank: parseInt(ranks[p.id] || "0"),
+        name: p.teamName || p.players?.[0]?.ign || p.userName || "Player",
+        kills: parseInt(kills[p.id] || "0"),
+        reward: parseFloat(rewards[p.id] || "0"),
+      })).filter((e: ShareLeaderboardEntry) => e.rank > 0).sort((a: ShareLeaderboardEntry, b: ShareLeaderboardEntry) => a.rank - b.rank);
+      setShareData({
+        game: match.game || "Game",
+        code: match.code || "",
+        mode: match.mode || "Squad",
+        hostName: user?.name || "Host",
+        hostHandle: (user as any)?.handle || (user as any)?.username || "host",
+        prizePool: parseFloat(String(match.livePrizePool || 0)),
+        leaderboard,
+      });
       onAction();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Failed to submit result", variant: "destructive" });
@@ -245,6 +412,56 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
       setKills({});
       setScreenshots([]);
       setScreenshotPreviews([]);
+      setShareData(null);
+      setSharing(false);
+    }
+  };
+
+  const handleDownloadCard = async () => {
+    if (!cardRef.current) return;
+    setSharing(true);
+    try {
+      const blob = await captureCardAsBlob(cardRef.current);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tournax-result-${shareData?.code || "match"}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "Download failed", description: "Please screenshot the card manually.", variant: "destructive" });
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleShareCard = async () => {
+    if (!cardRef.current) return;
+    setSharing(true);
+    try {
+      const blob = await captureCardAsBlob(cardRef.current);
+      const file = new File([blob], `tournax-result-${shareData?.code || "match"}.png`, { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `${shareData?.game} Match Results – TournaX`,
+          text: `Check out the results from my ${shareData?.game} match on TournaX! 🏆 Play at tournax.app`,
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `tournax-result-${shareData?.code || "match"}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Image downloaded!", description: "Share it on WhatsApp or any platform." });
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        toast({ title: "Share failed", description: "Image downloaded instead.", variant: "destructive" });
+      }
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -255,7 +472,42 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
           <Medal className="w-3.5 h-3.5" /> Result
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+      <DialogContent className={cn("max-h-[90vh] overflow-y-auto", shareData ? "max-w-[440px] p-0 bg-transparent border-0 shadow-none" : "max-w-sm")}>
+        {shareData ? (
+          <>
+            <div className="sr-only"><DialogHeader><DialogTitle>Match Result Card</DialogTitle></DialogHeader></div>
+            <div className="flex flex-col items-center gap-4 pb-2">
+              <div className="w-full flex items-center justify-between px-1 pt-1">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-white">Result Published!</span>
+                </div>
+                <span className="text-xs text-white/50">Share your match</span>
+              </div>
+              <MatchShareCard data={shareData} cardRef={cardRef} />
+              <div className="flex gap-3 w-full px-1 pb-1">
+                <Button
+                  className="flex-1 gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  variant="outline"
+                  onClick={handleDownloadCard}
+                  disabled={sharing}
+                >
+                  <Download className="w-4 h-4" />
+                  {sharing ? "Saving…" : "Download"}
+                </Button>
+                <Button
+                  className="flex-1 gap-2 bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 text-white font-bold"
+                  onClick={handleShareCard}
+                  disabled={sharing}
+                >
+                  <Share2 className="w-4 h-4" />
+                  {sharing ? "Sharing…" : "Share"}
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+        <>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-accent" /> Submit Match Result
@@ -437,6 +689,8 @@ function SubmitResultDialog({ match, onAction }: { match: any; onAction: () => v
             {isPending ? "Submitting..." : "Submit Result & Distribute Rewards"}
           </Button>
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
