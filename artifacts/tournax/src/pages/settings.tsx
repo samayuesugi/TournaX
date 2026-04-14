@@ -18,7 +18,7 @@ import {
   Copy, Check, ChevronRight, FileText,
   Scroll, CalendarCheck, Gamepad2, Coins, Trophy, UserPlus, CheckCircle2, Medal,
   Languages, Sun, Moon, Monitor,
-  Flame, Zap, Clock
+  Flame, Zap, Clock, XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isImageAvatar, resolveAvatarSrc } from "@/lib/host-avatars";
@@ -254,24 +254,34 @@ function EsportsDialog({ open, onClose, user, squad, refreshUser }: {
   open: boolean; onClose: () => void; user: any; squad: any[]; refreshUser: () => Promise<void>;
 }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const { mutateAsync: updateProfile, isPending } = useUpdateMyProfile();
   const isEsports = Boolean(user?.isEsportsPlayer);
+  const hasGame = Boolean(user?.game);
   const squadForGame = (squad ?? []).filter((m: any) => m.game === user?.game);
   const hasEnoughSquad = squadForGame.length >= 4;
+  const canActivate = hasGame && hasEnoughSquad;
+
+  const requirements = [
+    {
+      label: "Select your primary game",
+      met: hasGame,
+      detail: hasGame ? user.game : "Go to profile → Edit to choose a game",
+    },
+    {
+      label: "Add 4+ squad members for your game",
+      met: hasEnoughSquad,
+      detail: hasEnoughSquad
+        ? `${squadForGame.length} member${squadForGame.length !== 1 ? "s" : ""} for ${user?.game}`
+        : `${squadForGame.length}/4 for ${user?.game || "your game"} — add on profile page`,
+    },
+  ];
 
   const handleToggle = async () => {
-    if (!isEsports && !hasEnoughSquad) {
-      toast({
-        title: "Squad too small",
-        description: `You need at least 4 squad members for ${user?.game || "your game"} to become an Esports Player. Add them on your profile page.`,
-        variant: "destructive",
-      });
-      return;
-    }
     try {
       await updateProfile({ data: { isEsportsPlayer: !isEsports } as any });
       await refreshUser();
-      toast({ title: isEsports ? "Esports mode disabled" : "Esports Player activated!" });
+      toast({ title: isEsports ? "Esports mode disabled" : "🏆 Esports Player activated!" });
       onClose();
     } catch (err: any) {
       toast({ title: "Error", description: err?.data?.error || "Something went wrong", variant: "destructive" });
@@ -288,7 +298,7 @@ function EsportsDialog({ open, onClose, user, squad, refreshUser }: {
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Esports Player mode unlocks the Esports tournament category on the home page — for competitive players who play with a full squad.
+            Unlock the Esports tournament category — exclusive competitive matches for full-squad players.
           </p>
 
           <div className={cn("rounded-xl p-3 border", isEsports ? "bg-yellow-500/10 border-yellow-500/30" : "bg-secondary/50 border-border")}>
@@ -298,7 +308,7 @@ function EsportsDialog({ open, onClose, user, squad, refreshUser }: {
                   {isEsports ? "Active — Esports Player" : "Not activated"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {user?.game ? `Game: ${user.game}` : "No game selected"}
+                  {isEsports ? `Game: ${user?.game}` : "Complete requirements below to activate"}
                 </p>
               </div>
               <div className={cn("w-11 h-6 rounded-full transition-all relative shrink-0", isEsports ? "bg-yellow-500" : "bg-border")}>
@@ -308,11 +318,35 @@ function EsportsDialog({ open, onClose, user, squad, refreshUser }: {
           </div>
 
           {!isEsports && (
-            <div className={cn("rounded-xl px-3 py-2 border text-xs", hasEnoughSquad ? "bg-green-500/10 border-green-500/25 text-green-400" : "bg-yellow-500/10 border-yellow-500/25 text-yellow-400")}>
-              {hasEnoughSquad
-                ? `Squad ready: ${squadForGame.length} members for ${user?.game}`
-                : `Need 4+ squad members for ${user?.game || "your game"} (currently ${squadForGame.length}). Add them on your profile page.`
-              }
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Requirements</p>
+              {requirements.map((req, i) => (
+                <div key={i} className={cn(
+                  "flex items-start gap-3 rounded-xl px-3 py-2.5 border",
+                  req.met
+                    ? "bg-green-500/10 border-green-500/25"
+                    : "bg-secondary/50 border-border"
+                )}>
+                  {req.met
+                    ? <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                    : <XCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />}
+                  <div className="min-w-0">
+                    <p className={cn("text-xs font-semibold leading-tight", req.met ? "text-green-400" : "text-foreground")}>
+                      {req.label}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{req.detail}</p>
+                  </div>
+                </div>
+              ))}
+
+              {!canActivate && (
+                <button
+                  onClick={() => { onClose(); navigate("/profile"); }}
+                  className="w-full text-xs text-primary font-semibold py-2 rounded-xl border border-primary/25 bg-primary/5 hover:bg-primary/10 transition-colors"
+                >
+                  Go to Profile to complete requirements →
+                </button>
+              )}
             </div>
           )}
 
@@ -320,7 +354,7 @@ function EsportsDialog({ open, onClose, user, squad, refreshUser }: {
             className="w-full"
             variant={isEsports ? "destructive" : "default"}
             onClick={handleToggle}
-            disabled={isPending}
+            disabled={isPending || (!isEsports && !canActivate)}
           >
             {isPending ? "Saving..." : isEsports ? "Disable Esports Mode" : "Activate Esports Player"}
           </Button>
