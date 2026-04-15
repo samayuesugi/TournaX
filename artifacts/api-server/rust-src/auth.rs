@@ -109,56 +109,56 @@ struct ResetClaims {
 // ─── DB User Row ──────────────────────────────────────────────────────────────
 
 #[derive(sqlx::FromRow, Debug, Clone)]
-struct DbUser {
-    id: i32,
-    email: String,
-    password: Option<String>,
-    google_id: Option<String>,
-    name: Option<String>,
-    handle: Option<String>,
-    avatar: Option<String>,
-    game: Option<String>,
-    game_uid: Option<String>,
-    role: String,
-    balance: f64,
-    silver_coins: i32,
-    last_login_date: Option<String>,
-    login_streak: i32,
-    max_streak: i32,
-    paid_matches_played: i32,
-    status: String,
-    profile_setup: bool,
-    followers_count: i32,
-    following_count: i32,
-    instagram: Option<String>,
-    discord: Option<String>,
-    x: Option<String>,
-    youtube: Option<String>,
-    twitch: Option<String>,
-    referral_code: Option<String>,
-    referral_bonus_until: Option<String>,
-    daily_task_date: Option<String>,
-    daily_wins: i32,
-    daily_paid_matches: i32,
-    tournament_wins: i32,
-    daily_tournament_wins: i32,
-    daily_invite_shared: i32,
-    equipped_frame: Option<String>,
-    equipped_badge: Option<String>,
-    equipped_handle_color: Option<String>,
-    is_esports_player: bool,
-    game_ign: Option<String>,
-    trust_score: i32,
-    trust_tier: String,
-    host_rating_avg: f64,
-    host_rating_count: i32,
-    host_badge: String,
-    bio: Option<String>,
-    ingame_role: Option<String>,
-    profile_animation: Option<String>,
-    profile_color: Option<String>,
-    state: Option<String>,
-    city: Option<String>,
+pub struct DbUser {
+    pub id: i32,
+    pub email: String,
+    pub password: Option<String>,
+    pub google_id: Option<String>,
+    pub name: Option<String>,
+    pub handle: Option<String>,
+    pub avatar: Option<String>,
+    pub game: Option<String>,
+    pub game_uid: Option<String>,
+    pub role: String,
+    pub balance: f64,
+    pub silver_coins: i32,
+    pub last_login_date: Option<String>,
+    pub login_streak: i32,
+    pub max_streak: i32,
+    pub paid_matches_played: i32,
+    pub status: String,
+    pub profile_setup: bool,
+    pub followers_count: i32,
+    pub following_count: i32,
+    pub instagram: Option<String>,
+    pub discord: Option<String>,
+    pub x: Option<String>,
+    pub youtube: Option<String>,
+    pub twitch: Option<String>,
+    pub referral_code: Option<String>,
+    pub referral_bonus_until: Option<String>,
+    pub daily_task_date: Option<String>,
+    pub daily_wins: i32,
+    pub daily_paid_matches: i32,
+    pub tournament_wins: i32,
+    pub daily_tournament_wins: i32,
+    pub daily_invite_shared: i32,
+    pub equipped_frame: Option<String>,
+    pub equipped_badge: Option<String>,
+    pub equipped_handle_color: Option<String>,
+    pub is_esports_player: bool,
+    pub game_ign: Option<String>,
+    pub trust_score: i32,
+    pub trust_tier: String,
+    pub host_rating_avg: f64,
+    pub host_rating_count: i32,
+    pub host_badge: String,
+    pub bio: Option<String>,
+    pub ingame_role: Option<String>,
+    pub profile_animation: Option<String>,
+    pub profile_color: Option<String>,
+    pub state: Option<String>,
+    pub city: Option<String>,
 }
 
 // ─── Request/Response Bodies ──────────────────────────────────────────────────
@@ -267,7 +267,7 @@ fn generate_token(user_id: i32, secret: &str) -> String {
     .expect("JWT encode failed")
 }
 
-fn verify_jwt(token: &str, secret: &str) -> Option<i32> {
+pub fn verify_jwt(token: &str, secret: &str) -> Option<i32> {
     let mut validation = Validation::default();
     validation.validate_exp = true;
     decode::<AuthClaims>(
@@ -360,13 +360,13 @@ fn serialize_user(user: &DbUser) -> UserResponse {
     }
 }
 
-fn err_json(status: StatusCode, msg: &str) -> Response {
+pub fn err_json(status: StatusCode, msg: &str) -> Response {
     let mut res = (status, Json(json!({ "error": msg }))).into_response();
     cors(res.headers_mut());
     res
 }
 
-fn ok_json(body: Value) -> Response {
+pub fn ok_json(body: Value) -> Response {
     let mut res = Json(body).into_response();
     cors(res.headers_mut());
     res
@@ -389,7 +389,7 @@ fn user_with_token_json(user: &DbUser, token: &str, extra: Value) -> Response {
     ok_json(Value::Object(map))
 }
 
-fn cors(headers: &mut HeaderMap) {
+pub fn cors(headers: &mut HeaderMap) {
     headers.insert(
         "access-control-allow-origin",
         HeaderValue::from_static("*"),
@@ -405,7 +405,7 @@ fn cors(headers: &mut HeaderMap) {
 }
 
 // SQL fragment to select all user columns (casting enum/numeric types)
-const USER_COLS: &str = r#"
+pub const USER_COLS: &str = r#"
     id, email, password, google_id, name, handle, avatar, game, game_uid,
     role::TEXT AS role,
     CAST(balance AS FLOAT8) AS balance,
@@ -421,7 +421,7 @@ const USER_COLS: &str = r#"
     profile_color, state, city
 "#;
 
-async fn fetch_user_by_id(pool: &PgPool, id: i32) -> Option<DbUser> {
+pub async fn fetch_user_by_id(pool: &PgPool, id: i32) -> Option<DbUser> {
     let sql = format!("SELECT {} FROM users WHERE id = $1", USER_COLS);
     sqlx::query_as::<_, DbUser>(&sql)
         .bind(id)
@@ -449,7 +449,7 @@ fn get_bearer(headers: &HeaderMap) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-async fn auth_user(state: &AppState, headers: &HeaderMap) -> Result<DbUser, Response> {
+pub async fn auth_user(state: &AppState, headers: &HeaderMap) -> Result<DbUser, Response> {
     let token = get_bearer(headers)
         .ok_or_else(|| err_json(StatusCode::UNAUTHORIZED, "Unauthorized"))?;
     let user_id = verify_jwt(&token, &state.jwt_secret)

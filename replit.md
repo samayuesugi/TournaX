@@ -35,7 +35,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **API framework**: Rust Axum gateway — auth module ported natively to Rust; wallet/matches/admin still proxied to Express legacy
+- **API framework**: Rust Axum gateway — auth + wallet modules ported natively to Rust; matches/admin still proxied to Express legacy
 - **Rust auth crates**: sqlx (postgres), bcrypt, jsonwebtoken, lettre (SMTP/rustls), dashmap (OTP store), chrono, rand
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`

@@ -1,5 +1,6 @@
 mod auth;
 mod email;
+mod wallet;
 
 use auth::OtpEntry;
 use axum::{
@@ -83,6 +84,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/healthz", get(healthz))
         .nest("/api", auth::auth_router())
+        .nest("/api", wallet::wallet_router())
         .fallback(any(proxy_to_legacy))
         .with_state(state);
 
