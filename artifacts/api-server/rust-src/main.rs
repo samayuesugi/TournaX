@@ -1,5 +1,6 @@
 mod auth;
 mod email;
+mod matches;
 mod wallet;
 
 use auth::OtpEntry;
@@ -85,6 +86,7 @@ async fn main() {
         .route("/api/healthz", get(healthz))
         .nest("/api", auth::auth_router())
         .nest("/api", wallet::wallet_router())
+        .nest("/api", matches::matches_router())
         .fallback(any(proxy_to_legacy))
         .with_state(state);
 
