@@ -82,7 +82,7 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
 - App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /healthz` (full path: `/api/healthz`)
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
@@ -151,9 +151,9 @@ React 19 + Vite frontend for the TournaX gaming tournament platform. Dark-themed
 Run `pnpm --filter @workspace/db run push` to push/sync the schema to the database. This must be done after initial setup or any schema changes.
 
 **Default seeded accounts (created once on fresh DB):**
-- Admin: `admin@tournax.com` / `admin@123`
-- Host: `host@tournax.com` / `host@123`
-- Players register themselves via the Sign Up form
+- Admin: `samayuesugi@gmail.com` / value from `DEFAULT_ADMIN_PASSWORD` or the seed fallback
+- Player: `player@ff.test` / `Test@1234`
+- Host: `host@ff.test` / `Test@1234`
 
 ### `scripts` (`@workspace/scripts`)
 
