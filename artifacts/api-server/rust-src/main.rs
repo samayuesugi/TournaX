@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 
+mod admin;
 mod auth;
 mod email;
 mod matches;
@@ -89,6 +90,7 @@ async fn main() {
         .nest("/api", auth::auth_router())
         .nest("/api", wallet::wallet_router())
         .nest("/api", matches::matches_router())
+        .nest("/api", admin::admin_router())
         .fallback(any(proxy_to_legacy))
         .with_state(state);
 
