@@ -379,7 +379,7 @@ async fn list_matches(
     headers: HeaderMap,
     Query(q): Query<ListMatchesQuery>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
 
@@ -434,12 +434,12 @@ async fn list_matches(
             "SELECT following_id FROM follows WHERE follower_id = $1"
         )
         .bind(user.id)
-        .fetch_all(&state.db).await.unwrap_or_default();
+        .fetch_all(&state.pool).await.unwrap_or_default();
 
         let recommended: Vec<i32> = sqlx::query_scalar(
             "SELECT id FROM users WHERE role = 'host' AND COALESCE(recommended, false) = true"
         )
-        .fetch_all(&state.db).await.unwrap_or_default();
+        .fetch_all(&state.pool).await.unwrap_or_default();
 
         let mut allowed: Vec<i32> = followed;
         for r in recommended { if !allowed.contains(&r) { allowed.push(r); } }
@@ -470,11 +470,11 @@ async fn list_matches(
     for p in &params {
         q_builder = q_builder.bind(p);
     }
-    let matches: Vec<DbMatch> = q_builder.fetch_all(&state.db).await.unwrap_or_default();
+    let matches: Vec<DbMatch> = q_builder.fetch_all(&state.pool).await.unwrap_or_default();
 
     let mut serialized = Vec::with_capacity(matches.len());
     for m in &matches {
-        serialized.push(serialize_match(&state.db, m, Some(user.id)).await);
+        serialized.push(serialize_match(&state.pool, m, Some(user.id)).await);
     }
     ok_json(json!(serialized))
 }
@@ -539,7 +539,7 @@ async fn create_match(
     headers: HeaderMap,
     Json(body): Json<CreateMatchBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
     if user.role != "host" && user.role != "admin" {
@@ -612,7 +612,7 @@ async fn create_match(
             "SELECT 1 FROM users WHERE id = $1 AND balance >= $2"
         )
         .bind(user.id).bind(host_stake)
-        .fetch_optional(&state.db).await.unwrap_or(None);
+        .fetch_optional(&state.pool).await.unwrap_or(None);
         if r.is_none() {
             return err_json(StatusCode::BAD_REQUEST, "Insufficient balance");
         }
@@ -638,18 +638,18 @@ async fn create_match(
     .bind(is_esports_only)
     .bind(body.stream_link.as_deref())
     .bind(custom_rules_str.as_deref())
-    .fetch_one(&state.db).await {
+    .fetch_one(&state.pool).await {
         Ok(id) => id,
         Err(e) => return err_json(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()),
     };
 
     if host_stake > 0.0 {
         let _ = sqlx::query("UPDATE users SET balance = balance - $1 WHERE id = $2")
-            .bind(host_stake).bind(user.id).execute(&state.db).await;
+            .bind(host_stake).bind(user.id).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'host_stake',$3)"
         )
-        .bind(match_id).bind(user.id).bind(host_stake).execute(&state.db).await;
+        .bind(match_id).bind(user.id).bind(host_stake).execute(&state.pool).await;
     }
 
     let group_id: Option<i32> = sqlx::query_scalar(
@@ -657,31 +657,32 @@ async fn create_match(
          VALUES ($1, '🎮', 'match', $2, $3, 3, false) RETURNING id"
     )
     .bind(format!("Match {}", code)).bind(user.id).bind(slots_count + 1)
-    .fetch_optional(&state.db).await.unwrap_or(None);
+    .fetch_optional(&state.pool).await.unwrap_or(None);
 
     if let Some(gid) = group_id {
         let _ = sqlx::query("INSERT INTO group_members (group_id, user_id) VALUES ($1,$2)")
-            .bind(gid).bind(user.id).execute(&state.db).await;
+            .bind(gid).bind(user.id).execute(&state.pool).await;
         let _ = sqlx::query("UPDATE matches SET group_id = $1 WHERE id = $2")
-            .bind(gid).bind(match_id).execute(&state.db).await;
+            .bind(gid).bind(match_id).execute(&state.pool).await;
     }
 
-    let m = match fetch_match(&state.db, match_id).await {
+    let m = match fetch_match(&state.pool, match_id).await {
         Some(m) => m,
         None => return err_json(StatusCode::INTERNAL_SERVER_ERROR, "Match not found after insert"),
     };
 
-    let serialized = serialize_match(&state.db, &m, Some(user.id)).await;
+    let serialized = serialize_match(&state.pool, &m, Some(user.id)).await;
 
     let followers: Vec<i32> = sqlx::query_scalar(
         "SELECT follower_id FROM follows WHERE following_id = $1"
     )
-    .bind(user.id).fetch_all(&state.db).await.unwrap_or_default();
-    let host_name = user.name.as_deref().unwrap_or(&format!("@{}", user.handle.as_deref().unwrap_or("")));
+    .bind(user.id).fetch_all(&state.pool).await.unwrap_or_default();
+    let host_name_fallback = format!("@{}", user.handle.as_deref().unwrap_or(""));
+    let host_name = user.name.as_deref().unwrap_or(&host_name_fallback);
     let fee_text = if entry_fee > 0.0 { format!("Entry: {:.0} GC", entry_fee) } else { "Free Entry".to_string() };
     let prize = serialized["showcasePrizePool"].as_f64().unwrap_or(0.0);
     let notif_msg = format!("🎮 {} ne ek naya match banaya! {} · {} · Prize: {:.0} GC", host_name, game, fee_text, prize);
-    let pool = state.db.clone();
+    let pool = state.pool.clone();
     let notif_msg_clone = notif_msg.clone();
     let match_id_clone = match_id;
     tokio::spawn(async move {
@@ -700,13 +701,13 @@ async fn get_match(
     headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
-    let mut serialized = serialize_match(&state.db, &m, Some(user.id)).await;
+    let mut serialized = serialize_match(&state.pool, &m, Some(user.id)).await;
     if m.host_id == user.id || user.role == "admin" {
         serialized["roomId"] = json!(m.room_id);
         serialized["roomPassword"] = json!(m.room_password);
@@ -721,10 +722,10 @@ async fn delete_match(
     headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.host_id != user.id && user.role != "admin" {
@@ -740,30 +741,30 @@ async fn delete_match(
     let participants: Vec<Participant> = sqlx::query_as(
         "SELECT id, user_id FROM match_participants WHERE match_id = $1"
     )
-    .bind(m.id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(m.id).fetch_all(&state.pool).await.unwrap_or_default();
 
     let fee = m.entry_fee * m.team_size as f64;
     for p in &participants {
         if fee > 0.0 {
             let _ = sqlx::query("UPDATE users SET balance = balance + $1 WHERE id = $2")
-                .bind(fee).bind(p.user_id).execute(&state.db).await;
+                .bind(fee).bind(p.user_id).execute(&state.pool).await;
             let _ = sqlx::query(
                 "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'refund',$3)"
             )
-            .bind(m.id).bind(p.user_id).bind(fee).execute(&state.db).await;
+            .bind(m.id).bind(p.user_id).bind(fee).execute(&state.pool).await;
         }
     }
     if m.host_stake > 0.0 {
         let _ = sqlx::query("UPDATE users SET balance = balance + $1 WHERE id = $2")
-            .bind(m.host_stake).bind(m.host_id).execute(&state.db).await;
+            .bind(m.host_stake).bind(m.host_id).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'refund',$3)"
         )
-        .bind(m.id).bind(m.host_id).bind(m.host_stake).execute(&state.db).await;
+        .bind(m.id).bind(m.host_id).bind(m.host_stake).execute(&state.pool).await;
     }
-    let _ = sqlx::query("DELETE FROM match_players WHERE match_id = $1").bind(m.id).execute(&state.db).await;
-    let _ = sqlx::query("DELETE FROM match_participants WHERE match_id = $1").bind(m.id).execute(&state.db).await;
-    let _ = sqlx::query("DELETE FROM matches WHERE id = $1").bind(m.id).execute(&state.db).await;
+    let _ = sqlx::query("DELETE FROM match_players WHERE match_id = $1").bind(m.id).execute(&state.pool).await;
+    let _ = sqlx::query("DELETE FROM match_participants WHERE match_id = $1").bind(m.id).execute(&state.pool).await;
+    let _ = sqlx::query("DELETE FROM matches WHERE id = $1").bind(m.id).execute(&state.pool).await;
 
     ok_json(json!({ "success": true, "message": "Match deleted and refunds processed" }))
 }
@@ -790,10 +791,10 @@ async fn join_match(
     Path(id): Path<i32>,
     Json(body): Json<JoinMatchBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.status != "upcoming" {
@@ -810,7 +811,7 @@ async fn join_match(
         "SELECT id FROM match_participants WHERE match_id = $1 AND user_id = $2"
     )
     .bind(m.id).bind(user.id)
-    .fetch_optional(&state.db).await.unwrap_or(None);
+    .fetch_optional(&state.pool).await.unwrap_or(None);
     if already.is_some() {
         return err_json(StatusCode::BAD_REQUEST, "Already joined");
     }
@@ -843,7 +844,7 @@ async fn join_match(
         let existing_uids: Vec<String> = sqlx::query_scalar(
             "SELECT uid FROM match_players WHERE match_id = $1"
         )
-        .bind(m.id).fetch_all(&state.db).await.unwrap_or_default();
+        .bind(m.id).fetch_all(&state.pool).await.unwrap_or_default();
         for uid in &submitted_uids {
             if existing_uids.contains(uid) {
                 return err_json(StatusCode::BAD_REQUEST, &format!("UID \"{}\" is already registered in this match.", uid));
@@ -856,7 +857,7 @@ async fn join_match(
             "UPDATE users SET balance = balance - $1 WHERE id = $2 AND balance >= $1 RETURNING balance"
         )
         .bind(total_fee).bind(user.id)
-        .fetch_optional(&state.db).await.unwrap_or(None);
+        .fetch_optional(&state.pool).await.unwrap_or(None);
         if ok.is_none() {
             return err_json(StatusCode::BAD_REQUEST, "Insufficient balance");
         }
@@ -867,12 +868,12 @@ async fn join_match(
          WHERE id = $3 AND filled_slots + $1 <= slots RETURNING filled_slots"
     )
     .bind(m.team_size).bind(total_fee).bind(m.id)
-    .fetch_optional(&state.db).await.unwrap_or(None);
+    .fetch_optional(&state.pool).await.unwrap_or(None);
 
     if slot_result.is_none() {
         if total_fee > 0.0 {
             let _ = sqlx::query("UPDATE users SET balance = balance + $1 WHERE id = $2")
-                .bind(total_fee).bind(user.id).execute(&state.db).await;
+                .bind(total_fee).bind(user.id).execute(&state.pool).await;
         }
         return err_json(StatusCode::BAD_REQUEST, "Match is full");
     }
@@ -884,7 +885,7 @@ async fn join_match(
         "INSERT INTO match_participants (match_id, user_id, team_name, team_number) VALUES ($1,$2,$3,$4) RETURNING id"
     )
     .bind(m.id).bind(user.id).bind(body.team_name.as_deref()).bind(team_number)
-    .fetch_one(&state.db).await.unwrap_or(0);
+    .fetch_one(&state.pool).await.unwrap_or(0);
 
     let player_list: Vec<(String, String)> = if let Some(ref players) = body.players {
         players.iter().map(|p| (
@@ -903,25 +904,25 @@ async fn join_match(
             "INSERT INTO match_players (participant_id, match_id, ign, uid, position) VALUES ($1,$2,$3,$4,$5)"
         )
         .bind(participant_id).bind(m.id).bind(ign).bind(uid).bind((i + 1) as i32)
-        .execute(&state.db).await;
+        .execute(&state.pool).await;
     }
 
     if total_fee > 0.0 {
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'entry_fee',$3)"
         )
-        .bind(m.id).bind(user.id).bind(total_fee).execute(&state.db).await;
+        .bind(m.id).bind(user.id).bind(total_fee).execute(&state.pool).await;
     }
 
-    add_trust_score_event(&state.db, user.id, "match_joined", 10, "Joined a tournament match", Some(m.id)).await;
+    add_trust_score_event(&state.pool, user.id, "match_joined", 10, "Joined a tournament match", Some(m.id)).await;
 
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     if total_fee > 0.0 {
-        add_trust_score_event(&state.db, user.id, "match_fee_paid", 30, "Entry fee paid on time", Some(m.id)).await;
+        add_trust_score_event(&state.pool, user.id, "match_fee_paid", 30, "Entry fee paid on time", Some(m.id)).await;
         let new_paid: Option<i32> = sqlx::query_scalar(
             "UPDATE users SET paid_matches_played = paid_matches_played + 1 WHERE id = $1 RETURNING paid_matches_played"
         )
-        .bind(user.id).fetch_optional(&state.db).await.unwrap_or(None).flatten();
+        .bind(user.id).fetch_optional(&state.pool).await.unwrap_or(None).flatten();
 
         let paid_today: Option<i32> = sqlx::query_scalar(
             "UPDATE users SET
@@ -931,25 +932,25 @@ async fn join_match(
              WHERE id = $1 RETURNING daily_paid_matches"
         )
         .bind(user.id).bind(&today)
-        .fetch_optional(&state.db).await.unwrap_or(None).flatten();
+        .fetch_optional(&state.pool).await.unwrap_or(None).flatten();
         if paid_today == Some(3) {
             let _ = sqlx::query("UPDATE users SET silver_coins = silver_coins + 10 WHERE id = $1")
-                .bind(user.id).execute(&state.db).await;
+                .bind(user.id).execute(&state.pool).await;
         }
 
         if new_paid == Some(5) {
             let referral: Option<(i32, i32)> = sqlx::query_as(
                 "SELECT id, referrer_id FROM referrals WHERE referred_id = $1 AND completed = false"
             )
-            .bind(user.id).fetch_optional(&state.db).await.unwrap_or(None);
+            .bind(user.id).fetch_optional(&state.pool).await.unwrap_or(None);
             if let Some((ref_id, referrer_id)) = referral {
                 let _ = sqlx::query("UPDATE referrals SET completed = true, referrer_rewarded = true WHERE id = $1")
-                    .bind(ref_id).execute(&state.db).await;
+                    .bind(ref_id).execute(&state.pool).await;
                 let _ = sqlx::query("UPDATE users SET balance = balance + 3 WHERE id = $1")
-                    .bind(referrer_id).execute(&state.db).await;
+                    .bind(referrer_id).execute(&state.pool).await;
                 let bonus_until = (chrono::Utc::now() + chrono::Duration::days(5)).format("%Y-%m-%d").to_string();
                 let _ = sqlx::query("UPDATE users SET referral_bonus_until = $1 WHERE id = $2")
-                    .bind(bonus_until).bind(user.id).execute(&state.db).await;
+                    .bind(bonus_until).bind(user.id).execute(&state.pool).await;
             }
         }
     } else {
@@ -961,10 +962,10 @@ async fn join_match(
              WHERE id = $1 RETURNING daily_wins"
         )
         .bind(user.id).bind(&today)
-        .fetch_optional(&state.db).await.unwrap_or(None).flatten();
+        .fetch_optional(&state.pool).await.unwrap_or(None).flatten();
         if free_today == Some(3) {
             let _ = sqlx::query("UPDATE users SET silver_coins = silver_coins + 10 WHERE id = $1")
-                .bind(user.id).execute(&state.db).await;
+                .bind(user.id).execute(&state.pool).await;
         }
     }
 
@@ -972,14 +973,14 @@ async fn join_match(
         let already_member: Option<(i32,)> = sqlx::query_as(
             "SELECT id FROM group_members WHERE group_id = $1 AND user_id = $2"
         )
-        .bind(gid).bind(user.id).fetch_optional(&state.db).await.unwrap_or(None);
+        .bind(gid).bind(user.id).fetch_optional(&state.pool).await.unwrap_or(None);
         if already_member.is_none() {
             let _ = sqlx::query("INSERT INTO group_members (group_id, user_id) VALUES ($1,$2)")
-                .bind(gid).bind(user.id).execute(&state.db).await;
+                .bind(gid).bind(user.id).execute(&state.pool).await;
         }
     }
 
-    let pool = state.db.clone();
+    let pool = state.pool.clone();
     let host_id = m.host_id;
     let match_code = m.code.clone();
     let match_id_clone = m.id;
@@ -1005,10 +1006,10 @@ async fn update_room(
     Path(id): Path<i32>,
     Json(body): Json<RoomBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.host_id != user.id && user.role != "admin" {
@@ -1019,12 +1020,12 @@ async fn update_room(
         "UPDATE matches SET room_id = $1, room_password = $2, room_released = true WHERE id = $3"
     )
     .bind(body.room_id.as_deref()).bind(body.room_password.as_deref()).bind(m.id)
-    .execute(&state.db).await;
+    .execute(&state.pool).await;
 
     let participants: Vec<i32> = sqlx::query_scalar(
         "SELECT user_id FROM match_participants WHERE match_id = $1"
     )
-    .bind(m.id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(m.id).fetch_all(&state.pool).await.unwrap_or_default();
 
     let label = m.code.clone();
     let rid = body.room_id.clone().unwrap_or_default();
@@ -1032,7 +1033,7 @@ async fn update_room(
     let pwd_part = if rpass.is_empty() { String::new() } else { format!(" | Password: {}", rpass) };
     let notif_msg = format!("🎮 Room is ready for \"{}\"! Room ID: {}{} — Join now!", label, rid, pwd_part);
 
-    let pool = state.db.clone();
+    let pool = state.pool.clone();
     let match_id_clone = m.id;
     tokio::spawn(async move {
         for uid in participants {
@@ -1050,10 +1051,10 @@ async fn go_live(
     headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.host_id != user.id && user.role != "admin" {
@@ -1061,14 +1062,14 @@ async fn go_live(
     }
 
     let _ = sqlx::query("UPDATE matches SET status = 'live', escrow_status = 'locked' WHERE id = $1")
-        .bind(m.id).execute(&state.db).await;
+        .bind(m.id).execute(&state.pool).await;
 
     let participants: Vec<i32> = sqlx::query_scalar(
         "SELECT user_id FROM match_participants WHERE match_id = $1"
     )
-    .bind(m.id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(m.id).fetch_all(&state.pool).await.unwrap_or_default();
 
-    let pool = state.db.clone();
+    let pool = state.pool.clone();
     let code = m.code.clone();
     let match_id_clone = m.id;
     tokio::spawn(async move {
@@ -1104,10 +1105,10 @@ async fn submit_result(
     Path(id): Path<i32>,
     Json(body): Json<SubmitResultBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.host_id != user.id && user.role != "admin" {
@@ -1148,7 +1149,7 @@ async fn submit_result(
             "UPDATE match_participants SET rank = $1, reward = $2 WHERE id = $3"
         )
         .bind(r.rank).bind(r.reward).bind(r.participant_id)
-        .execute(&state.db).await;
+        .execute(&state.pool).await;
 
         if r.reward > 0.0 {
             let win_row: Option<(i32, i32)> = sqlx::query_as(
@@ -1161,18 +1162,18 @@ async fn submit_result(
                    RETURNING id, daily_tournament_wins"#
             )
             .bind(r.reward).bind(&today).bind(r.participant_id)
-            .fetch_optional(&state.db).await.unwrap_or(None);
+            .fetch_optional(&state.pool).await.unwrap_or(None);
 
             let winner_uid = win_row.map(|(uid, _)| uid);
             let _ = sqlx::query(
                 "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'prize_payout',$3)"
             )
-            .bind(m.id).bind(winner_uid).bind(r.reward).execute(&state.db).await;
+            .bind(m.id).bind(winner_uid).bind(r.reward).execute(&state.pool).await;
 
             if let Some((uid, dtw)) = win_row {
                 if dtw == 5 {
                     let _ = sqlx::query("UPDATE users SET silver_coins = silver_coins + 10 WHERE id = $1")
-                        .bind(uid).execute(&state.db).await;
+                        .bind(uid).execute(&state.pool).await;
                 }
             }
         }
@@ -1181,43 +1182,43 @@ async fn submit_result(
     let all_participants: Vec<i32> = sqlx::query_scalar(
         "SELECT user_id FROM match_participants WHERE match_id = $1"
     )
-    .bind(m.id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(m.id).fetch_all(&state.pool).await.unwrap_or_default();
 
     for uid in &all_participants {
-        add_trust_score_event(&state.db, *uid, "match_completed", 50, "Completed match without dispute", Some(m.id)).await;
+        add_trust_score_event(&state.pool, *uid, "match_completed", 50, "Completed match without dispute", Some(m.id)).await;
     }
 
     if host_cut > 0.0 {
         let _ = sqlx::query("UPDATE users SET balance = balance + $1 WHERE id = $2")
-            .bind(host_cut).bind(m.host_id).execute(&state.db).await;
+            .bind(host_cut).bind(m.host_id).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO host_earnings (host_id, match_id, match_code, amount) VALUES ($1,$2,$3,$4)"
         )
-        .bind(m.host_id).bind(m.id).bind(&m.code).bind(host_cut).execute(&state.db).await;
+        .bind(m.host_id).bind(m.id).bind(&m.code).bind(host_cut).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'host_commission',$3)"
         )
-        .bind(m.id).bind(m.host_id).bind(host_cut).execute(&state.db).await;
+        .bind(m.id).bind(m.host_id).bind(host_cut).execute(&state.pool).await;
     }
 
     if platform_cut > 0.0 {
         let _ = sqlx::query(
             "INSERT INTO platform_earnings (host_id, match_id, match_code, amount) VALUES ($1,$2,$3,$4)"
         )
-        .bind(m.host_id).bind(m.id).bind(&m.code).bind(platform_cut).execute(&state.db).await;
+        .bind(m.host_id).bind(m.id).bind(&m.code).bind(platform_cut).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,NULL,'platform_fee',$2)"
         )
-        .bind(m.id).bind(platform_cut).execute(&state.db).await;
+        .bind(m.id).bind(platform_cut).execute(&state.pool).await;
     }
 
     if m.host_stake > 0.0 {
         let _ = sqlx::query("UPDATE users SET balance = balance + $1 WHERE id = $2")
-            .bind(m.host_stake).bind(m.host_id).execute(&state.db).await;
+            .bind(m.host_stake).bind(m.host_id).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'host_stake',$3)"
         )
-        .bind(m.id).bind(m.host_id).bind(m.host_stake).execute(&state.db).await;
+        .bind(m.id).bind(m.host_id).bind(m.host_stake).execute(&state.pool).await;
     }
 
     let screenshots_json = serde_json::to_string(body.screenshot_urls.as_deref().unwrap_or(&[])).unwrap_or_default();
@@ -1229,9 +1230,9 @@ async fn submit_result(
     .bind(&screenshots_json)
     .bind(if body.screenshot_urls.as_ref().map(|u| !u.is_empty()).unwrap_or(false) { Some(chrono::Utc::now()) } else { None })
     .bind(m.id)
-    .execute(&state.db).await.ok();
+    .execute(&state.pool).await.ok();
 
-    let pool = state.db.clone();
+    let pool = state.pool.clone();
     let match_code = m.code.clone();
     let match_id_clone = m.id;
     tokio::spawn(async move {
@@ -1261,10 +1262,10 @@ async fn get_players(
     headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let match_row = fetch_match(&state.db, id).await;
+    let match_row = fetch_match(&state.pool, id).await;
     let can_see_full = match_row.as_ref().map(|m| m.host_id == user.id).unwrap_or(false) || user.role == "admin";
 
     let participants: Vec<DbParticipantFull> = sqlx::query_as(
@@ -1280,14 +1281,14 @@ async fn get_players(
            WHERE mp.match_id = $1
            ORDER BY mp.team_number"#
     )
-    .bind(id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(id).fetch_all(&state.pool).await.unwrap_or_default();
 
     let mut result = Vec::new();
     for p in &participants {
         let players: Vec<DbMatchPlayer> = sqlx::query_as(
             "SELECT ign, uid, position FROM match_players WHERE participant_id = $1 ORDER BY position"
         )
-        .bind(p.id).fetch_all(&state.db).await.unwrap_or_default();
+        .bind(p.id).fetch_all(&state.pool).await.unwrap_or_default();
 
         let players_json: Vec<Value> = players.into_iter().map(|pl| {
             let uid_display = if can_see_full {
@@ -1340,13 +1341,13 @@ async fn update_leaderboard(
     Path(id): Path<i32>,
     Json(body): Json<LeaderboardBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
     if body.entries.is_empty() {
         return err_json(StatusCode::BAD_REQUEST, "entries array is required");
     }
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if user.id != m.host_id && user.role != "admin" {
@@ -1358,7 +1359,7 @@ async fn update_leaderboard(
             "UPDATE match_participants SET kills = $1, rank = $2 WHERE id = $3 AND match_id = $4"
         )
         .bind(entry.kills).bind(entry.rank).bind(entry.participant_id).bind(id)
-        .execute(&state.db).await;
+        .execute(&state.pool).await;
     }
 
     ok_json(json!({ "success": true }))
@@ -1371,10 +1372,10 @@ async fn kick_participant(
     headers: HeaderMap,
     Path((match_id, pid)): Path<(i32, i32)>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, match_id).await else {
+    let Some(m) = fetch_match(&state.pool, match_id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if user.id != m.host_id && user.role != "admin" {
@@ -1388,7 +1389,7 @@ async fn kick_participant(
         "SELECT user_id FROM match_participants WHERE id = $1 AND match_id = $2"
     )
     .bind(pid).bind(match_id)
-    .fetch_optional(&state.db).await.unwrap_or(None);
+    .fetch_optional(&state.pool).await.unwrap_or(None);
 
     let Some((part_user_id,)) = participant else {
         return err_json(StatusCode::NOT_FOUND, "Participant not found");
@@ -1396,16 +1397,16 @@ async fn kick_participant(
 
     if m.entry_fee > 0.0 {
         let _ = sqlx::query("UPDATE users SET balance = balance + $1 WHERE id = $2")
-            .bind(m.entry_fee).bind(part_user_id).execute(&state.db).await;
+            .bind(m.entry_fee).bind(part_user_id).execute(&state.pool).await;
         let _ = sqlx::query(
             "INSERT INTO match_escrow_transactions (match_id, user_id, type, amount) VALUES ($1,$2,'refund',$3)"
         )
-        .bind(match_id).bind(part_user_id).bind(m.entry_fee).execute(&state.db).await;
+        .bind(match_id).bind(part_user_id).bind(m.entry_fee).execute(&state.pool).await;
     }
-    let _ = sqlx::query("DELETE FROM match_players WHERE participant_id = $1").bind(pid).execute(&state.db).await;
-    let _ = sqlx::query("DELETE FROM match_participants WHERE id = $1").bind(pid).execute(&state.db).await;
+    let _ = sqlx::query("DELETE FROM match_players WHERE participant_id = $1").bind(pid).execute(&state.pool).await;
+    let _ = sqlx::query("DELETE FROM match_participants WHERE id = $1").bind(pid).execute(&state.pool).await;
     let _ = sqlx::query("UPDATE matches SET filled_slots = GREATEST(0, filled_slots - 1) WHERE id = $1")
-        .bind(match_id).execute(&state.db).await;
+        .bind(match_id).execute(&state.pool).await;
 
     ok_json(json!({ "success": true, "message": "Player kicked and entry fee refunded" }))
 }
@@ -1417,19 +1418,19 @@ async fn player_matches(
     headers: HeaderMap,
     Path(target_user_id): Path<i32>,
 ) -> Response {
-    let current_user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let current_user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
 
     let match_ids: Vec<i32> = sqlx::query_scalar(
         "SELECT match_id FROM match_participants WHERE user_id = $1"
     )
-    .bind(target_user_id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(target_user_id).fetch_all(&state.pool).await.unwrap_or_default();
 
     let mut results = Vec::new();
     for mid in match_ids {
-        if let Some(m) = fetch_match(&state.db, mid).await {
-            results.push(serialize_match(&state.db, &m, Some(current_user.id)).await);
+        if let Some(m) = fetch_match(&state.pool, mid).await {
+            results.push(serialize_match(&state.pool, &m, Some(current_user.id)).await);
         }
     }
     ok_json(json!(results))
@@ -1441,18 +1442,18 @@ async fn my_matches(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
 
     if user.role == "host" || user.role == "admin" {
         let hosted_ids: Vec<i32> = sqlx::query_scalar("SELECT id FROM matches WHERE host_id = $1 ORDER BY created_at")
-            .bind(user.id).fetch_all(&state.db).await.unwrap_or_default();
+            .bind(user.id).fetch_all(&state.pool).await.unwrap_or_default();
 
         let mut all = Vec::new();
         for mid in hosted_ids {
-            if let Some(m) = fetch_match(&state.db, mid).await {
-                all.push(serialize_match(&state.db, &m, Some(user.id)).await);
+            if let Some(m) = fetch_match(&state.pool, mid).await {
+                all.push(serialize_match(&state.pool, &m, Some(user.id)).await);
             }
         }
         let participated: Vec<&Value> = all.iter().filter(|m| m["status"] != "completed").collect();
@@ -1463,12 +1464,12 @@ async fn my_matches(
     let match_ids: Vec<i32> = sqlx::query_scalar(
         "SELECT match_id FROM match_participants WHERE user_id = $1"
     )
-    .bind(user.id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(user.id).fetch_all(&state.pool).await.unwrap_or_default();
 
     let mut all = Vec::new();
     for mid in match_ids {
-        if let Some(m) = fetch_match(&state.db, mid).await {
-            all.push(serialize_match(&state.db, &m, Some(user.id)).await);
+        if let Some(m) = fetch_match(&state.pool, mid).await {
+            all.push(serialize_match(&state.pool, &m, Some(user.id)).await);
         }
     }
     let participated: Vec<&Value> = all.iter().filter(|m| m["status"] != "completed").collect();
@@ -1494,13 +1495,13 @@ async fn post_review(
     Path(id): Path<i32>,
     Json(body): Json<ReviewBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
     if user.role != "player" {
         return err_json(StatusCode::FORBIDDEN, "Only players can review hosts");
     }
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.status != "completed" {
@@ -1510,7 +1511,7 @@ async fn post_review(
     let participated: Option<(i32,)> = sqlx::query_as(
         "SELECT id FROM match_participants WHERE match_id = $1 AND user_id = $2"
     )
-    .bind(id).bind(user.id).fetch_optional(&state.db).await.unwrap_or(None);
+    .bind(id).bind(user.id).fetch_optional(&state.pool).await.unwrap_or(None);
     if participated.is_none() {
         return err_json(StatusCode::FORBIDDEN, "You did not participate in this match");
     }
@@ -1518,7 +1519,7 @@ async fn post_review(
     let existing: Option<(i32,)> = sqlx::query_as(
         "SELECT id FROM host_ratings WHERE match_id = $1 AND rater_id = $2"
     )
-    .bind(id).bind(user.id).fetch_optional(&state.db).await.unwrap_or(None);
+    .bind(id).bind(user.id).fetch_optional(&state.pool).await.unwrap_or(None);
     if existing.is_some() {
         return err_json(StatusCode::BAD_REQUEST, "You have already reviewed this match");
     }
@@ -1545,7 +1546,7 @@ async fn post_review(
     )
     .bind(id).bind(user.id).bind(m.host_id)
     .bind(prize_on_time).bind(room_code_on_time).bind(rating_val)
-    .execute(&state.db).await;
+    .execute(&state.pool).await;
 
     let _ = sqlx::query(
         "INSERT INTO host_reviews (match_id, reviewer_id, host_id, rating, comment)
@@ -1553,27 +1554,27 @@ async fn post_review(
     )
     .bind(id).bind(user.id).bind(m.host_id).bind(rating_val)
     .bind(body.comment.as_deref().filter(|s| !s.is_empty()))
-    .execute(&state.db).await;
+    .execute(&state.pool).await;
 
     let avg_rating: f64 = sqlx::query_scalar(
         "SELECT COALESCE(CAST(AVG(overall_rating) AS FLOAT8), 0) FROM host_ratings WHERE host_id = $1"
     )
-    .bind(m.host_id).fetch_one(&state.db).await.unwrap_or(0.0);
+    .bind(m.host_id).fetch_one(&state.pool).await.unwrap_or(0.0);
     let rating_count: i32 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM host_ratings WHERE host_id = $1"
     )
-    .bind(m.host_id).fetch_one(&state.db).await.unwrap_or(0);
+    .bind(m.host_id).fetch_one(&state.pool).await.unwrap_or(0);
     let hosted_count: i32 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM matches WHERE host_id = $1 AND status::TEXT = 'completed'"
     )
-    .bind(m.host_id).fetch_one(&state.db).await.unwrap_or(0);
+    .bind(m.host_id).fetch_one(&state.pool).await.unwrap_or(0);
     let new_badge = get_host_badge(hosted_count, avg_rating);
 
     let _ = sqlx::query(
         "UPDATE users SET host_rating_avg = $1, host_rating_count = $2, host_badge = $3 WHERE id = $4"
     )
     .bind(avg_rating).bind(rating_count).bind(new_badge).bind(m.host_id)
-    .execute(&state.db).await;
+    .execute(&state.pool).await;
 
     ok_json(json!({ "success": true }))
 }
@@ -1585,13 +1586,13 @@ async fn get_bracket(
     headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Response {
-    let _user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let _user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
     let row: Option<(i32, String)> = sqlx::query_as(
         "SELECT match_id, bracket_data FROM tournament_brackets WHERE match_id = $1"
     )
-    .bind(id).fetch_optional(&state.db).await.unwrap_or(None);
+    .bind(id).fetch_optional(&state.pool).await.unwrap_or(None);
     let Some((match_id, bracket_data_str)) = row else {
         return err_json(StatusCode::NOT_FOUND, "No bracket found");
     };
@@ -1606,10 +1607,10 @@ async fn create_bracket(
     headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.host_id != user.id && user.role != "admin" {
@@ -1622,7 +1623,7 @@ async fn create_bracket(
     let existing: Option<(i32,)> = sqlx::query_as(
         "SELECT id FROM tournament_brackets WHERE match_id = $1"
     )
-    .bind(id).fetch_optional(&state.db).await.unwrap_or(None);
+    .bind(id).fetch_optional(&state.pool).await.unwrap_or(None);
     if existing.is_some() {
         return err_json(StatusCode::BAD_REQUEST, "Bracket already exists");
     }
@@ -1630,7 +1631,7 @@ async fn create_bracket(
     let teams: Vec<(Option<String>, i32)> = sqlx::query_as(
         "SELECT team_name, team_number FROM match_participants WHERE match_id = $1 ORDER BY team_number"
     )
-    .bind(id).fetch_all(&state.db).await.unwrap_or_default();
+    .bind(id).fetch_all(&state.pool).await.unwrap_or_default();
 
     if teams.len() < 2 {
         return err_json(StatusCode::BAD_REQUEST, "Need at least 2 teams to create a bracket");
@@ -1666,7 +1667,7 @@ async fn create_bracket(
     let _ = sqlx::query(
         "INSERT INTO tournament_brackets (match_id, bracket_data) VALUES ($1,$2)"
     )
-    .bind(id).bind(&bracket_str).execute(&state.db).await;
+    .bind(id).bind(&bracket_str).execute(&state.pool).await;
 
     ok_json(json!({ "matchId": id, "bracketData": bracket_data }))
 }
@@ -1685,10 +1686,10 @@ async fn update_bracket(
     Path(id): Path<i32>,
     Json(body): Json<UpdateBracketBody>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
-    let Some(m) = fetch_match(&state.db, id).await else {
+    let Some(m) = fetch_match(&state.pool, id).await else {
         return err_json(StatusCode::NOT_FOUND, "Match not found");
     };
     if m.host_id != user.id && user.role != "admin" {
@@ -1701,7 +1702,7 @@ async fn update_bracket(
     let _ = sqlx::query(
         "UPDATE tournament_brackets SET bracket_data = $1, updated_at = NOW() WHERE match_id = $2"
     )
-    .bind(&bracket_str).bind(id).execute(&state.db).await;
+    .bind(&bracket_str).bind(id).execute(&state.pool).await;
     ok_json(json!({ "matchId": id, "bracketData": bracket_data }))
 }
 
@@ -1712,7 +1713,7 @@ async fn admin_list_matches(
     headers: HeaderMap,
     Query(q): Query<std::collections::HashMap<String, String>>,
 ) -> Response {
-    let user = match auth_user(&headers, &state.jwt_secret, &state.db).await {
+    let user = match auth_user(&state, &headers).await {
         Ok(u) => u, Err(r) => return r,
     };
     if user.role != "admin" {
@@ -1726,11 +1727,11 @@ async fn admin_list_matches(
     };
 
     let matches: Vec<DbMatch> = sqlx::query_as::<_, DbMatch>(&sql)
-        .fetch_all(&state.db).await.unwrap_or_default();
+        .fetch_all(&state.pool).await.unwrap_or_default();
 
     let mut serialized = Vec::new();
     for m in &matches {
-        serialized.push(serialize_match(&state.db, m, Some(user.id)).await);
+        serialized.push(serialize_match(&state.pool, m, Some(user.id)).await);
     }
     ok_json(json!(serialized))
 }
