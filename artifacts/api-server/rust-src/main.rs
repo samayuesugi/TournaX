@@ -1,3 +1,7 @@
+mod auth;
+mod email;
+
+use auth::OtpEntry;
 use axum::{
     body::{Body, Bytes},
     extract::{OriginalUri, State},
@@ -6,12 +10,14 @@ use axum::{
     routing::{any, get},
     Json, Router,
 };
+use dashmap::DashMap;
 use reqwest::Client;
 use serde_json::json;
+use sqlx::PgPool;
 use std::{
     env,
-    path::PathBuf,
     net::SocketAddr,
+    path::PathBuf,
     process::{Child, Command, Stdio},
     sync::Arc,
     time::Duration,
@@ -19,11 +25,19 @@ use std::{
 use tokio::time::sleep;
 use tracing::{error, info, warn};
 
-#[derive(Clone)]
-struct AppState {
-    client: Client,
-    legacy_base_url: String,
+// ─── Shared State ─────────────────────────────────────────────────────────────
+
+pub struct AppState {
+    pub client: Client,
+    pub legacy_base_url: String,
+    pub pool: PgPool,
+    pub otp_store: Arc<DashMap<String, OtpEntry>>,
+    pub jwt_secret: String,
+    pub gmail_user: String,
+    pub gmail_pass: String,
 }
+
+// ─── Entry Point ──────────────────────────────────────────────────────────────
 
 #[tokio::main]
 async fn main() {
@@ -38,8 +52,18 @@ async fn main() {
 
     let legacy_port = env::var("LEGACY_API_PORT")
         .ok()
-        .and_then(|value| value.parse::<u16>().ok())
+        .and_then(|v| v.parse::<u16>().ok())
         .unwrap_or(9090);
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
+    let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET is required");
+    let gmail_user = env::var("GMAIL_USER").unwrap_or_default();
+    let gmail_pass = env::var("GMAIL_APP_PASSWORD").unwrap_or_default();
+
+    let pool = PgPool::connect(&database_url)
+        .await
+        .expect("failed to connect to PostgreSQL");
+    info!("connected to PostgreSQL");
 
     let mut legacy = start_legacy_server(legacy_port).expect("failed to start legacy API server");
     let legacy_base_url = format!("http://127.0.0.1:{legacy_port}");
@@ -49,15 +73,21 @@ async fn main() {
     let state = Arc::new(AppState {
         client: Client::new(),
         legacy_base_url,
+        pool,
+        otp_store: Arc::new(DashMap::new()),
+        jwt_secret,
+        gmail_user,
+        gmail_pass,
     });
 
     let app = Router::new()
         .route("/api/healthz", get(healthz))
+        .nest("/api", auth::auth_router())
         .fallback(any(proxy_to_legacy))
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!(port, legacy_port, "Rust API gateway listening");
+    info!(port, legacy_port, "Rust API gateway listening (auth handled natively)");
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
@@ -76,8 +106,10 @@ async fn main() {
     }
 }
 
+// ─── Handlers ─────────────────────────────────────────────────────────────────
+
 async fn healthz() -> impl IntoResponse {
-    let mut response = Json(json!({ "status": "ok", "backend": "rust" })).into_response();
+    let mut response = Json(json!({ "status": "ok", "backend": "rust", "auth": "native" })).into_response();
     add_cors_headers(response.headers_mut());
     response
 }
@@ -97,7 +129,7 @@ async fn proxy_to_legacy(
 
     let url = format!("{}{}", state.legacy_base_url, uri);
     let request_method = match reqwest::Method::from_bytes(method.as_str().as_bytes()) {
-        Ok(method) => method,
+        Ok(m) => m,
         Err(_) => return status_json(StatusCode::METHOD_NOT_ALLOWED, "Unsupported method"),
     };
 
@@ -115,7 +147,10 @@ async fn proxy_to_legacy(
             let upstream_headers = upstream.headers().clone();
             match upstream.bytes().await {
                 Ok(bytes) => {
-                    let mut response = Response::builder().status(status).body(Body::from(bytes)).unwrap();
+                    let mut response = Response::builder()
+                        .status(status)
+                        .body(Body::from(bytes))
+                        .unwrap();
                     copy_response_headers(&upstream_headers, response.headers_mut());
                     add_cors_headers(response.headers_mut());
                     response
@@ -132,6 +167,8 @@ async fn proxy_to_legacy(
         }
     }
 }
+
+// ─── Legacy Server ────────────────────────────────────────────────────────────
 
 fn start_legacy_server(port: u16) -> std::io::Result<Child> {
     let entry = legacy_entry_path();
@@ -150,13 +187,11 @@ fn legacy_entry_path() -> PathBuf {
     if let Ok(path) = env::var("LEGACY_API_ENTRY") {
         return PathBuf::from(path);
     }
-
     let candidates = [
         PathBuf::from("./dist/index.mjs"),
         PathBuf::from("artifacts/api-server/dist/index.mjs"),
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dist/index.mjs"),
     ];
-
     candidates
         .into_iter()
         .find(|path| path.exists())
@@ -166,19 +201,19 @@ fn legacy_entry_path() -> PathBuf {
 async fn wait_for_legacy(base_url: &str) {
     let client = Client::new();
     let health_url = format!("{base_url}/api/healthz");
-
     for _ in 0..50 {
         match client.get(&health_url).send().await {
-            Ok(response) if response.status().is_success() => {
+            Ok(r) if r.status().is_success() => {
                 info!("legacy API fallback is ready");
                 return;
             }
             _ => sleep(Duration::from_millis(200)).await,
         }
     }
-
     warn!("legacy API fallback did not pass health check before gateway startup");
 }
+
+// ─── Graceful Shutdown ────────────────────────────────────────────────────────
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -204,13 +239,15 @@ async fn shutdown_signal() {
     }
 }
 
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
 fn status_json(status: StatusCode, message: &str) -> Response {
     let mut response = (status, Json(json!({ "error": message }))).into_response();
     add_cors_headers(response.headers_mut());
     response
 }
 
-fn add_cors_headers(headers: &mut HeaderMap) {
+pub fn add_cors_headers(headers: &mut HeaderMap) {
     headers.insert("access-control-allow-origin", HeaderValue::from_static("*"));
     headers.insert(
         "access-control-allow-methods",
@@ -227,11 +264,11 @@ fn copy_response_headers(source: &reqwest::header::HeaderMap, target: &mut Heade
         if is_hop_by_hop_header(name.as_str()) {
             continue;
         }
-        if let (Ok(header_name), Ok(header_value)) = (
+        if let (Ok(hn), Ok(hv)) = (
             HeaderName::from_bytes(name.as_str().as_bytes()),
             HeaderValue::from_bytes(value.as_bytes()),
         ) {
-            target.insert(header_name, header_value);
+            target.insert(hn, hv);
         }
     }
 }
